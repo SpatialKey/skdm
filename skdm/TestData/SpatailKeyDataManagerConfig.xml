@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>    
+  <organizationName>dev3</organizationName>
+  <userName>user@spatialkey.com</userName>
+  <password>xxx</password>
+  <actions>
+    <action name="sales">
+      <dataPath>SalesData.csv</dataPath>
+      <xmlPath>SalesData.xml</xmlPath>
+      <action>overwrite</action>
+      <runAsBackground>true</runAsBackground>
+      <notifyByEmail>true</notifyByEmail>
+      <addAllUsers>false</addAllUsers>
+    </action>
+    <action name="testdata">
+      <dataPath>TestData.csv</dataPath>
+      <xmlPath>TestData.xml</xmlPath>
+      <action>overwrite</action>
+      <runAsBackground>true</runAsBackground>
+      <notifyByEmail>true</notifyByEmail>
+      <addAllUsers>false</addAllUsers>
+    </action>
+  </actions>
+</config>
+
