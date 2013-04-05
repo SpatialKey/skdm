@@ -3,7 +3,6 @@
 /// <author>Robert Stehwien</author>
 /// <datecreated>2013-04-01</datecreated>
 /// </file>
-
 using System;
 using System.Xml;
 
@@ -11,30 +10,34 @@ namespace skdm
 {
 	class MainClass
 	{
-		public static void Main (string[] args)
+		public static void Main(string[] args)
 		{
 			string configFile = "SpatailKeyDataManagerConfig.xml";
-			if (args.Length > 0) configFile = args[0];
+			if (args.Length > 0)
+				configFile = args[0];
 			
-			XmlDocument doc = new XmlDocument ();
-			doc.Load (configFile);
+			XmlDocument doc = new XmlDocument();
+			doc.Load(configFile);
 
 			String defaultOrganizationName = GetInnerText(doc, "/config/organizationName");
 			String defaultUserName = GetInnerText(doc, "/config/userName");
 			String defaultPassword = GetInnerText(doc, "/config/password");
 			String defaultApiKey = GetInnerText(doc, "/config/apiKey"); 
+			String defaultUserId = GetInnerText(doc, "/config/userId"); 
 
 			var actionNodes = doc.SelectNodes("/config/actions/action");
-			foreach (XmlNode actionNode in actionNodes) {
+			foreach (XmlNode actionNode in actionNodes)
+			{
 				String organizationName = GetInnerText(doc, "organizationName", defaultOrganizationName);
 				String userName = GetInnerText(doc, "userName", defaultUserName);
 				String password = GetInnerText(doc, "password", defaultPassword);
 				String apiKey = GetInnerText(doc, "apiKey", defaultApiKey); 
+				String userId = GetInnerText(doc, "userId", defaultUserId); 
 				String action = GetInnerText(actionNode, "action");
 				String actionName = GetInnerText(actionNode, "@name");
 
 
-				SpatialKeyDataManager skapi = new SpatialKeyDataManager(organizationName, userName, password, apiKey, Log);
+				SpatialKeyDataManager skapi = new SpatialKeyDataManager(organizationName, userName, password, apiKey, userId, Log);
 				
 				if (action.ToLower() == "overwrite" || action.ToLower() == "append")
 				{
@@ -57,7 +60,7 @@ namespace skdm
 
 		private static String GetInnerText(XmlNode node, String path, String defaultValue = "")
 		{
-			XmlNode value = node.SelectSingleNode (path);
+			XmlNode value = node.SelectSingleNode(path);
 			return value != null ? value.InnerText : defaultValue;
 		}
 

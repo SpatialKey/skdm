@@ -43,6 +43,16 @@ namespace skdm
 		public string password { get; private set; }
 		
 		/// <summary>
+		/// Authentication apiKey for <see cref="Authenticate()"/>
+		/// </summary>
+		public string apiKey { get; private set; }
+		
+		/// <summary>
+		/// Authentication userId for <see cref="Authenticate()"/>
+		/// </summary>
+		public string userId { get; private set; }
+
+		/// <summary>
 		/// Gets or sets the logger.  Used by  for <see cref="Log(message)"/>
 		/// </summary>
 		public Logger logger { get; set; }
@@ -77,14 +87,21 @@ namespace skdm
 		/// <param name='password'>
 		/// Authentication password for <see cref="Authenticate()"/>
 		/// </param>
+		/// </param>
+		/// <param name='apiKey'>
+		/// Authentication apiKey for <see cref="Authenticate()"/>
+		/// </param>
+		/// <param name='userId'>
+		/// Authentication userId for <see cref="Authenticate()"/>
+		/// </param>
 		/// <param name='logger'>
 		/// Used by for <see cref="Log(message)"/>
 		/// </param>
-		public SpatialKeyDataManager (string organizationName = null, string userName = null, string password = null, String apiKey = null, Logger logger = null)
+		public SpatialKeyDataManager(string organizationName = null, string userName = null, string password = null, String apiKey = null, String userId = null, Logger logger = null)
 		{
 			this.logger = logger;
-			// TODO do something with apiKey
-			Init (organizationName, userName, password);
+			// TODO do something with apiKey and userId
+			Init(organizationName, userName, password, apiKey, userId);
 		}
 		
 		/// <summary>
@@ -99,12 +116,20 @@ namespace skdm
 		/// <param name='password'>
 		/// Authentication password for <see cref="Authenticate()"/>
 		/// </param>
-		public void Init (string organizationName = null, string userName = null, string password = null)
+		/// <param name='apiKey'>
+		/// Authentication apiKey for <see cref="Authenticate()"/>
+		/// </param>
+		/// <param name='userId'>
+		/// Authentication userId for <see cref="Authenticate()"/>
+		/// </param>
+		public void Init(string organizationName = null, string userName = null, string password = null, String apiKey = null, String userId = null)
 		{
 			this.organizationName = organizationName;
 			this.userName = userName;
 			this.password = password;
 			this.logger = logger;
+			this.apiKey = apiKey;
+			this.userId = userId;
 			
 			clusterHost = null;
 			_jsessionID = null; 
@@ -121,21 +146,22 @@ namespace skdm
 		/// </param>
 		private void Log(string message)
 		{
-			if (logger != null) logger(message);
+			if (logger != null)
+				logger(message);
 		}
 		
 		#region low level dataImportAPI calls
 		/// <summary>
 		/// Look up the cluster for the <see cref="organizationName"/> to get <see cref="clusterHost"/> and <see cref="_protocol"/>
 		/// </summary>
-		private void ClusterLookup ()
+		private void ClusterLookup()
 		{
-			string url = String.Format ("http://{0}.spatialkey.com/clusterlookup.cfm", organizationName);
+			string url = String.Format("http://{0}.spatialkey.com/clusterlookup.cfm", organizationName);
 			//string url = String.Format ("http://localhost:9090/clusterlookup", organizationName);
 			Log(String.Format("ClusterLookup: {0}", url));
 			
-			XmlDocument doc = new XmlDocument ();
-			doc.Load (url);
+			XmlDocument doc = new XmlDocument();
+			doc.Load(url);
 			Log(doc.InnerXml);
 			
 			clusterHost = doc.SelectSingleNode("/organization/cluster").InnerText;
@@ -147,30 +173,46 @@ namespace skdm
 		/// <summary>
 		/// Authenticate to the dataImportAPI and get the <see cref="_jsessionID"/>
 		/// </summary>
-		private void Authenticate ()
+		private void Authenticate()
 		{
-			if (clusterHost == null) {
-				ClusterLookup ();
+			if (clusterHost == null || clusterHost.Length < 0)
+			{
+				ClusterLookup();
 			}
 			
 			string password = HttpUtility.UrlEncode(this.password);
-			string url = String.Format ("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&orgName={2}&user={3}&password={4}", 
-			                            _protocol, clusterHost, organizationName, HttpUtility.UrlEncode (userName), password);
+			string url = "";
+			if (userName != null && userName.Length > 0 && password != null && password.Length > 0)
+			{
+				url = String.Format("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&orgName={2}&user={3}&password={4}", 
+				                     _protocol, clusterHost, organizationName, HttpUtility.UrlEncode(userName), password);
+			}
+			else if (apiKey != null && apiKey.Length > 0 && userId != null && userId.Length > 0)
+			{
+				url = String.Format("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&orgName={2}&userId={3}&apiKey={4}", 
+				                     _protocol, clusterHost, organizationName, HttpUtility.UrlEncode(userId), HttpUtility.UrlEncode(apiKey));
+			}
+			else
+			{
+				// TODO throw error
+			}
+
 			Log(String.Format("Authenticate: {0}", url.Replace(password, "XXX")));
 			
-			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create (url);
+			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(url);
 			request.Method = "GET";
-			CookieContainer cookieJar = new CookieContainer ();
+			CookieContainer cookieJar = new CookieContainer();
 			request.CookieContainer = cookieJar;
 			
 			using (HttpWebResponse response = (HttpWebResponse)request.GetResponse ())
-				using (StreamReader streamReader = new StreamReader(response.GetResponseStream()))
+			using (StreamReader streamReader = new StreamReader(response.GetResponseStream()))
 			{
-				if (response.StatusCode != HttpStatusCode.OK) {
-					throw new SystemException ("Authentication Failed");
+				if (response.StatusCode != HttpStatusCode.OK)
+				{
+					throw new SystemException("Authentication Failed");
 				}
 				
-				_jsessionID = cookieJar.GetCookies (request.RequestUri) ["JSESSIONID"];
+				_jsessionID = cookieJar.GetCookies(request.RequestUri)["JSESSIONID"];
 				Log(streamReader.ReadToEnd());
 			}
 			
@@ -201,19 +243,19 @@ namespace skdm
 		/// <param name='addAllUsers'>
 		/// if set as true the SpatialKey server will add the All Users group as a viewer of the dataset
 		/// </param>
-		public void UploadData (string dataPath, string xmlPath, string action = "overwrite", bool runAsBackground = true, bool notifyByEmail = false, bool addAllUsers = false)
+		public void UploadData(string dataPath, string xmlPath, string action = "overwrite", bool runAsBackground = true, bool notifyByEmail = false, bool addAllUsers = false)
 		{
 			Log(String.Format("UploadData: {0} {1}", dataPath, xmlPath));
 			
-			string zipPath = ZipData (new string[] {dataPath, xmlPath});
+			string zipPath = ZipData(new string[] {dataPath, xmlPath});
 			
 			try
 			{
-				UploadZip (zipPath, action, runAsBackground, notifyByEmail, addAllUsers);
+				UploadZip(zipPath, action, runAsBackground, notifyByEmail, addAllUsers);
 			}
 			finally
 			{
-				File.Delete (zipPath);
+				File.Delete(zipPath);
 			}
 			
 			Log("UploadData: Complete");
@@ -238,13 +280,13 @@ namespace skdm
 		/// <param name='addAllUsers'>
 		/// if set as true the SpatialKey server will add the All Users group as a viewer of the dataset
 		/// </param>
-		public void UploadZip (string zipPath, string action = "overwrite", bool runAsBackground = true, bool notifyByEmail = false, bool addAllUsers = false)
+		public void UploadZip(string zipPath, string action = "overwrite", bool runAsBackground = true, bool notifyByEmail = false, bool addAllUsers = false)
 		{
-			Authenticate ();
+			Authenticate();
 			
 			string path = "/SpatialKeyFramework/dataImportAPI";
 			
-			string url = String.Format ("{0}{1}{2}", 
+			string url = String.Format("{0}{1}{2}", 
 			                            _protocol,
 			                            clusterHost,
 			                            path,
@@ -256,7 +298,7 @@ namespace skdm
 			Log(String.Format("UploadZip: {0} {1}", url, zipPath));
 			
 			// create the jsessionID cookie
-			CookieContainer cookieJar = new CookieContainer ();
+			CookieContainer cookieJar = new CookieContainer();
 			Cookie cookie = new Cookie(_jsessionID.Name, _jsessionID.Value);
 			cookieJar.Add(new Uri(String.Format("{0}{1}", _protocol, clusterHost)), cookie);
 			
@@ -288,21 +330,21 @@ namespace skdm
 		/// <param name='paths'>
 		/// Array of file paths to include
 		/// </param>
-		private string ZipData (string[] paths)
+		private string ZipData(string[] paths)
 		{
 			Log(String.Format("ZipData: {0}", String.Join(", ", paths)));
 			
-			string zipPath = GetTempFile ("zip");
-			ZipOutputStream zipStream = new ZipOutputStream (File.Create (zipPath));
+			string zipPath = GetTempFile("zip");
+			ZipOutputStream zipStream = new ZipOutputStream(File.Create(zipPath));
 			
 			foreach (string path in paths)
 			{
 				ZipAdd(zipStream, path);
 			}
 			
-			zipStream.Finish ();
+			zipStream.Finish();
 			zipStream.IsStreamOwner = true;	// Makes the Close also Close the underlying stream
-			zipStream.Close ();
+			zipStream.Close();
 			
 			Log(String.Format("ZipData: {0}", zipPath));
 			return zipPath;
@@ -317,13 +359,13 @@ namespace skdm
 		/// <param name='fName'>
 		/// File path to add to the zip
 		/// </param>
-		private void ZipAdd (ZipOutputStream zipStream, string fName)
+		private void ZipAdd(ZipOutputStream zipStream, string fName)
 		{
 			Log(String.Format("ZipAdd: {0}", fName));
-			FileInfo fi = new FileInfo (fName);
+			FileInfo fi = new FileInfo(fName);
 			
 			// add the entry
-			ZipEntry newEntry = new ZipEntry (fi.Name);
+			ZipEntry newEntry = new ZipEntry(fi.Name);
 			newEntry.DateTime = fi.LastWriteTime;
 			// To permit the zip to be unpacked by built-in extractor in WinXP and Server2003, WinZip 8, Java, and other older code,
 			// you need to do one of the following: Specify UseZip64.Off, or set the Size.
@@ -332,14 +374,15 @@ namespace skdm
 			//   zipStream.UseZip64 = UseZip64.Off;
 			newEntry.Size = fi.Length;
 			
-			zipStream.PutNextEntry (newEntry);
+			zipStream.PutNextEntry(newEntry);
 			
 			// Zip the file in buffered chunks
 			// the "using" will close the stream even if an exception occurs
-			using (FileStream streamReader = File.OpenRead(fName)) {
+			using (FileStream streamReader = File.OpenRead(fName))
+			{
 				streamReader.CopyTo(zipStream);
 			}
-			zipStream.CloseEntry ();
+			zipStream.CloseEntry();
 			Log("ZipAdd: Complete");
 		}
 		
@@ -397,19 +440,24 @@ namespace skdm
 		/// <param name='fileExtension'>
 		/// File extension.
 		/// </param>
-		private string GetTempFile (string fileExtension)
+		private string GetTempFile(string fileExtension)
 		{
-			string temp = System.IO.Path.GetTempPath ();
+			string temp = System.IO.Path.GetTempPath();
 			string res = string.Empty;
-			while (true) {
-				res = string.Format ("{0}.{1}", Guid.NewGuid ().ToString (), fileExtension);
-				res = System.IO.Path.Combine (temp, res);
-				if (!System.IO.File.Exists (res)) {
-					try {
-						System.IO.FileStream s = System.IO.File.Create (res);
-						s.Close ();
+			while (true)
+			{
+				res = string.Format("{0}.{1}", Guid.NewGuid().ToString(), fileExtension);
+				res = System.IO.Path.Combine(temp, res);
+				if (!System.IO.File.Exists(res))
+				{
+					try
+					{
+						System.IO.FileStream s = System.IO.File.Create(res);
+						s.Close();
 						break;
-					} catch (Exception) {
+					}
+					catch (Exception)
+					{
 						
 					}
 				}
