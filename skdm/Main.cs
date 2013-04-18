@@ -31,6 +31,10 @@ namespace skdm
 			String defaultUserId = GetInnerText(doc, "/config/userId"); 
 
 			var actionNodes = doc.SelectNodes("/config/actions/action");
+
+			// Last authenticate
+			SpatialKeyDataManager skapi = null;
+
 			foreach (XmlNode actionNode in actionNodes)
 			{
 				try
@@ -51,7 +55,14 @@ namespace skdm
 
 					Log(String.Format("Running Action: {0}", actionName));
 
-					SpatialKeyDataManager skapi = new SpatialKeyDataManager(organizationName, clusterDomainUrl, userName, password, apiKey, userId, Log);
+					if (skapi == null)
+					{
+						skapi = new SpatialKeyDataManager(organizationName, clusterDomainUrl, userName, password, apiKey, userId, Log);
+					}
+					else
+					{
+						skapi.Init(organizationName, clusterDomainUrl, userName, password, apiKey, userId);
+					}
 					
 					if (action.ToLower() == "overwrite" || action.ToLower() == "append")
 					{

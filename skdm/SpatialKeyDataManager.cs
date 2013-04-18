@@ -33,6 +33,11 @@ namespace skdm
 		public string organizationName { get; private set; }
 		
 		/// <summary>
+		/// Name of the SpatialKey organization url"/>
+		/// </summary>
+		public string clusterDomainUrl { get; private set; }
+		
+		/// <summary>
 		/// Authentication username for <see cref="Authenticate()"/>
 		/// </summary>
 		public string userName { get; private set; }
@@ -100,8 +105,7 @@ namespace skdm
 		public SpatialKeyDataManager(string organizationName = null, string clusterDomainUrl = null, string userName = null, string password = null, String apiKey = null, String userId = null, Logger logger = null)
 		{
 			this.logger = logger;
-			// TODO do something with apiKey and userId
-			Init(organizationName, userName, password, apiKey, userId);
+			Init(organizationName, clusterDomainUrl, userName, password, apiKey, userId);
 		}
 		
 		/// <summary>
@@ -122,9 +126,21 @@ namespace skdm
 		/// <param name='userId'>
 		/// Authentication userId for <see cref="Authenticate()"/>
 		/// </param>
-		public void Init(string organizationName = null, string userName = null, string password = null, String apiKey = null, String userId = null)
+		public void Init(string organizationName = null, string clusterDomainUrl = null, string userName = null, string password = null, String apiKey = null, String userId = null)
 		{
+			// if the setup is the same, bail
+			if (this.organizationName == organizationName && 
+				this.clusterDomainUrl == clusterDomainUrl &&
+			    this.userName == userName &&
+			    this.password == password &&
+			    this.apiKey == apiKey &&
+			    this.userId == userId)
+			{
+				return;
+			}
+
 			this.organizationName = organizationName;
+			this.clusterDomainUrl = clusterDomainUrl;
 			this.userName = userName;
 			this.password = password;
 			this.logger = logger;
@@ -135,7 +151,12 @@ namespace skdm
 			_jsessionID = null; 
 			_protocol = null;
 
-
+			if (clusterDomainUrl != null && clusterDomainUrl.Length > 0)
+			{
+				Uri uri = new Uri(clusterDomainUrl);
+				_protocol = uri.Scheme == "http" ? "http://" : "https://";
+				clusterHost = uri.Host;
+			}
 		}
 		
 		/// <summary>
@@ -156,8 +177,10 @@ namespace skdm
 		/// </summary>
 		private void ClusterLookup()
 		{
+			if (clusterHost != null && clusterHost.Length > 0 && _protocol != null && _protocol.Length > 0)
+				return;
+
 			string url = String.Format("http://{0}.spatialkey.com/clusterlookup.cfm", organizationName);
-			//string url = String.Format ("http://localhost:9090/clusterlookup", organizationName);
 			Log(String.Format("ClusterLookup: {0}", url));
 			
 			XmlDocument doc = new XmlDocument();
@@ -175,30 +198,30 @@ namespace skdm
 		/// </summary>
 		private void Authenticate()
 		{
-			if (clusterHost == null || clusterHost.Length < 0)
-			{
-				ClusterLookup();
-			}
-			
-			string password = HttpUtility.UrlEncode(this.password);
+			if (_jsessionID != null)
+				return;
+
+			ClusterLookup();
+
 			string url = "";
-			if (userName != null && userName.Length > 0 && password != null && password.Length > 0)
-			{
-				url = String.Format("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&orgName={2}&user={3}&password={4}", 
-				                     _protocol, clusterHost, organizationName, HttpUtility.UrlEncode(userName), password);
-			}
-			else if (apiKey != null && apiKey.Length > 0 && userId != null && userId.Length > 0)
+			if (apiKey != null && apiKey.Length > 0 && userId != null && userId.Length > 0)
 			{
 				url = String.Format("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&orgName={2}&userId={3}&apiKey={4}", 
-				                     _protocol, clusterHost, organizationName, HttpUtility.UrlEncode(userId), HttpUtility.UrlEncode(apiKey));
+				                    _protocol, clusterHost, organizationName, HttpUtility.UrlEncode(userId), HttpUtility.UrlEncode(apiKey));
+				Log(String.Format("Authenticate: {0}", url.Replace(apiKey, "XXX").Replace(userId, "XXX")));
+			}
+			else if (userName != null && userName.Length > 0 && this.password != null && this.password.Length > 0)
+			{
+				string password = HttpUtility.UrlEncode(this.password);
+				url = String.Format("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&orgName={2}&user={3}&password={4}", 
+				                     _protocol, clusterHost, organizationName, HttpUtility.UrlEncode(userName), password);
+				Log(String.Format("Authenticate: {0}", url.Replace(password, "XXX")));
 			}
 			else
 			{
-				// TODO throw error
+				throw new ArgumentException("Must have userName and password or apiKey and userId.");
 			}
 
-			Log(String.Format("Authenticate: {0}", url.Replace(password, "XXX")));
-			
 			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(url);
 			request.Method = "GET";
 			CookieContainer cookieJar = new CookieContainer();
@@ -245,6 +268,8 @@ namespace skdm
 		/// </param>
 		public void UploadData(string dataPath, string xmlPath, string action = "overwrite", bool runAsBackground = true, bool notifyByEmail = false, bool addAllUsers = false)
 		{
+			Authenticate();
+			
 			Log(String.Format("UploadData: {0} {1}", dataPath, xmlPath));
 			
 			string zipPath = ZipData(new string[] {dataPath, xmlPath});
@@ -282,8 +307,6 @@ namespace skdm
 		/// </param>
 		private void UploadZip(string zipPath, string action = "overwrite", bool runAsBackground = true, bool notifyByEmail = false, bool addAllUsers = false)
 		{
-			Authenticate();
-			
 			string path = "/SpatialKeyFramework/dataImportAPI";
 			
 			string url = String.Format("{0}{1}{2}", 

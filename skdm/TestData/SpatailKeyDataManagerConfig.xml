@@ -5,19 +5,26 @@
 		Given with either organizationName or clusterDomainUrl
 		* organizationName - Will do a cluster lookup to find the clusterDomainUrl before authentication
 		* clusterDomainUrl - Used directly for authentication and actions
-	-->    
+	-->
+	<!--    
 	<organizationName>dev3</organizationName>
+	-->
+	<clusterDomainUrl>http://dev.spatialkey.com/</clusterDomainUrl>
 
 	<!--
 		Default authentiction information is used for any action that doesn't override the value
 		Given with either userName and password or apiKey and userId
-		* userName and password - The user name and password to use, not as secure as using IDs
 		* apiKey and userId - The keys to use to authenticate
-	-->    
+		* userName and password - The user name and password to use, not as secure as using IDs
+	-->
+	<apiKey>xxx</apiKey>
+	<userId>xxx</userId>
+	<!--
 	<userName>user@spatialkey.com</userName>
 	<password>xxx</password>
+	-->
 
-	<!-- A list of actions to perform -->	
+	<!-- A list of actions to perform, each action can override organizationName, clusterDomainUrl, apiKey, userId, username, or password -->	
 	<actions>
 		<action name="csv example">
 		  <action>overwrite</action>
