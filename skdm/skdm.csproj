@@ -53,7 +53,6 @@
     <None Include="TestData\SpatailKeyDataManagerConfig.xml" />
     <None Include="TestData\SalesData.csv" />
     <None Include="TestData\SalesData.xml" />
-    <None Include="TestData\TechCrunch.csv" />
-    <None Include="TestData\TechCrunch.xml" />
+    <None Include="TestData\110thCongressionalDistrictShapefile.zip" />
   </ItemGroup>
 </Project>

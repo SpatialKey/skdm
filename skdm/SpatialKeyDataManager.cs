@@ -20,7 +20,7 @@ namespace skdm
 	/// <summary>
 	/// The SpatialKey Data Import API (DIAPI) allows developers to programmatically create or update SpatialKey datasets.
 	/// </summary>
-	/// <see cref="http://www.spatialkey.com/support/documentation/data-import/api/"/>
+	/// <see cref="http://support.spatialkey.com/dmapi"/>
 	public class SpatialKeyDataManager
 	{
 		#region parameters
@@ -97,7 +97,7 @@ namespace skdm
 		/// <param name='logger'>
 		/// Used by for <see cref="Log(message)"/>
 		/// </param>
-		public SpatialKeyDataManager(string organizationName = null, string userName = null, string password = null, String apiKey = null, String userId = null, Logger logger = null)
+		public SpatialKeyDataManager(string organizationName = null, string clusterDomainUrl = null, string userName = null, string password = null, String apiKey = null, String userId = null, Logger logger = null)
 		{
 			this.logger = logger;
 			// TODO do something with apiKey and userId
@@ -280,7 +280,7 @@ namespace skdm
 		/// <param name='addAllUsers'>
 		/// if set as true the SpatialKey server will add the All Users group as a viewer of the dataset
 		/// </param>
-		public void UploadZip(string zipPath, string action = "overwrite", bool runAsBackground = true, bool notifyByEmail = false, bool addAllUsers = false)
+		private void UploadZip(string zipPath, string action = "overwrite", bool runAsBackground = true, bool notifyByEmail = false, bool addAllUsers = false)
 		{
 			Authenticate();
 			
@@ -289,11 +289,7 @@ namespace skdm
 			string url = String.Format("{0}{1}{2}", 
 			                            _protocol,
 			                            clusterHost,
-			                            path,
-			                            action, 
-			                            runAsBackground.ToString().ToLower(), 
-			                            notifyByEmail.ToString().ToLower(), 
-			                            addAllUsers.ToString().ToLower());
+			                            path);
 			
 			Log(String.Format("UploadZip: {0} {1}", url, zipPath));
 			
@@ -312,11 +308,49 @@ namespace skdm
 			query.Add("addAllUsers", addAllUsers.ToString().ToLower());
 			client.QueryString = query;
 			Log(NameValueCollectionToString(query));
-			
+
 			byte[] response = client.UploadFile(url, zipPath);
 			Log(Encoding.ASCII.GetString(response));
-			
+
 			Log("UploadZip: Complete");
+		}
+		#endregion
+
+		#region Shape File Upload
+		public void UploadShape(string dataPath, string datasetName, string datasetId)
+		{
+			Log(String.Format("UploadShape: {0}", dataPath));
+			
+			Authenticate();
+			
+			string path = "/SpatialKeyFramework/dataImportAPI";
+			
+			string url = String.Format("{0}{1}{2}", 
+			                           _protocol,
+			                           clusterHost,
+			                           path);
+			
+			// create the jsessionID cookie
+			CookieContainer cookieJar = new CookieContainer();
+			Cookie cookie = new Cookie(_jsessionID.Name, _jsessionID.Value);
+			cookieJar.Add(new Uri(String.Format("{0}{1}", _protocol, clusterHost)), cookie);
+			
+			CustomWebClient client = new CustomWebClient(cookieJar);
+			
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query.Add("action", "poly");
+			if (datasetName != null && datasetName.Length > 0)
+				query.Add("datasetName", datasetName);
+			if (datasetId != null && datasetId.Length > 0)
+				query.Add("datasetId", datasetId);
+			client.QueryString = query;
+			Log(NameValueCollectionToString(query));
+			
+			byte[] response = client.UploadFile(url, dataPath);
+			Log(Encoding.ASCII.GetString(response));
+
+			Log("UploadShape: Complete");
 		}
 		#endregion
 		

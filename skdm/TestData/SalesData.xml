@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <umgMeta version="1.0" purpose="for publishing">
   <dataset>
-    <name>MYRES2 SalesData</name>
+    <name>Example SalesData</name>
     <georeference method="trust">
       <latitudeField>Latitude</latitudeField>
       <longitudeField>Longitude</longitudeField>
@@ -15,7 +15,7 @@
     </column>
     <column>
       <position>2</position>
-      <name>Name</name>
+      <name>Product_Name</name>
       <type confidence="100">STRING</type>
     </column>
     <column>

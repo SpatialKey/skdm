@@ -1,25 +1,38 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<config>    
-  <organizationName>dev3</organizationName>
-  <userName>user@spatialkey.com</userName>
-  <password>xxx</password>
-  <actions>
-    <action name="sales">
-      <dataPath>SalesData.csv</dataPath>
-      <xmlPath>SalesData.xml</xmlPath>
-      <action>overwrite</action>
-      <runAsBackground>true</runAsBackground>
-      <notifyByEmail>true</notifyByEmail>
-      <addAllUsers>false</addAllUsers>
-    </action>
-    <action name="testdata">
-      <dataPath>TestData.csv</dataPath>
-      <xmlPath>TestData.xml</xmlPath>
-      <action>overwrite</action>
-      <runAsBackground>true</runAsBackground>
-      <notifyByEmail>true</notifyByEmail>
-      <addAllUsers>false</addAllUsers>
-    </action>
-  </actions>
+<config>
+	<!--
+		Default URL information is used for any action that doesn't override the value
+		Given with either organizationName or clusterDomainUrl
+		* organizationName - Will do a cluster lookup to find the clusterDomainUrl before authentication
+		* clusterDomainUrl - Used directly for authentication and actions
+	-->    
+	<organizationName>dev3</organizationName>
+
+	<!--
+		Default authentiction information is used for any action that doesn't override the value
+		Given with either userName and password or apiKey and userId
+		* userName and password - The user name and password to use, not as secure as using IDs
+		* apiKey and userId - The keys to use to authenticate
+	-->    
+	<userName>user@spatialkey.com</userName>
+	<password>xxx</password>
+
+	<!-- A list of actions to perform -->	
+	<actions>
+		<action name="csv example">
+		  <action>overwrite</action>
+		  <dataPath>SalesData.csv</dataPath>
+		  <xmlPath>SalesData.xml</xmlPath>
+		  <runAsBackground>true</runAsBackground>
+		  <notifyByEmail>true</notifyByEmail>
+		  <addAllUsers>false</addAllUsers>
+		</action>
+		<action name="shape example">
+		  <action>poly</action>
+		  <dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
+		  <datasetName>110th Congressional District</datasetName>
+		  <datasetId></datasetId>
+		</action>
+	</actions>
 </config>
 
