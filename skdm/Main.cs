@@ -13,9 +13,28 @@ namespace skdm
 	{
 		public static void Main(string[] args)
 		{
-			string configFile = "SpatailKeyDataManagerConfig.xml";
-			if (args.Length > 0)
-				configFile = args[0];
+			string[] helpOptions = new string[] {"-?", "-h", "/?", "/h", "-help", "--help", "?", "help"};
+			if (args.Length < 1 || Array.IndexOf(helpOptions, args[0]) > -1)
+			{
+				Log(@"skdm <config.xml> [<actionName1> ... <actionNameN>]
+  <config.xml>   XML configuration file (sample SpatailKeyDataManagerConfig.xml)
+  <actionNameX>  Optional action names  
+                 Will only run given actions, default to running all
+See http://support.spatialkey.com/dmapi for more information");
+				return;
+			}
+
+			string configFile = args[0];
+			string[] actions;
+			if (args.Length > 1)
+			{
+				actions = new string[args.Length-1];
+				Array.Copy(args, 1, actions, 0, args.Length-1);
+			}
+			else
+			{
+				actions = null;
+			}
 			
 			XmlDocument doc = new XmlDocument();
 			doc.Load(configFile);
@@ -39,6 +58,10 @@ namespace skdm
 			{
 				try
 				{
+					String actionName = GetInnerText(actionNode, "@name");
+					if (actions != null && Array.IndexOf(actions, actionName) < 0)
+						continue;
+
 					// Action override URL info
 					String organizationName = GetInnerText(doc, "organizationName", defaultOrganizationName);
 					String clusterDomainUrl = GetInnerText(doc, "clusterDomainUrl", defaultClusterDomainUrl);
@@ -51,7 +74,6 @@ namespace skdm
 
 					// Action information
 					String action = GetInnerText(actionNode, "action");
-					String actionName = GetInnerText(actionNode, "@name");
 
 					Log(String.Format("Running Action: {0}", actionName));
 

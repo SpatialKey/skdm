@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <config>
+	<!-- See http://support.spatialkey.com/dmapi for more information -->
 	<!--
 		Default URL information is used for any action that doesn't override the value
 		Given with either organizationName or clusterDomainUrl
@@ -7,9 +8,9 @@
 		* clusterDomainUrl - Used directly for authentication and actions
 	-->
 	<!--    
-	<organizationName>dev3</organizationName>
+	<organizationName>xxx</organizationName>
 	-->
-	<clusterDomainUrl>http://dev.spatialkey.com/</clusterDomainUrl>
+	<clusterDomainUrl>http://xxx.spatialkey.com/</clusterDomainUrl>
 
 	<!--
 		Default authentiction information is used for any action that doesn't override the value
@@ -20,25 +21,30 @@
 	<apiKey>xxx</apiKey>
 	<userId>xxx</userId>
 	<!--
-	<userName>user@spatialkey.com</userName>
+	<userName>user@xxx.com</userName>
 	<password>xxx</password>
 	-->
 
-	<!-- A list of actions to perform, each action can override organizationName, clusterDomainUrl, apiKey, userId, username, or password -->	
+	<!-- A list of actions to perform, each action  -->	
 	<actions>
 		<action name="csv example">
-		  <action>overwrite</action>
-		  <dataPath>SalesData.csv</dataPath>
-		  <xmlPath>SalesData.xml</xmlPath>
-		  <runAsBackground>true</runAsBackground>
-		  <notifyByEmail>true</notifyByEmail>
-		  <addAllUsers>false</addAllUsers>
+			<!-- Can override organizationName, clusterDomainUrl, apiKey, userId, username, or password -->
+			<action>overwrite</action>
+			<dataPath>SalesData.csv</dataPath>
+			<xmlPath>SalesData.xml</xmlPath>
+			<runAsBackground>true</runAsBackground>
+			<notifyByEmail>true</notifyByEmail>
+			<addAllUsers>false</addAllUsers>
 		</action>
 		<action name="shape example">
-		  <action>poly</action>
-		  <dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
-		  <datasetName>110th Congressional District</datasetName>
-		  <datasetId></datasetId>
+			<!-- Can override organizationName, clusterDomainUrl, apiKey, userId, username, or password -->
+			<action>poly</action>
+			<dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
+			<!-- send datasetName for new dataset, datasetId if updating existing dataset -->
+			<datasetName>110th Congressional District</datasetName>
+			<!--
+			<datasetId>xxx</datasetId>
+			-->
 		</action>
 	</actions>
 </config>
