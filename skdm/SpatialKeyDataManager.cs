@@ -156,6 +156,9 @@ namespace skdm
 				Uri uri = new Uri(clusterDomainUrl);
 				_protocol = uri.Scheme == "http" ? "http://" : "https://";
 				clusterHost = uri.Host;
+				string[] hostTokens = clusterHost.Split('.');
+				if (hostTokens.Length == 3)
+					this.organizationName = hostTokens[0];
 			}
 		}
 		
@@ -206,21 +209,23 @@ namespace skdm
 			string url = "";
 			if (apiKey != null && apiKey.Length > 0 && userId != null && userId.Length > 0)
 			{
-				url = String.Format("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&orgName={2}&userId={3}&apiKey={4}", 
-				                    _protocol, clusterHost, organizationName, HttpUtility.UrlEncode(userId), HttpUtility.UrlEncode(apiKey));
+				url = String.Format("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&userId={2}&apiKey={3}", 
+				                    _protocol, clusterHost, HttpUtility.UrlEncode(userId), HttpUtility.UrlEncode(apiKey));
 				Log(String.Format("Authenticate: {0}", url.Replace(apiKey, "XXX").Replace(userId, "XXX")));
 			}
 			else if (userName != null && userName.Length > 0 && this.password != null && this.password.Length > 0)
 			{
 				string password = HttpUtility.UrlEncode(this.password);
-				url = String.Format("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&orgName={2}&user={3}&password={4}", 
-				                     _protocol, clusterHost, organizationName, HttpUtility.UrlEncode(userName), password);
+				url = String.Format("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&user={2}&password={3}", 
+				                     _protocol, clusterHost, HttpUtility.UrlEncode(userName), password);
 				Log(String.Format("Authenticate: {0}", url.Replace(password, "XXX")));
 			}
 			else
 			{
 				throw new ArgumentException("Must have userName and password or apiKey and userId.");
 			}
+			if (organizationName != null && organizationName.Length > 0)
+				url += String.Format("&orgName={0}", organizationName);
 
 			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(url);
 			request.Method = "GET";
