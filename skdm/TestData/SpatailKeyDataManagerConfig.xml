@@ -29,7 +29,7 @@
 	<actions>
 		<action name="csv example">
 			<!-- Can override organizationName, clusterDomainUrl, apiKey, userId, username, or password -->
-			<action>overwrite</action>
+			<type>overwrite</action>
 			<dataPath>SalesData.csv</dataPath>
 			<xmlPath>SalesData.xml</xmlPath>
 			<runAsBackground>true</runAsBackground>
@@ -38,7 +38,7 @@
 		</action>
 		<action name="shape example">
 			<!-- Can override organizationName, clusterDomainUrl, apiKey, userId, username, or password -->
-			<action>poly</action>
+			<type>poly</action>
 			<dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
 			<!-- send datasetName for new dataset, datasetId if updating existing dataset -->
 			<datasetName>110th Congressional District</datasetName>

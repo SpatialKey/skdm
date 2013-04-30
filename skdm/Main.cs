@@ -73,7 +73,7 @@ See http://support.spatialkey.com/dmapi for more information");
 					String userId = GetInnerText(doc, "userId", defaultUserId); 
 
 					// Action information
-					String action = GetInnerText(actionNode, "action");
+					String type = GetInnerText(actionNode, "type");
 
 					Log(String.Format("Running Action: {0}", actionName));
 
@@ -86,7 +86,7 @@ See http://support.spatialkey.com/dmapi for more information");
 						skapi.Init(organizationName, clusterDomainUrl, userName, password, apiKey, userId);
 					}
 					
-					if (action.ToLower() == "overwrite" || action.ToLower() == "append")
+					if (type.ToLower() == "overwrite" || type.ToLower() == "append")
 					{
 						String dataPath = GetInnerText(actionNode, "dataPath");
 						String xmlPath = GetInnerText(actionNode, "xmlPath");
@@ -94,9 +94,9 @@ See http://support.spatialkey.com/dmapi for more information");
 						Boolean notifyByEmail = GetInnerText(actionNode, "notifyByEmail", "true").ToLower() == "true";
 						Boolean addAllUsers = GetInnerText(actionNode, "addAllUsers", "false").ToLower() == "true";
 
-						skapi.UploadData(dataPath, xmlPath, action, runAsBackground, notifyByEmail, addAllUsers);
+						skapi.UploadData(dataPath, xmlPath, type, runAsBackground, notifyByEmail, addAllUsers);
 					}
-					else if (action.ToLower() == "poly")
+					else if (type.ToLower() == "poly")
 					{
 						// TODO handle poly
 						String datasetName = GetInnerText(actionNode, "datasetName");
