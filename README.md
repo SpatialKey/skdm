@@ -1,6 +1,8 @@
 # Introduction
-The Spatial Key Data Manager is used import and update new CSV and Shape datasets into your account on Spatial Key.  For more information about the API, please see:
+The Spatial Key Data Manager (SKDM) is used import and update new CSV and Shape datasets into your account on Spatial Key.  For more information about the API, please see:
 http://support.spatialkey.com/dmapi
+
+This guide and configuring the SKDM  assumes a working knowledge of XML.  If you need to learn XML, go to http://www.w3schools.com/xml/default.asp
 
 # Installing SKDM
 1. Download https://github.com/SpatialKey/skdm/raw/master/skdm.zip
@@ -17,12 +19,14 @@ You can configure the application to use either a URL or Organization Name to co
 These settings can be defined globally and overriden for each action.
 
 ### Cluster Domain URL
-Set  &lt;organizationName> and comment out  &lt;clusterDomainUrl>
-ex: <code> &lt;organizationName>xxx &lt;/organizationName></code>
+Set  &lt;clusterDomainUrl> and comment out  &lt;organizationName>
+
+ex: <code>&lt;clusterDomainUrl>http://xxx.spatialkey.com/&lt;/clusterDomainUrl></code>
 
 ### Organization Name
-Set  &lt;clusterDomainUrl> and comment out  &lt;organizationName>
-ex: <code> &lt;clusterDomainUrl>http://xxx.spatialkey.com/ &lt;/clusterDomainUrl></code>
+Set  &lt;organizationName> and comment out  &lt;clusterDomainUrl>
+
+ex: <code>&lt;organizationName>xxx&lt;/organizationName></code>
 
 ## Authentication
 You can authenticate using either Keys or Username/Password.
@@ -35,9 +39,7 @@ You can set the authenticaion keys globally and overide for each action.
 1. Get your API Key and User ID from the SK Client
 2. Set the  &lt;apiKey> and  &lt;userId> in your config.xml file.  Make sure to comment out  &lt;userName> and  &lt;password>
 
-ex:<code>
-	 &lt;apiKey>xxx &lt;/apiKey>
-	 &lt;userId>yyy &lt;/userId>
+ex:<code>&lt;apiKey>xxx&lt;/apiKey>&lt;userId>yyy&lt;/userId>
 </code>
 
 ### Authenticate with Username/Password
@@ -45,10 +47,7 @@ You can set the username/password globally and overide for each action.
 
 Set the  &lt;userName> and  &lt;password> in your config.xml file.  Make sure to comment out  &lt;apiKey> and  &lt;userId>
 
-ex:<code>
-	 &lt;userName>myusername@someplace.com &lt;/userName>
-	 &lt;password>xxx &lt;/password>
-</code>
+ex:<code>&lt;userName>myusername@someplace.com&lt;/userName>&lt;password>xxx &lt;/password></code>
 
 ## Action List
 The  &lt;actions> section of the config.xml defines all the actions that will be done.  Currently you can upload/update CSV and Shape datafiles.
@@ -82,4 +81,5 @@ Used to create or overwrite a Shape dataset. The parameters for this action are:
 2. Run "skdm.exe  &lt;config.xml>" optionally add a list of actions to perform; the default is to run them all.
 
 ex: <code>skdm.exe SpatialKeyDataManagerConfig.xml</code>
+
 ex: <code>skdm.exe SpatialKeyDataManagerConfig.xml action1 action7</code>
