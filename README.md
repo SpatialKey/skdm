@@ -1,5 +1,5 @@
 # Introduction
-The Spatial Key Data Manager (SKDM) is used import and update new CSV and Shape datasets into your account on Spatial Key.  For more information about the API, please see:
+The SpatialKey Data Manager (SKDM) is used import and update new CSV and Shape datasets into your account on SpatialKey.  For more information about the API, please see:
 http://support.spatialkey.com/dmapi
 
 This guide and configuring the SKDM  assumes a working knowledge of XML.  If you need to learn XML, go to http://www.w3schools.com/xml/default.asp

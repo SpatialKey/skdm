@@ -52,9 +52,9 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="lib\ICSharpCode.SharpZipLib.dll" />
-    <None Include="TestData\SpatailKeyDataManagerConfig.xml" />
     <None Include="TestData\SalesData.csv" />
     <None Include="TestData\SalesData.xml" />
     <None Include="TestData\110thCongressionalDistrictShapefile.zip" />
+    <None Include="TestData\SpatialKeyDataManagerConfig.xml" />
   </ItemGroup>
 </Project>
