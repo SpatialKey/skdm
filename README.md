@@ -50,6 +50,7 @@ Finished section for my organization would look like this:
 If you use this option, enter your SpatialKey Organization Name into the placeholder in the Config XML file.
 
 > XML File Default: `<organizationName>xxx</organizationName>`
+>
 > XML with my SpatialKey Organization Name entered: `<organizationName>Demo</organizationName>`
 
 You can comment out the Cluster Domain URL from the XML if you define your organization using the Organization Name.  See "conflicts" section below for details on why commenting out is suggested.
@@ -65,9 +66,11 @@ When you authenticate in the XML file, you are telling the Data Import API who y
 To authenticate with keys, you need to generate an API Key and retrieve your user ID from within SpatialKey.  Login to SpatialKey, click on “People” tab, and go into the settings for your user.  On this screen, you can view your user id and generate an API key.  Plug these values into the XML placeholders in the Config XML file.
 
 > Default apiKey in XML file: `<apiKey>xxx</apiKey>`
+>
 > XML file with my apiKey entered: `<apiKey>8b08e-fcb-42-93-828a2a2</apiKey>`
 
 > Default userId in XML file: `<userId>xxx</userId>`
+>
 > XML file with my userId entered: `<userId>8afd7600ce0a462ad0d8a</userId>`
 
 You can comment out the username/password from the XML if you authenticate using keys.  See "conflicts" section below for details on why commenting out is suggested.
@@ -85,9 +88,11 @@ Finished section for my organization would look like this:
 To authenticate with username/password, enter your username and password combination into the Config XML file.
 
 > Default userName in XML file: `<userName>user@xxx.com</userName>`
+>
 > XML file with my userName: `<userName>user.name@spatialkey.com</userName>`
 
 > Default password in XML file: `<password>xxx</password>`
+>
 > XML file with my password: `<password>MyTempPass99</password>`
 
 You can comment out the keys from the XML if you authenticate using username/password.  See "conflicts" section below for details on why commenting out is suggested.
@@ -186,7 +191,9 @@ Here are a couple of conflicts to remember when setting up your Config XML file.
 When creating exceptions to the main file’s organizationName, clusterDomainUrl, apiKey/userId, or username/password within a specific action, keep the above conflicts in mind.  As an example, if you define the clusterDomainUrl in the main body of the Config XML file and you enter the organizationName in the action as a exception, the clusterDomainUrl will still be used because it wins the conflict.  In order to completely override to originally defined clusterDomainURL in this case, you will have to define the organizationName and enter a blank clusterDomainURL in the action.
 
 > Defined in body for Config XML file: `<clusterDomainURL>demo.spatialkey.com</clusterDomainURL>`
+>
 > Defined in “action” for Config XML file:
+>
 >     <organizationName>Demo</organizationName>
 >     <clusterDomainURL></clusterDomainURL>
 
