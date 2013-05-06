@@ -184,9 +184,10 @@ Here are a couple of conflicts to remember when setting up your Config XML file.
 When creating exceptions to the main file’s organizationName, clusterDomainUrl, apiKey/userId, or username/password within a specific action, keep the above conflicts in mind.  As an example, if you define the clusterDomainUrl in the main body of the Config XML file and you enter the organizationName in the action as a exception, the clusterDomainUrl will still be used because it wins the conflict.  In order to completely override to originally defined clusterDomainURL in this case, you will have to define the organizationName and enter a blank clusterDomainURL in the action.
 
 > Defined in body for Config XML file: `<clusterDomainURL>demo.spatialkey.com</clusterDomainURL>`  
-> Defined in “action” for Config XML file:  
->     `<organizationName>Demo</organizationName>`
->     `<clusterDomainURL></clusterDomainURL>`
+> Defined in “action” for Config XML file:
+
+>     <organizationName>Demo</organizationName>
+>     <clusterDomainURL></clusterDomainURL>
 
 # Running the Data Management API Command Line Tool
 Now for the easy part.  Open command-line prompt and navigate to the SKDM directory where you put the unzipped folder.  Run “skdm.exe SpatialKeyDataManagerConfig.xml” – you can optionally specify a list of actions to perform.  When no actions are specified, all actions from the Config XML file will be run by default.
