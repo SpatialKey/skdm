@@ -185,8 +185,8 @@ When creating exceptions to the main file’s organizationName, clusterDomainUrl
 
 > Defined in body for Config XML file: `<clusterDomainURL>demo.spatialkey.com</clusterDomainURL>`  
 > Defined in “action” for Config XML file:  
->     <organizationName>Demo</organizationName>
->     <clusterDomainURL></clusterDomainURL>
+>     `<organizationName>Demo</organizationName>`
+>     `<clusterDomainURL></clusterDomainURL>`
 
 # Running the Data Management API Command Line Tool
 Now for the easy part.  Open command-line prompt and navigate to the SKDM directory where you put the unzipped folder.  Run “skdm.exe SpatialKeyDataManagerConfig.xml” – you can optionally specify a list of actions to perform.  When no actions are specified, all actions from the Config XML file will be run by default.
