@@ -37,29 +37,26 @@ When you define your organization in the XML file, you are telling the Data Impo
 
 ### Cluster Domain URL
 > XML File Default: `<clusterDomainUrl>http://xxx.spatialkey.com/</clusterDomainUrl>`
+>
 > XML with my SpatialKey URL entered: `<clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl>`
 
 You can comment out the Organization Name from the XML if you define your organization using the Cluster Domain URL.  See "conflicts" section below for details on why commenting out is suggested.
 
 Finished section for my organization would look like this:
-> <code><!–
-> <organizationName>xxx</organizationName>
-> –>
-> <clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl></code>
+>     <!– <organizationName>xxx</organizationName> –>
+>     <clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl>
 
 ### Organization Name
 If you use this option, enter your SpatialKey Organization Name into the placeholder in the Config XML file.
 
-> XML File Default: <code><organizationName>xxx</organizationName></code>
-> XML with my SpatialKey Organization Name entered: <code><organizationName>Demo</organizationName></code>
+> XML File Default: `<organizationName>xxx</organizationName>`
+> XML with my SpatialKey Organization Name entered: `<organizationName>Demo</organizationName>`
 
 You can comment out the Cluster Domain URL from the XML if you define your organization using the Organization Name.  See "conflicts" section below for details on why commenting out is suggested.
 
 Finished section for my organization would look like this:
-> <code><organizationName>Demo</organizationName>
-> <!–
-> <clusterDomainUrl>xxx.spatialkey.com/</clusterDomainUrl>
-> –></code>
+>     <organizationName>Demo</organizationName>
+>     <!– <clusterDomainUrl>xxx.spatialkey.com/</clusterDomainUrl> –>
 
 ## Authentication
 When you authenticate in the XML file, you are telling the Data Import API who you are and giving it a chance to validate your permissions for the defined organization.  You can authenticate in a couple of ways: Authenticate with Keys or Authenticate with username/password.
@@ -67,42 +64,42 @@ When you authenticate in the XML file, you are telling the Data Import API who y
 ### Authenticate with Keys
 To authenticate with keys, you need to generate an API Key and retrieve your user ID from within SpatialKey.  Login to SpatialKey, click on “People” tab, and go into the settings for your user.  On this screen, you can view your user id and generate an API key.  Plug these values into the XML placeholders in the Config XML file.
 
-> Default apiKey in XML file: <code><apiKey>xxx</apiKey></code>
-> XML file with my apiKey entered: <code><apiKey>8b08e-fcb-42-93-828a2a2</apiKey></code>
+> Default apiKey in XML file: `<apiKey>xxx</apiKey>`
+> XML file with my apiKey entered: `<apiKey>8b08e-fcb-42-93-828a2a2</apiKey>`
 
-> Default userId in XML file: <code><userId>xxx</userId></code>
-> XML file with my userId entered: <code><userId>8afd7600ce0a462ad0d8a</userId></code>
+> Default userId in XML file: `<userId>xxx</userId>`
+> XML file with my userId entered: `<userId>8afd7600ce0a462ad0d8a</userId>`
 
 You can comment out the username/password from the XML if you authenticate using keys.  See "conflicts" section below for details on why commenting out is suggested.
 
 Finished section for my organization would look like this:
 
-> <code><apiKey>8b08e-fcb-42-93-828a2a2</apiKey>
-> <userId>8afd7600ce0a462ad0d8a</userId>
-> <!–
-> <userName>user@xxx.com</userName>
-> <password>xxx</password>
-> –></code>
+>     <apiKey>8b08e-fcb-42-93-828a2a2</apiKey>
+>     <userId>8afd7600ce0a462ad0d8a</userId>
+>     <!–
+>       <userName>user@xxx.com</userName>
+>       <password>xxx</password>
+>     –>
 
 ### Authenticate with Username/Password
 To authenticate with username/password, enter your username and password combination into the Config XML file.
 
-> Default userName in XML file: <code><userName>user@xxx.com</userName></code>
-> XML file with my userName: <code><userName>rebecca.morris@spatialkey.com</userName></code>
+> Default userName in XML file: `<userName>user@xxx.com</userName>`
+> XML file with my userName: `<userName>user.name@spatialkey.com</userName>`
 
-> Default password in XML file: <code><password>xxx</password></code>
-> XML file with my password: <code><password>MyTempPass99</password></code>
+> Default password in XML file: `<password>xxx</password>`
+> XML file with my password: `<password>MyTempPass99</password>`
 
 You can comment out the keys from the XML if you authenticate using username/password.  See "conflicts" section below for details on why commenting out is suggested.
 
 Finished section for my organization would look like this:
 
-> <code><!–
-> <apiKey>xxx</apiKey>
-> <userId>xxx</userId>
-> –>
-> <userName>rebecca.morris@spatialkey.com</userName>
-> <password>MyTempPass99</password></code>
+>     <!–
+>       <apiKey>xxx</apiKey>
+>       <userId>xxx</userId>
+>     –>
+>     <userName>user.name@spatialkey.com</userName>
+>     <password>MyTempPass99</password></code>
 
 ## Action
 The “actions” section of the Config XML file defines all the actions that will be done when the Command Line Tool is executed.
@@ -123,14 +120,14 @@ The overwrite and append actions will allow you to create, append to or overwrit
 - addAllUsers – true if you want all users in your organization to have access to this dataset once imported into SpatialKey – defaults to “false”
 
 Let’s set up an overwrite action for the sample CSV file provided in the SKDM folder.
-> <code><action name=”csv example”>
->        <type>overwrite</action>
->        <dataPath>SalesData.csv</dataPath>
->        <xmlPath>SalesData.xml</xmlPath>
->        <runAsBackground>true</runAsBackground>
->        <notifyByEmail>true</notifyByEmail>
->        <addAllUsers>false</addAllUsers>
-> </action></code>
+>     <action name=”csv example”>
+>       <type>overwrite</action>
+>       <dataPath>SalesData.csv</dataPath>
+>       <xmlPath>SalesData.xml</xmlPath>
+>       <runAsBackground>true</runAsBackground>
+>       <notifyByEmail>true</notifyByEmail>
+>       <addAllUsers>false</addAllUsers>
+>     </action>
 
 ### Poly Action
 The poly action will allow you to create or overwrite a shapefile.  The poly action in the XML file is slightly  different depending on whether you are creating a new shapefile or updating an existing.
@@ -148,36 +145,36 @@ The poly action will allow you to create or overwrite a shapefile.  The poly act
 - dataPath –  the path (relative to the config.xml) of the shapefile – the shape file must be a zip
 - datasetName – comment out or remove this line item completely when doing an overwrite of an existing Shapefile, if you leave it in, a new shapefile will be created
 - datasetId – the id of the existing dataset to be overwritten
-Note that in the Config XML file, the poly action is commented out.  Be sure to remove comments “<!–” and “–>” if you plan to use this action.  Let’s set up this action for both creating a new shapefile and overwriting and existing shapefile with the sample shapefile provided in the SKDM folder.
+Note that in the Config XML file, the poly action is commented out.  Be sure to remove comments `<!--` and `–>` if you plan to use this action.  Let’s set up this action for both creating a new shapefile and overwriting and existing shapefile with the sample shapefile provided in the SKDM folder.
 
 *Create new shapefile example:*
-> <code><action name=”shape example”>
->        <type>poly</action>
->        <dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
->        <datasetName>110th Congressional District</datasetName>
->        <!– <datasetId>xxx</datasetId> –>
-> </action></code>
+>     <action name=”shape example”>
+>       <type>poly</action>
+>       <dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
+>       <datasetName>110th Congressional District</datasetName>
+>       <!– <datasetId>xxx</datasetId> –>
+>     </action>
 
 *Overwrite an existing shapefile example:*
-> <code><action name=”shape example”>
->        <type>poly</action>
->        <dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
->        <!– <datasetName>110th Congressional District</datasetName> –>
->        <datasetId>8ab3d821d013ed04</datasetId>
-> </action></code>
+>     <action name=”shape example”>
+>       <type>poly</action>
+>       <dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
+>       <!– <datasetName>110th Congressional District</datasetName> –>
+>       <datasetId>8ab3d821d013ed04</datasetId>
+>     </action>
 
 ### Another thing to consider when defining actions…
 If you are creating a Config XML file that has many actions and you want to create an exception to the main file’s organizationName, clusterDomainUrl, apiKey, userId, username, or password, you can do so by adding a command for a specific action.
 
 Simply add a line item (or multiple) in the action
-> <code><action name=”csv example”>
->        <clusterDomainUrl>MyOtherURL.spatialkey.com/</clusterDomainUrl>
->        <type>overwrite</action>
->        <dataPath>SalesData.csv</dataPath>
->        <xmlPath>SalesData.xml</xmlPath>
->        <runAsBackground>true</runAsBackground>
->        <notifyByEmail>true</notifyByEmail>
-> </action></code>
+>     <action name=”csv example”>
+>       <clusterDomainUrl>MyOtherURL.spatialkey.com/</clusterDomainUrl>
+>       <type>overwrite</action>
+>       <dataPath>SalesData.csv</dataPath>
+>       <xmlPath>SalesData.xml</xmlPath>
+>       <runAsBackground>true</runAsBackground>
+>       <notifyByEmail>true</notifyByEmail>
+>     </action>
 
 See "conflicts" section for some important considerations.
 
@@ -188,10 +185,10 @@ Here are a couple of conflicts to remember when setting up your Config XML file.
 
 When creating exceptions to the main file’s organizationName, clusterDomainUrl, apiKey/userId, or username/password within a specific action, keep the above conflicts in mind.  As an example, if you define the clusterDomainUrl in the main body of the Config XML file and you enter the organizationName in the action as a exception, the clusterDomainUrl will still be used because it wins the conflict.  In order to completely override to originally defined clusterDomainURL in this case, you will have to define the organizationName and enter a blank clusterDomainURL in the action.
 
-> Defined in body for Config XML file: <code><clusterDomainURL>demo.spatialkey.com</clusterDomainURL></code>
+> Defined in body for Config XML file: `<clusterDomainURL>demo.spatialkey.com</clusterDomainURL>`
 > Defined in “action” for Config XML file:
-> <code><organizationName>Demo</organizationName>
-> <clusterDomainURL></clusterDomainURL></code>
+>     <organizationName>Demo</organizationName>
+>     <clusterDomainURL></clusterDomainURL>
 
 # Running the Data Management API Command Line Tool
 Now for the easy part.  Open command-line prompt and navigate to the SKDM directory where you put the unzipped folder.  Run “skdm.exe SpatialKeyDataManagerConfig.xml” – you can optionally specify a list of actions to perform.  When no actions are specified, all actions from the Config XML file will be run by default.
@@ -199,15 +196,15 @@ Now for the easy part.  Open command-line prompt and navigate to the SKDM direct
 Running Data Management API Command Line Tool from a **Windows** workstation?
 
 Command to run all actions:
-> <code>skdm.exe SpatialKeyDataManagerConfig.xml</code>
+> `skdm.exe SpatialKeyDataManagerConfig.xml`
 
 Command to run only the “shape example” action:
-> <code>skdm.exe SpatialKeyDataManagerConfig.xml “shape example”</code> (add quotes if there is a space in the action name)
+> `skdm.exe SpatialKeyDataManagerConfig.xml “shape example”` (add quotes if there is a space in the action name)
 
 Running Data Management API Command Line Tool from a **Mac** workstation?  Install on your workstation. ([Installation Instructions](http://www.mono-project.com/Mono:OSX))
 
 Command to run all actions:
-> <code>mono skdm.exe SpatialKeyDataManagerConfig.xml</code>
+> `mono skdm.exe SpatialKeyDataManagerConfig.xml`
 
 Command to run only the “shape example” action:
-> <code>mono skdm.exe SpatialKeyDataManagerConfig.xml “shape example” (add quotes if there is a space in the action name)</code>
+> `mono skdm.exe SpatialKeyDataManagerConfig.xml “shape example”` (add quotes if there is a space in the action name)
