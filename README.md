@@ -36,8 +36,7 @@ If you know XML, these sections will be easy to identify – if you don’t know
 When you define your organization in the XML file, you are telling the Data Import API where to send your data.  You can define your organization in a couple of ways: Cluster Domain URL or Organization Name.
 
 ### Cluster Domain URL
-> XML File Default: `<clusterDomainUrl>http://xxx.spatialkey.com/</clusterDomainUrl>`
->
+> XML File Default: `<clusterDomainUrl>http://xxx.spatialkey.com/</clusterDomainUrl>`  
 > XML with my SpatialKey URL entered: `<clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl>`
 
 You can comment out the Organization Name from the XML if you define your organization using the Cluster Domain URL.  See "conflicts" section below for details on why commenting out is suggested.
@@ -49,8 +48,7 @@ Finished section for my organization would look like this:
 ### Organization Name
 If you use this option, enter your SpatialKey Organization Name into the placeholder in the Config XML file.
 
-> XML File Default: `<organizationName>xxx</organizationName>`
->
+> XML File Default: `<organizationName>xxx</organizationName>`  
 > XML with my SpatialKey Organization Name entered: `<organizationName>Demo</organizationName>`
 
 You can comment out the Cluster Domain URL from the XML if you define your organization using the Organization Name.  See "conflicts" section below for details on why commenting out is suggested.
