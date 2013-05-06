@@ -119,7 +119,7 @@ The overwrite and append actions will allow you to create, append to or overwrit
 
 Let’s set up an overwrite action for the sample CSV file provided in the SKDM folder.
 >     <action name=”csv example”>
->       <type>overwrite</action>
+>       <type>overwrite</type>
 >       <dataPath>SalesData.csv</dataPath>
 >       <xmlPath>SalesData.xml</xmlPath>
 >       <runAsBackground>true</runAsBackground>
@@ -147,7 +147,7 @@ Note that in the Config XML file, the poly action is commented out.  Be sure to 
 
 *Create new shapefile example:*
 >     <action name=”shape example”>
->       <type>poly</action>
+>       <type>poly</type>
 >       <dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
 >       <datasetName>110th Congressional District</datasetName>
 >       <!– <datasetId>xxx</datasetId> –>
@@ -155,7 +155,7 @@ Note that in the Config XML file, the poly action is commented out.  Be sure to 
 
 *Overwrite an existing shapefile example:*
 >     <action name=”shape example”>
->       <type>poly</action>
+>       <type>poly</type>
 >       <dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
 >       <!– <datasetName>110th Congressional District</datasetName> –>
 >       <datasetId>8ab3d821d013ed04</datasetId>
@@ -167,7 +167,7 @@ If you are creating a Config XML file that has many actions and you want to crea
 Simply add a line item (or multiple) in the action
 >     <action name=”csv example”>
 >       <clusterDomainUrl>MyOtherURL.spatialkey.com/</clusterDomainUrl>
->       <type>overwrite</action>
+>       <type>overwrite</type>
 >       <dataPath>SalesData.csv</dataPath>
 >       <xmlPath>SalesData.xml</xmlPath>
 >       <runAsBackground>true</runAsBackground>
