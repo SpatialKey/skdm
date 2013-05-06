@@ -1,7 +1,7 @@
 # Introduction
-The SpatialKey Data Import API (http://support.spatialkey.com/dmapi) allows developers to programmatically create and update CSV data or Shapefiles in SpatialKey without having to login.  With the Command Line Tool, typical users of SpatialKey can leverage this functionality without any programming knowledge.  You just need to learn a few of the basics and you will be all set to kicking off import and update jobs outside of SpatialKey.
+The [SpatialKey Data Management REST API](http://support.spatialkey.com/dmapi) allows developers to programmatically create and update CSV data or Shapefiles in SpatialKey without having to login.  With the Command Line Tool, typical users of SpatialKey can leverage this functionality without any programming knowledge.  You just need to learn a few of the basics and you will be all set to kicking off import and update jobs outside of SpatialKey.
 
-This documentation can also be found at http://support.spatialkey.com/data-management-api-command-line-tool/
+This documentation can also be found [here](http://support.spatialkey.com/data-management-api-command-line-tool/)
 
 # Installing the Command Line Tool
 1. Download the Command Line Tool and sample data [Download .zip file](https://github.com/SpatialKey/skdm/raw/master/skdm.zip)
@@ -30,14 +30,14 @@ The Data Manager Config XML file is split into the following sections:
 
 See the sample SpatialKeyDataManagerConfig.xml shipped with the application for the proper xml format.
 
-If you know XML, these sections will be easy to identify – if you don’t know XML, be patient and search through the file until you find these sections and then plug in the required information.  If you need an XML refresher, visit http://www.w3schools.com/xml/default.asp.
+If you know XML, these sections will be easy to identify – if you don’t know XML, be patient and search through the file until you find these sections and then plug in the required information.  If you need an XML refresher, visit [W3Schools XML Tutorial](http://www.w3schools.com/xml/default.asp).
 
 ## Define Organization
 When you define your organization in the XML file, you are telling the Data Import API where to send your data.  You can define your organization in a couple of ways: Cluster Domain URL or Organization Name.
 
 ### Cluster Domain URL
-> XML File Default: <code><clusterDomainUrl>http://xxx.spatialkey.com/</clusterDomainUrl></code>
-> XML with my SpatialKey URL entered: <code><clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl></code>
+> XML File Default: `<clusterDomainUrl>http://xxx.spatialkey.com/</clusterDomainUrl>`
+> XML with my SpatialKey URL entered: `<clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl>`
 
 You can comment out the Organization Name from the XML if you define your organization using the Cluster Domain URL.  See "conflicts" section below for details on why commenting out is suggested.
 
