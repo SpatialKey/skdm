@@ -3,6 +3,8 @@ The [SpatialKey Data Management REST API](http://support.spatialkey.com/dmapi) a
 
 This documentation can also be found [here](http://support.spatialkey.com/data-management-api-command-line-tool/)
 
+Note that the Data Management API Command Line Tool isn’t currently supported when called through a proxy server.
+
 # Installing the Command Line Tool
 1. Download the Command Line Tool and sample data [Download .zip file](https://github.com/SpatialKey/skdm/raw/master/skdm.zip)
 2. Unzip contents to an accessible location - we will need to connect to that location later.  For example, I placed my unzipped folder at c:\program files\skdm.
