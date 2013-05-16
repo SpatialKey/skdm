@@ -35,29 +35,29 @@ See the sample SpatialKeyDataManagerConfig.xml shipped with the application for 
 If you know XML, these sections will be easy to identify – if you don’t know XML, be patient and search through the file until you find these sections and then plug in the required information.  If you need an XML refresher, visit [W3Schools XML Tutorial](http://www.w3schools.com/xml/default.asp).
 
 ## Define Organization
-When you define your organization in the XML file, you are telling the Data Import API where to send your data.  You can define your organization in a couple of ways: Cluster Domain URL or Organization Name.
-
-### Cluster Domain URL
-> XML File Default: `<clusterDomainUrl>http://xxx.spatialkey.com/</clusterDomainUrl>`  
-> XML with my SpatialKey URL entered: `<clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl>`
-
-You can comment out the Organization Name from the XML if you define your organization using the Cluster Domain URL.  See "conflicts" section below for details on why commenting out is suggested.
-
-Finished section for my organization would look like this:
->     <!– <organizationName>xxx</organizationName> –>
->     <clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl>
+When you define your organization in the XML file, you are telling the Data Import API where to send your data.  You can define your organization by giving just the Organization Name or with both the Organization Name and the Cluster Domain URL.
 
 ### Organization Name
-If you use this option, enter your SpatialKey Organization Name into the placeholder in the Config XML file.
+Enter your SpatialKey Organization Name into the placeholder in the Config XML file.
 
 > XML File Default: `<organizationName>xxx</organizationName>`  
 > XML with my SpatialKey Organization Name entered: `<organizationName>Demo</organizationName>`
 
-You can comment out the Cluster Domain URL from the XML if you define your organization using the Organization Name.  See "conflicts" section below for details on why commenting out is suggested.
+You can comment out the Cluster Domain URL from the XML and it will do a cluster lookup to find the Cluster Domain URL.  See "conflicts" section below for details on why commenting out is suggested.
 
 Finished section for my organization would look like this:
 >     <organizationName>Demo</organizationName>
 >     <!– <clusterDomainUrl>xxx.spatialkey.com/</clusterDomainUrl> –>
+
+### Cluster Domain URL
+If you want to save a cluster domain lookup, define the `clusterDomainUrl` in addition to the `organizationName`
+
+> XML File Default: `<clusterDomainUrl>http://xxx.spatialkey.com/</clusterDomainUrl>`  
+> XML with my SpatialKey URL entered: `<clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl>`
+
+Finished section for my organization would look like this:
+>     <organizationName>Demo</organizationName>
+>     <clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl>
 
 ## Authentication
 When you authenticate in the XML file, you are telling the Data Import API who you are and giving it a chance to validate your permissions for the defined organization.  You can authenticate in a couple of ways: Authenticate with Keys or Authenticate with username/password.
@@ -182,7 +182,7 @@ See "conflicts" section for some important considerations.
 
 ## Conflicts
 Here are a couple of conflicts to remember when setting up your Config XML file.
-- When both Cluster Domain URL and the Organization Name are defined, Cluster Domain URL will be used.  This is why it was suggested that one or the other should be commented out.
+- When both Cluster Domain URL and the Organization Name are defined, Cluster Domain URL will be used and no cluster domain lookup will be performed.  You still need to define the Organization Name in order to sucessfully authenticate.
 - When both Keys and username/password are provided for authentication, they keys will be used.  This is why it was suggested that one of the other should be commented out.
 
 When creating exceptions to the main file’s organizationName, clusterDomainUrl, apiKey/userId, or username/password within a specific action, keep the above conflicts in mind.  As an example, if you define the clusterDomainUrl in the main body of the Config XML file and you enter the organizationName in the action as a exception, the clusterDomainUrl will still be used because it wins the conflict.  In order to completely override to originally defined clusterDomainURL in this case, you will have to define the organizationName and enter a blank clusterDomainURL in the action.
