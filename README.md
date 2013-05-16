@@ -132,6 +132,8 @@ Let’s set up an overwrite action for the sample CSV file provided in the SKDM 
 ### Poly Action
 The poly action will allow you to create or overwrite a shapefile.  The poly action in the XML file is slightly  different depending on whether you are creating a new shapefile or updating an existing.
 
+Note that you don't get any email notifications for shape notifications at this time.
+
 *Create new shapefile:*
 - action name - the name you will specify when running the executable if you want to run only this action
 - type – poly
