@@ -35,10 +35,7 @@ See the sample SpatialKeyDataManagerConfig.xml shipped with the application for 
 If you know XML, these sections will be easy to identify – if you don’t know XML, be patient and search through the file until you find these sections and then plug in the required information.  If you need an XML refresher, visit [W3Schools XML Tutorial](http://www.w3schools.com/xml/default.asp).
 
 ## Define Organization
-When you define your organization in the XML file, you are telling the Data Import API where to send your data.  You can define your organization by giving just the Organization Name or with both the Organization Name and the Cluster Domain URL.
-
-### Organization Name
-Enter your SpatialKey Organization Name into the placeholder in the Config XML file.
+When you define your organization in the XML file, you are telling the Data Import API where to send your data. Enter your the part of your SpatialKey URL before the “.spatialkey.com” as your Organization Name into the placeholder in the Config XML file. For example, if my URL was Demo.spatialkey.com, I would set up my Config XML file with an organization name of “Demo”.
 
 > XML File Default: `<organizationName>xxx</organizationName>`  
 > XML with my SpatialKey Organization Name entered: `<organizationName>Demo</organizationName>`
@@ -47,17 +44,13 @@ You can comment out the Cluster Domain URL from the XML and it will do a cluster
 
 Finished section for my organization would look like this:
 >     <organizationName>Demo</organizationName>
->     <!– <clusterDomainUrl>xxx.spatialkey.com/</clusterDomainUrl> –>
 
-### Cluster Domain URL
-If you want to save a cluster domain lookup, define the `clusterDomainUrl` in addition to the `organizationName`
+Note: if you license SpatialKey as an on-premise solution (i.e. you have SpatialKey hosted in your own internal environment), you will have to define a Cluster Domain URL in addition to the organization name. In order to look up your cluster, enter “http://[yoursite].spatialkey.com/clusterlookup.cfm” into your browser. For my organization, I would enter `http://Demo.spatialkey.com/clusterlookup.cfm`.
 
-> XML File Default: `<clusterDomainUrl>http://xxx.spatialkey.com/</clusterDomainUrl>`  
-> XML with my SpatialKey URL entered: `<clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl>`
+You will need to add the cluster domain URL into the Config XML file as it isn’t include by default. Finished section for an on-premise organization would look like this:
 
-Finished section for my organization would look like this:
 >     <organizationName>Demo</organizationName>
->     <clusterDomainUrl>http://demo.spatialkey.com/</clusterDomainUrl>
+>     <clusterDomainUrl>http://cluster2.spatialkey.com/</clusterDomainUrl>
 
 ## Authentication
 When you authenticate in the XML file, you are telling the Data Import API who you are and giving it a chance to validate your permissions for the defined organization.  You can authenticate in a couple of ways: Authenticate with Keys or Authenticate with username/password.
