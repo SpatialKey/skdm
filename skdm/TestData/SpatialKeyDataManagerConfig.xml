@@ -7,7 +7,7 @@
 	<organizationName>xxx</organizationName>
 
 	<!--
-		Default authentiction information is used for any action that doesn't override the value
+		Default authentication information is used for any action that doesn't override the value
 		Given with either userName and password or apiKey and userId
 		* apiKey and userId - The keys to use to authenticate
 		* userName and password - The user name and password to use, not as secure as using IDs
