@@ -70,9 +70,9 @@ namespace skdm
 		public string clusterHost { get; private set; }
 		
 		/// <summary>
-		/// The authenticated jsessionID retrieved by <see cref="Authenticate()"/>
+		/// The cookies retrieved by <see cref="Authenticate()"/>
 		/// </summary>
-		private Cookie _jsessionID;
+		private CookieCollection _cookies;
 		
 		/// <summary>
 		/// The protocol retrieved by <see cref="ClusterLookup()"/>
@@ -148,7 +148,7 @@ namespace skdm
 			this.userId = userId;
 			
 			clusterHost = null;
-			_jsessionID = null; 
+			_cookies = null; 
 			_protocol = null;
 
 			if (clusterDomainUrl != null && clusterDomainUrl.Length > 0)
@@ -197,11 +197,11 @@ namespace skdm
 		}
 		
 		/// <summary>
-		/// Authenticate to the dataImportAPI and get the <see cref="_jsessionID"/>
+		/// Authenticate to the dataImportAPI and get the <see cref="_cookies"/>
 		/// </summary>
 		private void Authenticate()
 		{
-			if (_jsessionID != null)
+			if (_cookies != null)
 				return;
 
 			ClusterLookup();
@@ -239,12 +239,23 @@ namespace skdm
 				{
 					throw new SystemException("Authentication Failed");
 				}
-				
-				_jsessionID = cookieJar.GetCookies(request.RequestUri)["JSESSIONID"];
+
+				_cookies = cookieJar.GetCookies(request.RequestUri);
+				LogCookies(_cookies);
 				Log(streamReader.ReadToEnd());
 			}
-			
-			Log(_jsessionID.ToString());
+		}
+
+		private void LogCookies(CookieCollection cookies)
+		{
+			string[] d = new string[_cookies.Count];
+			int i = 0;
+			foreach (Cookie c in cookies)
+			{
+				d[i] = c.ToString();
+				i++;
+			}
+			Log("COOKIES: "+string.Join(", ", d));
 		}
 		#endregion
 		
@@ -321,12 +332,7 @@ namespace skdm
 			
 			Log(String.Format("UploadZip: {0} {1}", url, zipPath));
 			
-			// create the jsessionID cookie
-			CookieContainer cookieJar = new CookieContainer();
-			Cookie cookie = new Cookie(_jsessionID.Name, _jsessionID.Value);
-			cookieJar.Add(new Uri(String.Format("{0}{1}", _protocol, clusterHost)), cookie);
-			
-			CustomWebClient client = new CustomWebClient(cookieJar);
+			CustomWebClient client = CreateCustomWebClient();
 			
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
@@ -334,8 +340,9 @@ namespace skdm
 			query.Add("runAsBackground", runAsBackground.ToString().ToLower());
 			query.Add("notifyByEmail", notifyByEmail.ToString().ToLower());
 			query.Add("addAllUsers", addAllUsers.ToString().ToLower());
+			//AddCookiesToQuery(query);
 			client.QueryString = query;
-			Log(NameValueCollectionToString(query));
+			Log("QUERY PARAMS: "+NameValueCollectionToString(query));
 
 			byte[] response = client.UploadFile(url, zipPath);
 			Log(Encoding.ASCII.GetString(response));
@@ -358,12 +365,7 @@ namespace skdm
 			                           clusterHost,
 			                           path);
 			
-			// create the jsessionID cookie
-			CookieContainer cookieJar = new CookieContainer();
-			Cookie cookie = new Cookie(_jsessionID.Name, _jsessionID.Value);
-			cookieJar.Add(new Uri(String.Format("{0}{1}", _protocol, clusterHost)), cookie);
-			
-			CustomWebClient client = new CustomWebClient(cookieJar);
+			CustomWebClient client = CreateCustomWebClient();
 			
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
@@ -372,8 +374,9 @@ namespace skdm
 				query.Add("datasetName", datasetName);
 			if (datasetId != null && datasetId.Length > 0)
 				query.Add("datasetId", datasetId);
+			//AddCookiesToQuery(query);
 			client.QueryString = query;
-			Log(NameValueCollectionToString(query));
+			Log("QUERY PARAMS: "+NameValueCollectionToString(query));
 			
 			byte[] response = client.UploadFile(url, dataPath);
 			Log(Encoding.ASCII.GetString(response));
@@ -451,6 +454,25 @@ namespace skdm
 		#endregion
 		
 		#region helpers
+		private CustomWebClient CreateCustomWebClient()
+		{
+			CookieContainer cookieJar = new CookieContainer();
+			foreach (Cookie c in _cookies)
+			{
+				Cookie cookie = new Cookie(c.Name, c.Value);
+				cookieJar.Add(new Uri(String.Format("{0}{1}", _protocol, clusterHost)), cookie);
+			}
+			return new CustomWebClient(cookieJar);
+		}
+
+		private void AddCookiesToQuery(NameValueCollection query)
+		{
+			foreach (Cookie c in _cookies)
+			{
+				query.Add(c.Name, c.Value);
+			}
+		}
+
 		/// <summary>
 		/// Custom <see cref="System.Net.WebClient"/> that allows setting of cookies
 		/// </summary>
