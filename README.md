@@ -47,10 +47,10 @@ Finished section for my organization would look like this:
 
 Note: if you license SpatialKey as an on-premise solution (i.e. you have SpatialKey hosted in your own internal environment), you will have to define a Cluster Domain URL in addition to the organization name. In order to look up your cluster, enter "http://[yoursite].spatialkey.com/clusterlookup.cfm" into your browser. For my organization, I would enter `http://Demo.spatialkey.com/clusterlookup.cfm`.
 
-You will need to add the cluster domain URL into the Config XML file as it isn’t include by default. Finished section for an on-premise organization would look like this:
+You will need to add the cluster domain URL into the Config XML file as it isn’t include by default. Make sure you use "https" and not "http".  Finished section for an on-premise organization would look like this:
 
 >     <organizationName>Demo</organizationName>
->     <clusterDomainUrl>http://cluster2.spatialkey.com/</clusterDomainUrl>
+>     <clusterDomainUrl>https://cluster2.spatialkey.com/</clusterDomainUrl>
 
 ## Authentication
 When you authenticate in the XML file, you are telling the Data Import API who you are and giving it a chance to validate your permissions for the defined organization.  You can authenticate in a couple of ways: Authenticate with Keys or Authenticate with username/password.
@@ -164,7 +164,7 @@ If you are creating a Config XML file that has many actions and you want to crea
 
 Simply add a line item (or multiple) in the action
 >     <action name="csv example">
->       <clusterDomainUrl>MyOtherURL.spatialkey.com/</clusterDomainUrl>
+>       <clusterDomainUrl>https://MyOtherURL.spatialkey.com/</clusterDomainUrl>
 >       <type>overwrite</type>
 >       <dataPath>SalesData.csv</dataPath>
 >       <xmlPath>SalesData.xml</xmlPath>
