@@ -47,7 +47,7 @@ Finished section for my organization would look like this:
 
 Note: if you license SpatialKey as an on-premise solution (i.e. you have SpatialKey hosted in your own internal environment), you will have to define a Cluster Domain URL in addition to the organization name. In order to look up your cluster, enter "http://[yoursite].spatialkey.com/clusterlookup.cfm" into your browser. For my organization, I would enter `http://Demo.spatialkey.com/clusterlookup.cfm`.
 
-You will need to add the cluster domain URL into the Config XML file as it isn’t include by default. Make sure you use "https" and not "http".  Finished section for an on-premise organization would look like this:
+You will need update the cluster domain URL into the Config XML file as it isn’t include by default. Make sure you use "https" and not "http".  Finished section for an on-premise organization would look like this:
 
 >     <organizationName>Demo</organizationName>
 >     <clusterDomainUrl>https://cluster2.spatialkey.com/</clusterDomainUrl>

@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <config>
 	<!-- See http://support.spatialkey.com/dmapi for more information -->
-	<!--
-		The organization name. Will do a cluster lookup to find the clusterDomainUrl before authentication
+	<!-- 
+		The organization name and cluster url.
 	-->
 	<organizationName>xxx</organizationName>
-
+	<clusterDomainUrl>https://xxx.spatialkey.com/</clusterDomainUrl>
+	
 	<!--
 		Default authentication information is used for any action that doesn't override the value
 		Given with either userName and password or apiKey and userId
@@ -22,7 +23,7 @@
 	<!-- A list of actions to perform, each action  -->	
 	<actions>
 		<action name="csv example">
-			<!-- Can override organizationName, apiKey, userId, username, or password -->
+			<!-- Can override organizationName, clusterDomainUrl, apiKey, userId, username, or password -->
 			<type>overwrite</type>
 			<dataPath>SalesData.csv</dataPath>
 			<xmlPath>SalesData.xml</xmlPath>
@@ -31,7 +32,7 @@
 			<addAllUsers>false</addAllUsers>
 		</action>
 		<action name="shape example">
-			<!-- Can override organizationName, apiKey, userId, username, or password -->
+			<!-- Can override organizationName, clusterDomainUrl, apiKey, userId, username, or password -->
 			<type>poly</type>
 			<dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
 			<!-- send datasetName for new dataset, datasetId if updating existing dataset -->
