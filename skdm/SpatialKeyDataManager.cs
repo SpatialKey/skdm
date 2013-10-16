@@ -333,7 +333,7 @@ namespace skdm
 			Log(String.Format("UploadZip: {0} {1}", url, zipPath));
 			
 			CustomWebClient client = CreateCustomWebClient();
-			
+
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
 			query.Add("action", action);
@@ -490,6 +490,7 @@ namespace skdm
 			{
 				HttpWebRequest request = (HttpWebRequest)base.GetWebRequest(address);
 				request.CookieContainer = _cookies;
+				request.Timeout = 3600000; // 60 min * 60 sec * 1000 msec = 3600000 msec
 				return request;
 			}
 		}

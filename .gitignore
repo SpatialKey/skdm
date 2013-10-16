@@ -12,5 +12,6 @@
 *.resources
 test-results
 bin
+obj
 *.sublime-project
 *.sublime-workspace
