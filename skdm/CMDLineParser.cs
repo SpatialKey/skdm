@@ -113,7 +113,7 @@ namespace CMDLine
 		/// </summary>
 		public Option AddHelpOption()
 		{
-			_help = this.AddBoolSwitch("-help", "Command line help", new string[] { "-h", "-?", "/help" });
+			_help = this.AddBoolSwitch("help", "Command line help", new string[] { "h", "?" });
 			return (_help);
 		}
 
@@ -263,6 +263,14 @@ namespace CMDLine
 			return ((arg.StartsWith("-") || arg.StartsWith("/")) & (!arg.Contains(" ")));
 		}
 
+		protected static string[] ASwitchPermutations(string name)
+		{
+			if (isASwitch(name))
+				return new string[] { name };
+			else
+				return new string[] { "/"+name, "-"+name };
+		}
+
 		private void ParseOptions()
 		{
 			_matchedSwitches = new ArrayList();
@@ -302,11 +310,13 @@ namespace CMDLine
 
 		public Option FindOption(string name)
 		{
+			name = ASwitchPermutations(name)[0];
+
 			foreach (Option s in SwitchesStore)
 			{
 				foreach (string optname in s.Names)
 				{
-					if (name == optname)
+					if (name.ToLower() == optname.ToLower())
 						return s;
 				}
 			}
@@ -630,7 +640,11 @@ namespace CMDLine
 				_switchType = type;
 				_needsVal = hasval;
 				_required = required;
-				Initialize(name, description);
+
+				string [] names = ASwitchPermutations(name);
+				Initialize(names[0], description);
+				for (int i = 1; i < names.Length; i++)
+					AddAlias(names[i]);
 			}
 
 			private void Initialize(string name, string description)
@@ -651,12 +665,18 @@ namespace CMDLine
 
 			public void AddAlias(string alias)
 			{
-				if (!CMDLineParser.isASwitch(alias))
+				string [] aliases = ASwitchPermutations(alias);
+
+				if (aliases == null || aliases.Length < 1)
 					throw new CMDLineParserException("Invalid Option:'" + alias + "'::" + IS_NOT_A_SWITCH_MSG);
 
-				if (_Names == null)
-					_Names = new System.Collections.ArrayList();
-				_Names.Add(alias);
+				foreach (string a in aliases)
+				{
+					if (_Names == null)
+						_Names = new System.Collections.ArrayList();
+					_Names.Add(a);
+
+				}
 			}
 
 			public void Clear()

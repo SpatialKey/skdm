@@ -19,14 +19,20 @@ skdm [options] [<actionName1> ... <actionNameN>]
 See http://support.spatialkey.com/dmapi for more information
 ";
 
-		private const string PARAM_CONFIG = "/config";
+		private const string PARAM_CONFIG = "config";
+		private const string PARAM_USERAPI = "user";
+		private const string PARAM_ORGAPI = "org";
+		private const string PARAM_ORGSECRET = "secret";
 
 		private static CMDLineParser cmdParser;
 
 		public static void Main(string[] args)
 		{
 			cmdParser = new CMDLineParser(true, _helpPrefix);
-			cmdParser.AddStringParameter(PARAM_CONFIG, "XML Configuration File", false, new string[] {"-config", "/c", "-c"});
+			cmdParser.AddStringParameter(PARAM_CONFIG, "XML Configuration File", false, new string[] {"c"});
+			cmdParser.AddStringParameter(PARAM_USERAPI, "User API Key", false, new string[] {"u"});
+			cmdParser.AddStringParameter(PARAM_ORGAPI, "Organization API Key", false, new string[] {"o"});
+			cmdParser.AddStringParameter(PARAM_ORGSECRET, "Organization Secret Key", false, new string[] {"s"});
 			try
 			{
 				cmdParser.Parse(args);
