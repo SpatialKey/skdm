@@ -6,36 +6,67 @@
 using System;
 using System.Xml;
 using System.Net;
+using CMDLine;
 
 namespace skdm
 {
 	class MainClass
 	{
-		public static void Main(string[] args)
-		{
-			string[] helpOptions = new string[] {"-?", "-h", "/?", "/h", "-help", "--help", "?", "help"};
-			if (args.Length < 1 || Array.IndexOf(helpOptions, args[0]) > -1)
-			{
-				Log(@"skdm <config.xml> [<actionName1> ... <actionNameN>]
-  <config.xml>   XML configuration file (sample SpatailKeyDataManagerConfig.xml)
+		private static string _helpPrefix = @"
+skdm [options] [<actionName1> ... <actionNameN>]
   <actionNameX>  Optional action names  
                  Will only run given actions, default to running all
-See http://support.spatialkey.com/dmapi for more information");
+See http://support.spatialkey.com/dmapi for more information
+";
+
+		private const string PARAM_CONFIG = "/config";
+
+		private static CMDLineParser cmdParser;
+
+		public static void Main(string[] args)
+		{
+			cmdParser = new CMDLineParser(true, _helpPrefix);
+			cmdParser.AddStringParameter(PARAM_CONFIG, "XML Configuration File", false, new string[] {"-config", "/c", "-c"});
+			try
+			{
+				cmdParser.Parse(args);
+			}
+			catch (Exception ex)
+			{
+				Console.Write(cmdParser.HelpMessage());
+				Console.WriteLine();
+				Console.WriteLine("Error: " + ex.Message);
+				Environment.Exit(1);
+			}
+
+			args = cmdParser.RemainingArgs();
+
+			if (cmdParser.HelpOption.isMatched)
+			{
 				return;
 			}
 
-			string configFile = args[0];
-			string[] actions;
-			if (args.Length > 1)
+			bool isAction = false;
+			if (ParseConfigXML())
+				isAction = true;
+
+			if (!isAction)
 			{
-				actions = new string[args.Length-1];
-				Array.Copy(args, 1, actions, 0, args.Length-1);
+				Console.Write(cmdParser.HelpMessage());
+				Console.Write("\nWARNING: No operations performed\n");
 			}
-			else
-			{
-				actions = null;
-			}
-			
+		}
+
+		private static Boolean ParseConfigXML()
+		{
+			CMDLineParser.Option configOpt = cmdParser.FindOption(PARAM_CONFIG);
+			if (configOpt == null || !configOpt.isMatched)
+				return false;
+
+			string configFile = configOpt.Value.ToString();
+			string[] args = cmdParser.RemainingArgs();
+			string[] actions = (args != null && args.Length > 0) ? args : null;
+
 			XmlDocument doc = new XmlDocument();
 			doc.Load(configFile);
 
@@ -85,7 +116,7 @@ See http://support.spatialkey.com/dmapi for more information");
 					{
 						skapi.Init(organizationName, clusterDomainUrl, userName, password, apiKey, userId);
 					}
-					
+
 					if (type.ToLower() == "overwrite" || type.ToLower() == "append")
 					{
 						String dataPath = GetInnerText(actionNode, "dataPath");
@@ -112,6 +143,8 @@ See http://support.spatialkey.com/dmapi for more information");
 					Log(String.Format("Error: {0}", ex.ToString()));
 				}
 			}
+
+			return true;
 		}
 
 		private static String GetInnerText(XmlNode node, String path, String defaultValue = "")
