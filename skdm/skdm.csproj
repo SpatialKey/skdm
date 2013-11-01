@@ -47,6 +47,7 @@
     <Compile Include="SpatialKeyDataManager.cs" />
     <Compile Include="OAuth.cs" />
     <Compile Include="CMDLineParser.cs" />
+    <Compile Include="CommandLineParser.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

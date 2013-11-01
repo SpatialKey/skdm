@@ -23,16 +23,20 @@ See http://support.spatialkey.com/dmapi for more information
 		private const string PARAM_USERAPI = "user";
 		private const string PARAM_ORGAPI = "org";
 		private const string PARAM_ORGSECRET = "secret";
+		private const string PARAM_ACTIONS = "actions";
 
 		private static CMDLineParser cmdParser;
 
 		public static void Main(string[] args)
 		{
+			CommandLineParser cp = new CommandLineParser();
+
 			cmdParser = new CMDLineParser(true, _helpPrefix);
 			cmdParser.AddStringParameter(PARAM_CONFIG, "XML Configuration File", false, new string[] {"c"});
 			cmdParser.AddStringParameter(PARAM_USERAPI, "User API Key", false, new string[] {"u"});
 			cmdParser.AddStringParameter(PARAM_ORGAPI, "Organization API Key", false, new string[] {"o"});
 			cmdParser.AddStringParameter(PARAM_ORGSECRET, "Organization Secret Key", false, new string[] {"s"});
+			cmdParser.AddStringParameter(PARAM_ACTIONS, "Actions to perform from XML configuration file, default to all", false, new string[] {"a"});
 			try
 			{
 				cmdParser.Parse(args);
