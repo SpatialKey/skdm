@@ -3,7 +3,8 @@
  * Author  : Christian Bolterauer
  * Date    : 8-Aug-2009
  * Version : 1.0
- * Changes : 
+ * Changes : By SpatialKey
+ * http://www.codeproject.com/Articles/39120/Lightweight-C-Command-Line-Parser
  */
 
 using System;
@@ -73,6 +74,10 @@ namespace CMDLine
         private ArrayList _invalidArgs = null;
 
         private CMDLineParser.Option _help = null;
+		public Option HelpOption 
+		{
+			get { return _help; }
+		}
 
         /// <summary>
         ///collect not matched (invalid) command line options as invalid args
@@ -88,17 +93,30 @@ namespace CMDLine
         /// <summary>
         /// create a Command Line Parser for creating and parsing command line options
         /// </summary>
-        public CMDLineParser()
-        {}
+        public CMDLineParser(bool isAddHelp = true, string helpPrefix = null)
+        {
+			if (isAddHelp)
+				AddHelpOption();
+			HelpPrefix = helpPrefix;
+		}
+
+		private string _helpPrefix;
+		/// <summary>
+		/// Gets or sets the help prefix
+		/// </summary>
+		/// <value>The help prefix.</value>
+		public string HelpPrefix
+		{
+			get { return _helpPrefix; }
+			set { _helpPrefix = value; }
+		}
+
         /// <summary>
         /// Add a default help switch "-help","-h","-?","/help"
         /// </summary>
         public Option AddHelpOption()
         {
-            _help = this.AddBoolSwitch("-help", "Command line help");
-            _help.AddAlias("-h");
-            _help.AddAlias("-?");
-            _help.AddAlias("/help");
+			_help = this.AddBoolSwitch("-help", "Command line help", new string[]{"-h", "-?", "/help"});
             return (_help);
         }
         /// <summary>
@@ -161,62 +179,64 @@ namespace CMDLine
         /// <param name="opt">subclass from 'CMDLineParser.Option'</param>
         /// <seealso cref="AddBoolSwitch"/>
         /// <seealso cref="AddStringParameter"/>
-        public void AddOption(Option opt)
+		public void AddOption(Option opt, string[] aliases = null)
         {
             CheckCmdLineOption(opt.Name);
             if (SwitchesStore == null)
                 SwitchesStore = new System.Collections.ArrayList();
             SwitchesStore.Add(opt);
+			if (aliases != null)
+				opt.AddAlias(aliases);
         }
         /// <summary>
         /// Add a basic command line switch. 
         /// (exist = 'true' otherwise 'false').
         /// </summary>
-        public Option AddBoolSwitch(string name, string description)
+		public Option AddBoolSwitch(string name, string description, string[] aliases = null)
         {
              Option opt = new Option(name, description, typeof(bool), false, false);
-             AddOption(opt);
+             AddOption(opt, aliases);
              return (opt);
         }
         /// <summary>
         /// Add a string parameter command line option.
         /// </summary>
-        public Option AddStringParameter(string name, string description,bool required)
+        public Option AddStringParameter(string name, string description,bool required, string[] aliases = null)
         {
             Option opt = new Option(name, description, typeof(string), true, required);
-            AddOption(opt);
+            AddOption(opt, aliases);
             return (opt);
         }
         /// <summary>
         /// Add a Integer parameter command line option.
         /// </summary>
-        public NumberOption AddIntParameter(string name, string description, bool required)
+		public NumberOption AddIntParameter(string name, string description, bool required, string[] aliases = null)
         {
             NumberOption opt = new NumberOption(name, description, typeof(int), true, required);
             opt.NumberStyle = NumberStyles.Integer;
-            AddOption(opt);
+            AddOption(opt, aliases);
             return (opt);
         }
         /// <summary>
         /// Add a Double parameter command line option.
         /// </summary>
-        public NumberOption AddDoubleParameter(string name, string description,bool required)
+		public NumberOption AddDoubleParameter(string name, string description,bool required, string[] aliases = null)
         {
             NumberOption opt = new NumberOption(name, description, typeof(double), true, required);
             opt.NumberStyle = NumberStyles.Float;
-            AddOption(opt);
+            AddOption(opt, aliases);
             return (opt);
         }
         /// <summary>
         /// Add a Double parameter command line option.
         /// </summary>
-        public NumberOption AddDoubleParameter(string name, string description, bool required, NumberFormatInfo numberformat )
+		public NumberOption AddDoubleParameter(string name, string description, bool required, NumberFormatInfo numberformat, string[] aliases = null)
         {
             NumberOption opt = new NumberOption(name, description, typeof(double), true, required);
             opt.NumberFormat = numberformat;
             opt.parseDecimalSeperator = false;
             opt.NumberStyle = NumberStyles.Float | NumberStyles.AllowThousands;
-            AddOption(opt);
+            AddOption(opt, aliases);
             return (opt);
         }
         /// <summary>
@@ -271,6 +291,19 @@ namespace CMDLine
                     throw new MissingRequiredOptionException("Missing Required Option:'" + s.Name + "'");
             }
         }
+
+		public Option FindOption(string name)
+		{
+			foreach (Option s in SwitchesStore)
+			{
+				foreach (string optname in s.Names)
+				{
+					if (name == optname)
+						return s;
+				}
+			}
+			return null;
+		}
 
         private bool compare(Option s, string arg) 
         {
@@ -424,7 +457,8 @@ namespace CMDLine
                     len = Math.Max(len, nlen);
                 }
             }
-            string help = "\nCommand line options are:\n\n";
+			string help = HelpPrefix != null ? HelpPrefix : "";
+			help += "\nCommand line options are:\n\n";
             bool req = false;
             foreach (Option s in SwitchesStore)
             {
@@ -581,6 +615,14 @@ namespace CMDLine
                 _Names = new System.Collections.ArrayList();
                 _Names.Add(name);
             }
+
+			public void AddAlias(string[] aliases)
+			{
+				foreach (string a in aliases)
+				{
+					AddAlias(a);
+				}
+			}
 
             public void AddAlias(string alias)
             {
