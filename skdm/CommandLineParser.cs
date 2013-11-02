@@ -1,12 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace skdm
 {
 	public class CommandLineParser
 	{
+		private const String DEFAULT_PROMPT = "[...]";
+
 		private List<IOption> _options = new List<IOption>();
-		private OptionSwitch _helpOption;
+		//private OptionToggle _helpOption;
 
 		#region Public Members
 
@@ -22,41 +25,15 @@ namespace skdm
 
 		#endregion
 
-		#region Public Methods
+		#region Constructor
 
 		public CommandLineParser()
 		{
 		}
 
-		public OptionValue<T> AddOptionValue<T>()
-		{
-			OptionValue<T> option = new OptionValue<T>();
-			AddOption(option);
-			return option;
-		}
+		#endregion
 
-		public OptionList<T> AddOptionList<T>()
-		{
-			OptionList<T> option = new OptionList<T>();
-			AddOption(option);
-			return option;
-		}
-
-		public OptionSwitch AddOptionSwitch()
-		{
-			OptionSwitch option = new OptionSwitch();
-			AddOption(option);
-			return option;
-		}
-
-		public OptionSwitch AddOptionHelp()
-		{
-			// TODO need help options
-			_helpOption = new OptionSwitch();
-			AddOption(_helpOption);
-			return _helpOption;
-		}
-
+		#region IOption Methods
 		public void AddOption(IOption option)
 		{
 			IOption existing = FindOption(option);
@@ -65,33 +42,6 @@ namespace skdm
 				throw new OptionException(String.Format("The option '{0}' exists as '{1}'", String.Join(", ", option.Keys), String.Join(", ", existing.Keys)));
 			}
 			_options.Add(option);
-		}
-
-		public OptionValue<T> FindOptionValue<T>(String key)
-		{
-			IOption option = FindOption(key);
-			if (typeof(OptionValue<T>).Equals(option))
-				return (OptionValue<T>)option;
-			else
-				return null;
-		}
-
-		public OptionList<T> FindOptionList<T>(String key)
-		{
-			IOption option = FindOption(key);
-			if (typeof(OptionList<T>).Equals(option))
-				return (OptionList<T>)option;
-			else
-				return null;
-		}
-
-		public OptionSwitch FindOptionSwitch(String key)
-		{
-			IOption option = FindOption(key);
-			if (typeof(OptionSwitch).Equals(option))
-				return (OptionSwitch)option;
-			else
-				return null;
 		}
 
 		public IOption FindOption(String key)
@@ -113,7 +63,80 @@ namespace skdm
 			}
 			return null;
 		}
+		#endregion
 
+		#region OptionValue Methods
+		public OptionValue<T> AddOptionValue<T>(string key, String description, String prompt = DEFAULT_PROMPT, Boolean isRequired = false, T defaultValue = default(T))
+		{
+			return AddOptionValue<T>(new string [] { key }, description, prompt, isRequired, defaultValue);
+		}
+
+		public OptionValue<T> AddOptionValue<T>(String [] keys, String description, String prompt, Boolean isRequired = false, T defaultValue = default(T))
+		{
+			OptionValue<T> option = new OptionValue<T>(keys, description, prompt, isRequired, defaultValue);
+			AddOption(option);
+			return option;
+		}
+
+		public OptionValue<T> FindOptionValue<T>(String key)
+		{
+			IOption option = FindOption(key);
+			if (typeof(OptionValue<T>).Equals(option))
+				return (OptionValue<T>)option;
+			else
+				return null;
+		}
+		#endregion
+
+		#region OptionList Methods
+		/*
+		public OptionList<T> AddOptionList<T>()
+		{
+			OptionList<T> option = new OptionList<T>();
+			AddOption(option);
+			return option;
+		}
+
+		public OptionList<T> FindOptionList<T>(String key)
+		{
+			IOption option = FindOption(key);
+			if (typeof(OptionList<T>).Equals(option))
+				return (OptionList<T>)option;
+			else
+				return null;
+		}
+		*/
+		#endregion
+
+		#region OptionToggle Methods	
+		/*	
+		public OptionToggle AddOptionToggle()
+		{
+			OptionToggle option = new OptionToggle();
+			AddOption(option);
+			return option;
+		}
+
+		public OptionToggle AddOptionHelp()
+		{
+			// TODO need help options
+			_helpOption = new OptionToggle();
+			AddOption(_helpOption);
+			return _helpOption;
+		}
+
+		public OptionToggle FindOptionToggle(String key)
+		{
+			IOption option = FindOption(key);
+			if (typeof(OptionToggle).Equals(option))
+				return (OptionToggle)option;
+			else
+				return null;
+		}
+		*/
+		#endregion
+
+		#region Parse Methods
 		public void Parse()
 		{
 			Parse(Environment.GetCommandLineArgs());
@@ -124,9 +147,9 @@ namespace skdm
 			RemainingArgs = new List<String>();
 			InvalidArgs = new List<String>();
 		}
-
 		#endregion
 
+		#region Static Methods
 		protected static Boolean IsKey(string key)
 		{
 			return ((key.StartsWith("-") || key.StartsWith("/")));
@@ -139,6 +162,7 @@ namespace skdm
 			else
 				return new string[] { "/"+key, "-"+key };
 		}
+		#endregion
 
 		#region IOption Interface
 
@@ -146,17 +170,21 @@ namespace skdm
 		{
 			String [] Keys { get; }
 
-			int Parse(string key, string value);
+			String Description { get; }
 
-			Boolean IsKeyMatch(object o);
+			String Prompt { get; }
 
 			Boolean IsMatched { get; }
 
 			Boolean IsRequired { get; }
 
-			Boolean IsValue { get; }
-
 			T GetValue<T>();
+
+			Boolean IsKeyMatch(String key);
+			Boolean IsKeyMatch(String[] keys);
+			Boolean IsKeyMatch(IOption option);
+
+			int Parse(string key, string value);
 		}
 
 		#endregion
@@ -165,19 +193,61 @@ namespace skdm
 
 		public class OptionValue<T> : IOption
 		{
+			public OptionValue(String [] keys, String description, String prompt = DEFAULT_PROMPT, Boolean isRequired = false, T defaultValue = default(T))
+			{
+				AddKeys(keys);
+				Description = description;
+				Prompt = prompt;
+				IsMatched = false;
+				IsRequired = isRequired;
+				Value = defaultValue;
+			}
+
 			public T Value {
 				get;
 				protected set;
 			}
 
-			public OptionValue()
+			public void AddKeys(String [] keys)
 			{
-				// TODO do this check
-				//if (key.Contains(" "))
-				//	throw new OptionException(String.Format("Key '{0}' contains spaces.",key));
+				foreach (String cur in keys)
+				{
+					foreach (String key in CommandLineParser.KeyPermutations(cur))
+					{
+						if (Regex.IsMatch(cur, "\\s"))
+							throw new OptionException(String.Format("Key '{0}' contains spaces.",cur));
+						if (!IsKeyMatch(cur))
+							_keys.Add(key);
+					}
+				}
 			}
 
 			#region IOption
+
+			private List<String> _keys = new List<String>();
+
+			public String [] Keys {
+				get { return _keys.ToArray(); }
+			}
+
+			public String Description { get; protected set; }
+
+			public String Prompt { get; set; }
+
+			public Boolean IsMatched {
+				get;
+				internal set;
+			}
+
+			public Boolean IsRequired {
+				get;
+				internal set;
+			}
+
+			public Y GetValue<Y>()
+			{
+				return (Y)Convert.ChangeType(Value, typeof(Y));
+			}
 
 			virtual public int Parse(string key, string value)
 			{
@@ -190,28 +260,18 @@ namespace skdm
 				return 2;
 			}
 
-			public Boolean IsKeyMatch(object o)
+			public Boolean IsKeyMatch(String key)
 			{
-				if (o is IOption)
-					return IsKeyMatch((IOption)o);
-				else if (o is List<String>)
-					return IsKeyMatch(((List<String>)o).ToArray());
-				else if (o is String[])
-					return IsKeyMatch((String[])o);
-				else if (o is String)
-					return IsKeyMatch((String)o);
-				else
-					return false;
+				foreach (String cur in _keys)
+				{
+					if (cur.ToLower() == key.ToLower())
+						return true;
+				}
+				return false;
 			}
-
-			public Boolean IsKeyMatch(IOption option)
-			{
-				return IsKeyMatch(option.Keys);
-			}
-
 			public Boolean IsKeyMatch(String [] keys)
 			{
-				foreach (String cur in keys)
+				foreach (String cur in _keys)
 				{
 					if (IsKeyMatch(cur))
 						return true;
@@ -219,53 +279,23 @@ namespace skdm
 				return false;
 			}
 
-			public Boolean IsKeyMatch(String key)
+			public Boolean IsKeyMatch(IOption option)
 			{
-				foreach (String cur in Keys)
-				{
-					if (cur.ToLower().CompareTo(key.ToLower()) == 0)
-						return true;
-				}
-				return false;
-			}
-
-			public Boolean IsMatched {
-				get;
-				internal set;
-			}
-
-			public Boolean IsRequired {
-				get;
-				internal set;
-			}
-
-			public Boolean IsValue {
-				get;
-				internal set;
-			}
-
-			public Y GetValue<Y>()
-			{
-				return (Y)Convert.ChangeType(Value, typeof(Y));
-			}
-
-			private List<String> _keys = new List<String>();
-
-			public String [] Keys {
-				get { return _keys.ToArray(); }
+				return IsKeyMatch(option.Keys);
 			}
 
 			#endregion
+
 
 		}
 
 		#endregion
 
-		#region OptionSwitch<T> Class
-
-		public class OptionSwitch : OptionValue<Boolean>
+		#region OptionToggle Class
+		/*
+		public class OptionToggle : OptionValue<Boolean>
 		{
-			public OptionSwitch()
+			public OptionToggle()
 			{
 				Value = false;
 			}
@@ -286,11 +316,11 @@ namespace skdm
 			#endregion
 
 		}
-
+		*/
 		#endregion
 
 		#region OptionList<T> Class
-
+		/*
 		public class OptionList<T> : OptionValue<List<T>>
 		{
 
@@ -314,7 +344,7 @@ namespace skdm
 			#endregion
 
 		}
-
+		*/
 		#endregion
 
 		public class CommandLineParserException : Exception
