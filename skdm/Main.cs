@@ -29,6 +29,11 @@ See http://support.spatialkey.com/dmapi for more information
 
 		public static void Main(string[] args)
 		{
+			Console.WriteLine(String.Join("\n", args));
+			Boolean test = true;
+			if (test)
+				return;
+
 			CommandLineParser cp = new CommandLineParser();
 
 			cmdParser = new CMDLineParser(true, _helpPrefix);

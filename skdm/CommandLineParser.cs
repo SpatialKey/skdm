@@ -6,34 +6,32 @@ namespace skdm
 {
 	public class CommandLineParser
 	{
-		private const String DEFAULT_PROMPT = "[...]";
-
+		public const String DEFAULT_PROMPT = "[...]";
 		private List<IOption> _options = new List<IOption>();
 		//private OptionToggle _helpOption;
 
 		#region Public Members
 
-		public List<String> RemainingArgs {
-			get;
-			protected set;
-		}
+		public List<String> RemainingArgs { get; protected set; }
 
-		public List<String> InvalidArgs {
-			get;
-			protected set;
-		}
+		public String HelpPrefix { get; set; }
+
+		public IOption[] Options { get { return _options.ToArray(); } }
 
 		#endregion
 
 		#region Constructor
 
-		public CommandLineParser()
+		public CommandLineParser(string helpPrefix = null, bool isAddHelp = true)
 		{
+			HelpPrefix = helpPrefix;
+			// TODO add help if isAddHelp
 		}
 
 		#endregion
 
 		#region IOption Methods
+
 		public void AddOption(IOption option)
 		{
 			IOption existing = FindOption(option);
@@ -42,16 +40,6 @@ namespace skdm
 				throw new OptionException(String.Format("The option '{0}' exists as '{1}'", String.Join(", ", option.Keys), String.Join(", ", existing.Keys)));
 			}
 			_options.Add(option);
-		}
-
-		public IOption FindOption(String key)
-		{
-			foreach (IOption cur in _options)
-			{
-				if (cur.IsKeyMatch(key))
-					return cur;
-			}
-			return null;
 		}
 
 		public IOption FindOption(IOption option)
@@ -63,32 +51,69 @@ namespace skdm
 			}
 			return null;
 		}
+
+		public IOption FindOption(String[] keys)
+		{
+			foreach (String key in keys)
+			{
+				IOption match = FindOption(key);
+				if (match != null)
+					return match;
+			}
+			return null;
+		}
+
+		public IOption FindOption(String key)
+		{
+			String[] keys = KeyPermutations(key);
+			foreach (IOption cur in _options)
+			{
+				if (cur.IsKeyMatch(keys))
+					return cur;
+			}
+			return null;
+		}
+
+		public void Reset()
+		{
+			foreach (IOption cur in _options)
+			{
+				cur.Reset();
+			}
+		}
+
 		#endregion
 
 		#region OptionValue Methods
-		public OptionValue<T> AddOptionValue<T>(string key, String description, String prompt = DEFAULT_PROMPT, Boolean isRequired = false, T defaultValue = default(T))
+
+		public OptionValue<T> AddOptionValue<T>(String key, String description = null, String prompt = DEFAULT_PROMPT, T defaultValue = default(T), Boolean isRequired = false)
 		{
-			return AddOptionValue<T>(new string [] { key }, description, prompt, isRequired, defaultValue);
+			return AddOptionValue<T>(new String [] { key }, description, prompt, defaultValue, isRequired);
 		}
 
-		public OptionValue<T> AddOptionValue<T>(String [] keys, String description, String prompt, Boolean isRequired = false, T defaultValue = default(T))
+		public OptionValue<T> AddOptionValue<T>(String[] keys, String description = null, String prompt = DEFAULT_PROMPT, T defaultValue = default(T), Boolean isRequired = false)
 		{
-			OptionValue<T> option = new OptionValue<T>(keys, description, prompt, isRequired, defaultValue);
+			OptionValue<T> option = new OptionValue<T>(keys, description, prompt, defaultValue, isRequired);
 			AddOption(option);
 			return option;
 		}
 
 		public OptionValue<T> FindOptionValue<T>(String key)
 		{
-			IOption option = FindOption(key);
-			if (typeof(OptionValue<T>).Equals(option))
-				return (OptionValue<T>)option;
-			else
+			try
+			{
+				return (OptionValue<T>)Convert.ChangeType(FindOption(key), typeof(OptionValue<T>));
+			}
+			catch
+			{
 				return null;
+			}
 		}
+
 		#endregion
 
 		#region OptionList Methods
+
 		/*
 		public OptionList<T> AddOptionList<T>()
 		{
@@ -106,9 +131,11 @@ namespace skdm
 				return null;
 		}
 		*/
+
 		#endregion
 
-		#region OptionToggle Methods	
+		#region OptionToggle Methods
+
 		/*	
 		public OptionToggle AddOptionToggle()
 		{
@@ -134,9 +161,11 @@ namespace skdm
 				return null;
 		}
 		*/
+
 		#endregion
 
 		#region Parse Methods
+
 		public void Parse()
 		{
 			Parse(Environment.GetCommandLineArgs());
@@ -145,23 +174,62 @@ namespace skdm
 		public void Parse(String[] args)
 		{
 			RemainingArgs = new List<String>();
-			InvalidArgs = new List<String>();
+
+			// Loop through argments
+			int i = 0;
+			while (args != null && i < args.Length)
+			{
+				// Give each option a try at the current argument until find match
+				Boolean isFound = false;
+				foreach (IOption option in _options)
+				{
+					int increment = option.Parse(args, i);
+					if (increment > 0)
+					{
+						i += increment;
+						isFound = true;
+						break;
+					}
+				}
+
+				// if none of the options parsed current, bump up by one
+				if (!isFound)
+				{
+					RemainingArgs.Add(args[i]);
+					i++;
+				}
+			}
+
+			// make sure all the required options have been read
+			List<String> missingArgs = new List<String>();
+			foreach (IOption option in _options)
+			{
+				if (option.IsRequired && !option.IsMatched)
+				{
+					missingArgs.Add(option.Keys[0]);
+				}
+			}
+			if (missingArgs.Count > 0)
+				throw new ParseException(String.Format("The following required options were not set '{0}'", String.Join(", ", missingArgs)));
 		}
+
 		#endregion
 
 		#region Static Methods
-		protected static Boolean IsKey(string key)
+
+		protected static Boolean IsKey(String key)
 		{
 			return ((key.StartsWith("-") || key.StartsWith("/")));
 		}
 
-		protected static string[] KeyPermutations(string key)
+		protected static String[] KeyPermutations(String key)
 		{
 			if (IsKey(key))
-				return new string[] { key };
+				return new String[] { key };
 			else
-				return new string[] { "/"+key, "-"+key };
+				return new String[] { "/" + key, "-" + key };
 		}
+
 		#endregion
 
 		#region IOption Interface
@@ -170,21 +238,25 @@ namespace skdm
 		{
 			String [] Keys { get; }
 
-			String Description { get; }
+			String Description { get; set; }
 
-			String Prompt { get; }
+			String Prompt { get; set; }
+
+			Boolean IsRequired { get; set; }
 
 			Boolean IsMatched { get; }
-
-			Boolean IsRequired { get; }
 
 			T GetValue<T>();
 
 			Boolean IsKeyMatch(String key);
+
 			Boolean IsKeyMatch(String[] keys);
+
 			Boolean IsKeyMatch(IOption option);
 
-			int Parse(string key, string value);
+			int Parse(String[] tokens, int index);
+
+			void Reset();
 		}
 
 		#endregion
@@ -193,71 +265,53 @@ namespace skdm
 
 		public class OptionValue<T> : IOption
 		{
-			public OptionValue(String [] keys, String description, String prompt = DEFAULT_PROMPT, Boolean isRequired = false, T defaultValue = default(T))
+			public OptionValue(String[] keys, String description = null, String prompt = DEFAULT_PROMPT, T defaultValue = default(T), Boolean isRequired = false)
 			{
-				AddKeys(keys);
+				SetKeys(keys);
+				DefaultValue = defaultValue;
 				Description = description;
 				Prompt = prompt;
-				IsMatched = false;
 				IsRequired = isRequired;
-				Value = defaultValue;
+				Reset();
 			}
 
-			public T Value {
-				get;
-				protected set;
-			}
+			public T Value { get; set; }
 
-			public void AddKeys(String [] keys)
+			public T DefaultValue { get; set; }
+
+			protected List<String> _keys = new List<String>();
+
+			protected void SetKeys(String[] keys)
 			{
 				foreach (String cur in keys)
 				{
 					foreach (String key in CommandLineParser.KeyPermutations(cur))
 					{
 						if (Regex.IsMatch(cur, "\\s"))
-							throw new OptionException(String.Format("Key '{0}' contains spaces.",cur));
+							throw new OptionException(String.Format("Key '{0}' contains spaces.", cur));
 						if (!IsKeyMatch(cur))
 							_keys.Add(key);
 					}
 				}
+				if (_keys.Count < 1)
+					throw new OptionException(String.Format("No keys set for '{0}'", Description));
 			}
 
 			#region IOption
 
-			private List<String> _keys = new List<String>();
+			public String [] Keys { get { return _keys.ToArray(); } }
 
-			public String [] Keys {
-				get { return _keys.ToArray(); }
-			}
-
-			public String Description { get; protected set; }
+			public String Description { get; set; }
 
 			public String Prompt { get; set; }
 
-			public Boolean IsMatched {
-				get;
-				internal set;
-			}
+			public Boolean IsMatched { get; protected set; }
 
-			public Boolean IsRequired {
-				get;
-				internal set;
-			}
+			public Boolean IsRequired { get; set; }
 
 			public Y GetValue<Y>()
 			{
 				return (Y)Convert.ChangeType(Value, typeof(Y));
-			}
-
-			virtual public int Parse(string key, string value)
-			{
-				if (!IsKeyMatch(key))
-					return 0;
-
-				Value = (T)Convert.ChangeType(value, typeof(T));
-				IsMatched = true;
-
-				return 2;
 			}
 
 			public Boolean IsKeyMatch(String key)
@@ -269,9 +323,10 @@ namespace skdm
 				}
 				return false;
 			}
-			public Boolean IsKeyMatch(String [] keys)
+
+			public Boolean IsKeyMatch(String[] keys)
 			{
-				foreach (String cur in _keys)
+				foreach (String cur in keys)
 				{
 					if (IsKeyMatch(cur))
 						return true;
@@ -284,14 +339,39 @@ namespace skdm
 				return IsKeyMatch(option.Keys);
 			}
 
-			#endregion
+			virtual public int Parse(String[] tokens, int index)
+			{
+				int keyIdx = index;
+				int valueIdx = index + 1;
 
+				// if enough tokens for key & value and the first is one of our keys
+				if (tokens == null || tokens.Length <= valueIdx || !IsKeyMatch(tokens[keyIdx]))
+					return 0;
+
+				if (IsMatched)
+					throw new ParseException(String.Format("Option '{0}' already set.", String.Join(", ", _keys)));
+
+				IsMatched = true;
+
+				Value = (T)Convert.ChangeType(tokens[valueIdx], typeof(T));
+
+				return 2;
+			}
+
+			virtual public void Reset()
+			{
+				IsMatched = false;
+				Value = DefaultValue;
+			}
+
+			#endregion
 
 		}
 
 		#endregion
 
 		#region OptionToggle Class
+
 		/*
 		public class OptionToggle : OptionValue<Boolean>
 		{
@@ -302,7 +382,7 @@ namespace skdm
 
 			#region IOption
 
-			override public int Parse(string key, string value)
+			override public int Parse(String[] tokens, int index)
 			{
 				if (!IsKeyMatch(key))
 					return 0;
@@ -317,16 +397,18 @@ namespace skdm
 
 		}
 		*/
+
 		#endregion
 
 		#region OptionList<T> Class
+
 		/*
 		public class OptionList<T> : OptionValue<List<T>>
 		{
 
 			#region IOption
 
-			override public int Parse(string key, string value)
+			override public int Parse(String[] tokens, int index)
 			{
 				if (!IsKeyMatch(key))
 					return 0;
@@ -345,11 +427,12 @@ namespace skdm
 
 		}
 		*/
+
 		#endregion
 
 		public class CommandLineParserException : Exception
 		{
-			public CommandLineParserException(string message)
+			public CommandLineParserException(String message)
 				: base(message)
 			{
 			}
@@ -357,12 +440,19 @@ namespace skdm
 
 		public class OptionException : CommandLineParserException
 		{
-			public OptionException(string message)
+			public OptionException(String message)
 				: base(message)
 			{
 			}
 		}
 
+		public class ParseException : CommandLineParserException
+		{
+			public ParseException(String message)
+				: base(message)
+			{
+			}
+		}
 	}
 }
 
