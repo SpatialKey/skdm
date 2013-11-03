@@ -51,7 +51,7 @@ namespace tests
 		}
 
 		[Test()]
-		[ExpectedException(typeof(CommandLineParser.OptionException))]
+		[ExpectedException(typeof(CommandLineParser.ExceptionOption))]
 		public void TestOptionValueKeyWithBlank()
 		{
 			//Assert.Throws<CommandLineParser.OptionException>(
@@ -126,7 +126,7 @@ namespace tests
 		}
 
 		[Test()]
-		[ExpectedException(typeof(CommandLineParser.ParseException))]
+		[ExpectedException(typeof(CommandLineParser.ExceptionParse))]
 		public void TestOptionValueParseStringTwiceException()
 		{
 			CommandLineParser.OptionValue<String> option = new CommandLineParser.OptionValue<String>(new String[]{"test"}, "desc", "VAL", "original value");

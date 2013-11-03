@@ -10,7 +10,7 @@ namespace test
 		[Test()]
 		public void AddOptionValue()
 		{
-			CommandLineParser cmd = new CommandLineParser();
+			CommandLineParser cmd = new CommandLineParser(null, false);
 			cmd.AddOptionValue<String>("test");
 
 			CommandLineParser.IOption[] options = cmd.Options;
@@ -20,7 +20,7 @@ namespace test
 		[Test()]
 		public void AddOptionValueTwoOk()
 		{
-			CommandLineParser cmd = new CommandLineParser();
+			CommandLineParser cmd = new CommandLineParser(null, false);
 			cmd.AddOptionValue<String>("test");
 			cmd.AddOptionValue<String>("foo");
 
@@ -29,10 +29,10 @@ namespace test
 		}
 		
 		[Test()]
-		[ExpectedException(typeof(CommandLineParser.OptionException))]
+		[ExpectedException(typeof(CommandLineParser.ExceptionOption))]
 		public void AddOptionValueSameException()
 		{
-			CommandLineParser cmd = new CommandLineParser();
+			CommandLineParser cmd = new CommandLineParser(null, false);
 			cmd.AddOptionValue<String>(new String[] {"foo", "test"});
 			cmd.AddOptionValue<int>("test");
 			Assert.IsTrue(false, "never get here");
@@ -41,7 +41,7 @@ namespace test
 		[Test()]
 		public void AddOptionTwoFindPermutations()
 		{
-			CommandLineParser cmd = new CommandLineParser();
+			CommandLineParser cmd = new CommandLineParser(null, false);
 			cmd.AddOptionValue<String>(new String[]{"test", "/t"}, "TEST DESCRIPTION");
 			cmd.AddOptionValue<int>("foo", "OTHER DESCRIPTION");
 			Assert.AreEqual("TEST DESCRIPTION", cmd.FindOption("test").Description);
@@ -59,7 +59,7 @@ namespace test
 		[Test()]
 		public void AddOptionValueFindType()
 		{
-			CommandLineParser cmd = new CommandLineParser();
+			CommandLineParser cmd = new CommandLineParser(null, false);
 			cmd.AddOptionValue<String>("test", "TEST DESCRIPTION");
 			cmd.AddOptionValue<int>("foo", "OTHER DESCRIPTION");
 
@@ -81,7 +81,7 @@ namespace test
 		[Test()]
 		public void ParseOptionValueTwo()
 		{
-			CommandLineParser cmd = new CommandLineParser();
+			CommandLineParser cmd = new CommandLineParser(null, false);
 			CommandLineParser.OptionValue<String> strOption = cmd.AddOptionValue<String>("test", "TEST DESCRIPTION");
 			cmd.AddOptionValue<int>("foo", "OTHER DESCRIPTION");
 
@@ -96,7 +96,7 @@ namespace test
 		[Test()]
 		public void ParseOptionValueMissingOne()
 		{
-			CommandLineParser cmd = new CommandLineParser();
+			CommandLineParser cmd = new CommandLineParser(null, false);
 			cmd.AddOptionValue<String>("test", "TEST DESCRIPTION", CommandLineParser.DEFAULT_PROMPT, "test value");
 			cmd.AddOptionValue<int>("foo", "OTHER DESCRIPTION");
 
@@ -106,13 +106,16 @@ namespace test
 			cmd.Parse(new String[] { "-foo", "13" });
 			Assert.AreEqual(13, cmd.FindOption("foo").GetValue<int>());
 			Assert.AreEqual("test value", cmd.FindOption("test").GetValue<string>());
+
+			Assert.IsTrue(cmd.FindOption("foo").IsMatched);
+			Assert.IsFalse(cmd.FindOption("test").IsMatched);
 		}
 
 		[Test()]
-		[ExpectedException(typeof(CommandLineParser.ParseException))]
+		[ExpectedException(typeof(CommandLineParser.ExceptionParse))]
 		public void ParseOptionValueMissingRequired()
 		{
-			CommandLineParser cmd = new CommandLineParser();
+			CommandLineParser cmd = new CommandLineParser(null, false);
 			cmd.AddOptionValue<String>("test", "TEST DESCRIPTION", CommandLineParser.DEFAULT_PROMPT, "test value", true);
 			cmd.AddOptionValue<int>("foo", "OTHER DESCRIPTION");
 
@@ -126,7 +129,7 @@ namespace test
 		[Test()]
 		public void ParseOptionValueTwoHasRemaining()
 		{
-			CommandLineParser cmd = new CommandLineParser();
+			CommandLineParser cmd = new CommandLineParser(null, false);
 			CommandLineParser.OptionValue<String> strOption = cmd.AddOptionValue<String>("test", "TEST DESCRIPTION");
 			cmd.AddOptionValue<int>("foo", "OTHER DESCRIPTION");
 
@@ -138,6 +141,87 @@ namespace test
 			Assert.AreEqual("some value", strOption.Value);
 			CollectionAssert.AreEqual(new String[] { "/before", "value1", "some stuff after" }, cmd.RemainingArgs);
 		}
+
+		[Test()]
+		public void DefaultConstructorAddsHelp()
+		{
+			CommandLineParser cmd = new CommandLineParser();
+
+			CommandLineParser.IOption[] options = cmd.Options;
+			Assert.AreEqual(1, options.Length);
+			Assert.AreSame(cmd.HelpOption, cmd.FindOption("help"));
+		}
+
+		[Test()]
+		[ExpectedException(typeof(CommandLineParser.ExceptionOption))]
+		public void ExceptionOverwritingHelp()
+		{
+			CommandLineParser cmd = new CommandLineParser(null, true);
+			cmd.AddOptionValue<String>(new String[] {"?", "test"});
+			Assert.IsTrue(false, "never get here");
+		}
+
+		[Test()]
+		public void AddHelpTwice()
+		{
+			CommandLineParser cmd = new CommandLineParser(null, true);
+			cmd.AddOptionHelp();
+
+			CommandLineParser.IOption[] options = cmd.Options;
+			Assert.AreEqual(1, options.Length);
+			Assert.AreSame(cmd.HelpOption, cmd.FindOption("help"));
+		}
+		
+		[Test()]
+		public void ParseWithBooleanOption()
+		{
+			CommandLineParser cmd = new CommandLineParser(null, false);
+			CommandLineParser.OptionValue<String> strOption = cmd.AddOptionValue<String>("test", "TEST DESCRIPTION");
+			cmd.AddOptionBoolean("b");
+
+			Assert.IsNull(strOption.Value);
+			Assert.AreEqual(false, cmd.FindOption("b").GetValue<Boolean>());
+
+			cmd.Parse(new String[] { "-foo", "13", "-b", "/test", "some value" });
+			Assert.AreEqual("some value", strOption.Value);
+			Assert.AreEqual(true, cmd.FindOption("b").GetValue<Boolean>());
+			Assert.IsTrue(cmd.FindOption("b").IsMatched);
+			CollectionAssert.AreEqual(new String[] { "-foo", "13" }, cmd.RemainingArgs);
+		}
+		
+		[Test()]
+		public void ParseWithBooleanOptionMissed()
+		{
+			CommandLineParser cmd = new CommandLineParser(null, false);
+			CommandLineParser.OptionValue<String> strOption = cmd.AddOptionValue<String>("test", "TEST DESCRIPTION");
+			cmd.AddOptionBoolean("b");
+
+			Assert.IsNull(strOption.Value);
+			Assert.AreEqual(false, cmd.FindOption("b").GetValue<Boolean>());
+
+			cmd.Parse(new String[] { "-foo", "13", "/test", "some value" });
+			Assert.AreEqual("some value", strOption.Value);
+			Assert.AreEqual(false, cmd.FindOption("b").GetValue<Boolean>());
+			Assert.IsFalse(cmd.FindOption("b").IsMatched);
+			CollectionAssert.AreEqual(new String[] { "-foo", "13" }, cmd.RemainingArgs);
+		}
+		
+		[Test()]
+		public void ParseHelp()
+		{
+			CommandLineParser cmd = new CommandLineParser(null, true);
+			cmd.AddOptionValue<String>("test", "TEST DESCRIPTION");
+			cmd.AddOptionBoolean("b");
+
+			Assert.IsFalse(cmd.HelpOption.IsMatched);
+			Assert.IsFalse(cmd.HelpOption.Value);
+
+			cmd.Parse(new String[] { "-foo", "13", "/?", "/test", "some value" });
+			Assert.IsTrue(cmd.HelpOption.IsMatched);
+			Assert.IsTrue(cmd.HelpOption.Value);
+			CollectionAssert.AreEqual(new String[] { "-foo", "13" }, cmd.RemainingArgs);
+		}
+
 	}
 }
 

@@ -7,10 +7,14 @@ namespace skdm
 	public class CommandLineParser
 	{
 		public const String DEFAULT_PROMPT = "[...]";
+		public static readonly String[] DEFAULT_HELP_KEYS = new string[] {"help","h", "?"};
+		public const String DEFAULT_HELP_DESCRIPTION = "Show help message";
+
 		private List<IOption> _options = new List<IOption>();
-		//private OptionToggle _helpOption;
 
 		#region Public Members
+
+		public  OptionBoolean HelpOption { get; protected set; }
 
 		public List<String> RemainingArgs { get; protected set; }
 
@@ -25,7 +29,8 @@ namespace skdm
 		public CommandLineParser(string helpPrefix = null, bool isAddHelp = true)
 		{
 			HelpPrefix = helpPrefix;
-			// TODO add help if isAddHelp
+			if (isAddHelp)
+				AddOptionHelp();
 		}
 
 		#endregion
@@ -37,7 +42,7 @@ namespace skdm
 			IOption existing = FindOption(option);
 			if (existing != null)
 			{
-				throw new OptionException(String.Format("The option '{0}' exists as '{1}'", String.Join(", ", option.Keys), String.Join(", ", existing.Keys)));
+				throw new ExceptionOption(String.Format("The option '{0}' exists as '{1}'", String.Join(", ", option.Keys), String.Join(", ", existing.Keys)));
 			}
 			_options.Add(option);
 		}
@@ -134,34 +139,42 @@ namespace skdm
 
 		#endregion
 
-		#region OptionToggle Methods
-
-		/*	
-		public OptionToggle AddOptionToggle()
+		#region OptionBoolean Methods
+		public OptionBoolean AddOptionBoolean(String key, String description = null, Boolean isRequired = false)
 		{
-			OptionToggle option = new OptionToggle();
+			return AddOptionBoolean(new String[] { key }, description, isRequired);
+		}
+
+		public OptionBoolean AddOptionBoolean(String[] keys, String description = null, Boolean isRequired = false)
+		{
+			OptionBoolean option = new OptionBoolean(keys, description, isRequired);
 			AddOption(option);
 			return option;
 		}
 
-		public OptionToggle AddOptionHelp()
+		public OptionBoolean AddOptionHelp(String[] keys = null, String description = DEFAULT_HELP_DESCRIPTION)
 		{
-			// TODO need help options
-			_helpOption = new OptionToggle();
-			AddOption(_helpOption);
-			return _helpOption;
+			if (keys == null)
+				keys = DEFAULT_HELP_KEYS;
+
+			if (HelpOption != null)
+				_options.Remove(HelpOption);
+
+			HelpOption = AddOptionBoolean(keys, description, false);
+			return HelpOption;
 		}
 
-		public OptionToggle FindOptionToggle(String key)
+		public OptionBoolean FindOptionBoolean(String key)
 		{
-			IOption option = FindOption(key);
-			if (typeof(OptionToggle).Equals(option))
-				return (OptionToggle)option;
-			else
+			try
+			{
+				return (OptionBoolean)Convert.ChangeType(FindOption(key), typeof(OptionBoolean));
+			}
+			catch
+			{
 				return null;
+			}
 		}
-		*/
-
 		#endregion
 
 		#region Parse Methods
@@ -210,7 +223,7 @@ namespace skdm
 				}
 			}
 			if (missingArgs.Count > 0)
-				throw new ParseException(String.Format("The following required options were not set '{0}'", String.Join(", ", missingArgs)));
+				throw new ExceptionParse(String.Format("The following required options were not set '{0}'", String.Join(", ", missingArgs)));
 		}
 
 		#endregion
@@ -288,13 +301,13 @@ namespace skdm
 					foreach (String key in CommandLineParser.KeyPermutations(cur))
 					{
 						if (Regex.IsMatch(cur, "\\s"))
-							throw new OptionException(String.Format("Key '{0}' contains spaces.", cur));
+							throw new ExceptionOption(String.Format("Key '{0}' contains spaces.", cur));
 						if (!IsKeyMatch(cur))
 							_keys.Add(key);
 					}
 				}
 				if (_keys.Count < 1)
-					throw new OptionException(String.Format("No keys set for '{0}'", Description));
+					throw new ExceptionOption(String.Format("No keys set for '{0}'", Description));
 			}
 
 			#region IOption
@@ -349,7 +362,7 @@ namespace skdm
 					return 0;
 
 				if (IsMatched)
-					throw new ParseException(String.Format("Option '{0}' already set.", String.Join(", ", _keys)));
+					throw new ExceptionParse(String.Format("Option '{0}' already set.", String.Join(", ", _keys)));
 
 				IsMatched = true;
 
@@ -370,25 +383,25 @@ namespace skdm
 
 		#endregion
 
-		#region OptionToggle Class
+		#region OptionBoolean Class
 
-		/*
-		public class OptionToggle : OptionValue<Boolean>
+		public class OptionBoolean : OptionValue<Boolean>
 		{
-			public OptionToggle()
+			public OptionBoolean(String[] keys, String description = null, Boolean isRequired = false)
+				:base(keys, description, null, false, isRequired)
 			{
-				Value = false;
 			}
 
 			#region IOption
 
 			override public int Parse(String[] tokens, int index)
 			{
-				if (!IsKeyMatch(key))
+				// if enough tokens for key & value and the first is one of our keys
+				if (tokens == null || tokens.Length <= index || !IsKeyMatch(tokens[index]))
 					return 0;
 
-				Value = !Value;
 				IsMatched = true;
+				Value = true;
 
 				return 1;
 			}
@@ -396,7 +409,6 @@ namespace skdm
 			#endregion
 
 		}
-		*/
 
 		#endregion
 
@@ -430,25 +442,25 @@ namespace skdm
 
 		#endregion
 
-		public class CommandLineParserException : Exception
+		public class ExceptionCommandLineParser : Exception
 		{
-			public CommandLineParserException(String message)
+			public ExceptionCommandLineParser(String message)
 				: base(message)
 			{
 			}
 		}
 
-		public class OptionException : CommandLineParserException
+		public class ExceptionOption : ExceptionCommandLineParser
 		{
-			public OptionException(String message)
+			public ExceptionOption(String message)
 				: base(message)
 			{
 			}
 		}
 
-		public class ParseException : CommandLineParserException
+		public class ExceptionParse : ExceptionCommandLineParser
 		{
-			public ParseException(String message)
+			public ExceptionParse(String message)
 				: base(message)
 			{
 			}
