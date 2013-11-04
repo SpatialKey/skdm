@@ -6,72 +6,118 @@
 using System;
 using System.Xml;
 using System.Net;
+using System.Collections.Generic;
 
 namespace skdm
 {
 	class MainClass
 	{
 		private static string _helpPrefix = @"
-skdm [options] [<actionName1> ... <actionNameN>]
-  <actionNameX>  Optional action names  
-                 Will only run given actions, default to running all
+skdm [options]
 See http://support.spatialkey.com/dmapi for more information
 ";
-
-		private const string PARAM_CONFIG = "config";
+		private const string PARAM_XML = "xml";
 		private const string PARAM_USERAPI = "user";
 		private const string PARAM_ORGAPI = "org";
 		private const string PARAM_ORGSECRET = "secret";
 		private const string PARAM_ACTIONS = "actions";
+		private const string PARAM_COMMAND = "command";
+		private const string PARAM_TTL = "ttl";
+
+		private const string ACTION_ALL = "all";
+		private const string COMMAND_OAUTH = "oAuth";
+
+		private const int ERROR_SUCCESS = 0;
+		private const int ERROR_COMMAND_LINE = 1;
+		private const int ERROR_NO_COMMANDS = 2;
+		private const int ERROR_RUN_XML = 3;
+		private const int ERROR_RUN_OAUTH = 4;
 
 		private static CommandLineParser cmdParser;
+		private static String clUserAPIKey;
+		private static String clOrgAPIKey;
+		private static String clOrgSecretKey;
+
+		private static int errorCode = ERROR_SUCCESS;
 
 		public static void Main(string[] args)
 		{
-			cmdParser = new CommandLineParser(_helpPrefix, true);
-			cmdParser.AddOptionValue<string>(new string[] {PARAM_CONFIG, "c"}, "XML Configuration File");
-			cmdParser.AddOptionValue<string>(new string[] {PARAM_USERAPI, "u"}, "User API Key");
-			cmdParser.AddOptionValue<string>(new string[] {PARAM_ORGAPI,"o"}, "Organization API Key");
-			cmdParser.AddOptionValue<string>(new string[] {PARAM_ORGSECRET, "s"}, "Organization Secret Key");
-			cmdParser.AddOptionList<string>(new string[] {PARAM_ACTIONS, "a"}, "Actions to perform from XML configuration file, default to all");
 			try
 			{
+				cmdParser = new CommandLineParser(_helpPrefix, true);
+				cmdParser.AddOptionValue<string>(new string[] { PARAM_COMMAND  , "c" }, "Command to run: oAuth returns oAuth token and requires the user, org, and secret key", "COMMAND");
+				cmdParser.AddOptionValue<string>(new string[] { PARAM_USERAPI  , "u" }, "User API Key", "KEY", "");
+				cmdParser.AddOptionValue<string>(new string[] { PARAM_ORGAPI   , "o" }, "Organization API Key", "KEY", "");
+				cmdParser.AddOptionValue<string>(new string[] { PARAM_ORGSECRET, "s" }, "Organization Secret Key", "KEY", "");
+				cmdParser.AddOptionValue<int>   (new string[] { PARAM_TTL      , "t" }, "oAuth token time to live in seconds", "TTL", 60);
+				cmdParser.AddOptionValue<string>(new string[] { PARAM_XML      , "x" }, "XML Configuration File", "FILE");
+				cmdParser.AddOptionList<string> (new string[] { PARAM_ACTIONS  , "a" }, "Actions to perform from XML configuration file", "A1[,A2,...]", new List<string>{ACTION_ALL});
 				cmdParser.Parse(args);
+
+				clUserAPIKey = cmdParser.FindOptionValue<String>(PARAM_USERAPI).Value;
+				clOrgAPIKey = cmdParser.FindOptionValue<String>(PARAM_ORGAPI).Value;
+				clOrgSecretKey = cmdParser.FindOptionValue<String>(PARAM_ORGSECRET).Value;
 			}
 			catch (Exception ex)
 			{
 				Console.Write(cmdParser.GetHelpMessage());
 				Console.WriteLine();
 				Console.WriteLine("Error: " + ex.Message);
-				Environment.Exit(1);
+				Environment.Exit(ERROR_COMMAND_LINE);
 			}
 
 			if (cmdParser.HelpOption.IsMatched)
 			{
 				Console.Write(cmdParser.GetHelpMessage());
-				return;
+				Environment.Exit(ERROR_SUCCESS);
 			}
 
-			bool isAction = false;
+			bool isRanCommand = false;
+			if (GetOAuth())
+				isRanCommand = true;
 			if (ParseConfigXML())
-				isAction = true;
+				isRanCommand = true;
 
-			if (!isAction)
+			if (!isRanCommand)
 			{
+				errorCode = ERROR_NO_COMMANDS;
 				Console.Write(cmdParser.GetHelpMessage());
-				Console.Write("\nWARNING: No operations performed\n");
+				Console.Write("\nWARNING: No commands performed\n");
 			}
+
+			Environment.Exit(errorCode);
+		}
+
+		private static Boolean GetOAuth()
+		{
+			if (!COMMAND_OAUTH.Equals(cmdParser.FindOptionValue<string>(PARAM_COMMAND).Value, StringComparison.OrdinalIgnoreCase))
+				return false;
+
+			if (clUserAPIKey == null || clUserAPIKey.Length == 0 || clOrgAPIKey == null || clOrgAPIKey.Length == 0 || clOrgSecretKey == null || clOrgSecretKey.Length == 0)
+			{
+				// TODO need better way of calling out required commands
+				Log(String.Format("ERROR: oAuth command requires setting the following parameters: {0}, {1}, and {2}. Optionally set: {3}",
+				                  "/"+PARAM_USERAPI, "/"+PARAM_ORGAPI, "/"+PARAM_ORGSECRET, "/"+PARAM_TTL));
+				errorCode = ERROR_RUN_OAUTH;
+				return true;
+			}
+
+			Log("oAuth Key:");
+			Log(OAuth.GetOAuthToken(clUserAPIKey, clOrgAPIKey, clOrgSecretKey, cmdParser.FindOptionValue<int>(PARAM_TTL).Value));
+
+			return true;
 		}
 
 		private static Boolean ParseConfigXML()
 		{
-			CommandLineParser.OptionValue<string> configOpt = cmdParser.FindOptionValue<string>(PARAM_CONFIG);
+			CommandLineParser.OptionValue<string> configOpt = cmdParser.FindOptionValue<string>(PARAM_XML);
 			if (configOpt == null || !configOpt.IsMatched)
 				return false;
 
+			Log(String.Format("Running XML '{0}'", configOpt.Value));
+
 			string configFile = configOpt.Value;
-			string[] args = cmdParser.RemainingArgs.ToArray(); // TODO use /actions
-			string[] actions = (args != null && args.Length > 0) ? args : null;
+			List<string> actions = cmdParser.FindOptionList<string>(PARAM_ACTIONS).Value;
 
 			XmlDocument doc = new XmlDocument();
 			doc.Load(configFile);
@@ -81,10 +127,9 @@ See http://support.spatialkey.com/dmapi for more information
 			String defaultClusterDomainUrl = GetInnerText(doc, "/config/clusterDomainUrl");
 
 			// Default authentication info
-			String defaultUserName = GetInnerText(doc, "/config/userName");
-			String defaultPassword = GetInnerText(doc, "/config/password");
-			String defaultApiKey = GetInnerText(doc, "/config/apiKey"); 
-			String defaultUserId = GetInnerText(doc, "/config/userId"); 
+			String defaultUserAPIKey = GetInnerText(doc, "/config/userAPIKey", clUserAPIKey);
+			String defaultOrgAPIKey = GetInnerText(doc, "/config/orgAPIKey", clOrgAPIKey);
+			String defaultOrgSecretKey = GetInnerText(doc, "/config/orgSecretKey", clOrgSecretKey); 
 
 			var actionNodes = doc.SelectNodes("/config/actions/action");
 
@@ -96,57 +141,30 @@ See http://support.spatialkey.com/dmapi for more information
 				try
 				{
 					String actionName = GetInnerText(actionNode, "@name");
-					if (actions != null && Array.IndexOf(actions, actionName) < 0)
+					if (!(actions == null || actions.Count == 0 || actions.Contains(actionName) || actions.FindIndex(x => x.Equals(ACTION_ALL, StringComparison.OrdinalIgnoreCase) ) >= 0))
 						continue;
+					Log(String.Format("Running Action: {0}", actionName));
 
 					// Action override URL info
 					String organizationName = GetInnerText(doc, "organizationName", defaultOrganizationName);
 					String clusterDomainUrl = GetInnerText(doc, "clusterDomainUrl", defaultClusterDomainUrl);
 
 					// Action override authentication info
-					String userName = GetInnerText(doc, "userName", defaultUserName);
-					String password = GetInnerText(doc, "password", defaultPassword);
-					String apiKey = GetInnerText(doc, "apiKey", defaultApiKey); 
-					String userId = GetInnerText(doc, "userId", defaultUserId); 
+					String userAPIKey = GetInnerText(doc, "userAPIKey", defaultUserAPIKey); 
+					String orgAPIKey = GetInnerText(doc, "orgAPIKey", defaultOrgAPIKey); 
+					String orgSecretKey = GetInnerText(doc, "orgSecretKey", defaultOrgSecretKey); 
 
 					// Action information
 					String type = GetInnerText(actionNode, "type");
 
-					Log(String.Format("Running Action: {0}", actionName));
-
-					if (skapi == null)
-					{
-						skapi = new SpatialKeyDataManager(organizationName, clusterDomainUrl, userName, password, apiKey, userId, Log);
-					}
-					else
-					{
-						skapi.Init(organizationName, clusterDomainUrl, userName, password, apiKey, userId);
-					}
-
-					if (type.ToLower() == "overwrite" || type.ToLower() == "append")
-					{
-						String dataPath = GetInnerText(actionNode, "dataPath");
-						String xmlPath = GetInnerText(actionNode, "xmlPath");
-						Boolean runAsBackground = GetInnerText(actionNode, "runAsBackground", "true").ToLower() == "true";
-						Boolean notifyByEmail = GetInnerText(actionNode, "notifyByEmail", "true").ToLower() == "true";
-						Boolean addAllUsers = GetInnerText(actionNode, "addAllUsers", "false").ToLower() == "true";
-
-						skapi.UploadData(dataPath, xmlPath, type, runAsBackground, notifyByEmail, addAllUsers);
-					}
-					else if (type.ToLower() == "poly")
-					{
-						// TODO handle poly
-						String datasetName = GetInnerText(actionNode, "datasetName");
-						String datasetId = GetInnerText(actionNode, "datasetId");
-						String dataPath = GetInnerText(actionNode, "dataPath");
-						skapi.UploadShape(dataPath, datasetName, datasetId);
-					}
+					// TODO do the action
 
 					Log(String.Format("Finished Action: {0}", actionName));
 				}
 				catch (Exception ex)
 				{
 					Log(String.Format("Error: {0}", ex.ToString()));
+					errorCode = ERROR_RUN_XML;
 				}
 			}
 
@@ -155,6 +173,9 @@ See http://support.spatialkey.com/dmapi for more information
 
 		private static String GetInnerText(XmlNode node, String path, String defaultValue = "")
 		{
+			if (defaultValue == null)
+				defaultValue = "";
+
 			XmlNode value = node.SelectSingleNode(path);
 			return value != null ? value.InnerText : defaultValue;
 		}

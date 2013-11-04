@@ -9,21 +9,15 @@
 	
 	<!--
 		Default authentication information is used for any action that doesn't override the value
-		Given with either userName and password or apiKey and userId
-		* apiKey and userId - The keys to use to authenticate
-		* userName and password - The user name and password to use, not as secure as using IDs
 	-->
-	<apiKey>xxx</apiKey>
-	<userId>xxx</userId>
-	<!--
-	<userName>user@xxx.com</userName>
-	<password>xxx</password>
-	-->
+	<userAPIKey>xxx</userAPIKey>
+	<orgAPIKey>xxx</orgAPIKey>
+	<orgSecretKey>xxx</orgSecretKey>
 
 	<!-- A list of actions to perform, each action  -->	
 	<actions>
 		<action name="csv example">
-			<!-- Can override organizationName, clusterDomainUrl, apiKey, userId, username, or password -->
+			<!-- Can override organizationName, clusterDomainUrl, userAPIKey, orgAPIKey, orgSecretKey  -->
 			<type>overwrite</type>
 			<dataPath>SalesData.csv</dataPath>
 			<xmlPath>SalesData.xml</xmlPath>

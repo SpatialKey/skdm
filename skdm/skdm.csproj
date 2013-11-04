@@ -20,7 +20,7 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <Externalconsole>True</Externalconsole>
-    <Commandlineparameters>/Users/rstehwien/Downloads/skdm_test/SpatialKeyDataManagerConfig.xml</Commandlineparameters>
+    <Commandlineparameters>/x SpatialKeyDataManagerConfigAdam.xml /c oauth /u 847FFDCF-881C-4F3A-96F35839D5A3CE73 /o 22D0D03B-41E3-4EF8-831E8668CB19AD05 /s 99E5D98E-D41E-447B-A2550F01AFF51FA6</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>none</DebugType>

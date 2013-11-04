@@ -305,6 +305,9 @@ namespace skdm
 		#region HelpMessage
 		public String GetHelpMessage()
 		{
+			// TODO need nicer formatting for alternate commands
+			// TODO need description text wrapping 
+
 			const string indent = "  ";
 			int ind = indent.Length;
 			const int spc = 3;
