@@ -6,7 +6,6 @@
 using System;
 using System.Xml;
 using System.Net;
-using CMDLine;
 
 namespace skdm
 {
@@ -25,39 +24,31 @@ See http://support.spatialkey.com/dmapi for more information
 		private const string PARAM_ORGSECRET = "secret";
 		private const string PARAM_ACTIONS = "actions";
 
-		private static CMDLineParser cmdParser;
+		private static CommandLineParser cmdParser;
 
 		public static void Main(string[] args)
 		{
-			Console.WriteLine(String.Join("\n", args));
-			Boolean test = true;
-			if (test)
-				return;
-
-			CommandLineParser cp = new CommandLineParser();
-
-			cmdParser = new CMDLineParser(true, _helpPrefix);
-			cmdParser.AddStringParameter(PARAM_CONFIG, "XML Configuration File", false, new string[] {"c"});
-			cmdParser.AddStringParameter(PARAM_USERAPI, "User API Key", false, new string[] {"u"});
-			cmdParser.AddStringParameter(PARAM_ORGAPI, "Organization API Key", false, new string[] {"o"});
-			cmdParser.AddStringParameter(PARAM_ORGSECRET, "Organization Secret Key", false, new string[] {"s"});
-			cmdParser.AddStringParameter(PARAM_ACTIONS, "Actions to perform from XML configuration file, default to all", false, new string[] {"a"});
+			cmdParser = new CommandLineParser(_helpPrefix, true);
+			cmdParser.AddOptionValue<string>(new string[] {PARAM_CONFIG, "c"}, "XML Configuration File");
+			cmdParser.AddOptionValue<string>(new string[] {PARAM_USERAPI, "u"}, "User API Key");
+			cmdParser.AddOptionValue<string>(new string[] {PARAM_ORGAPI,"o"}, "Organization API Key");
+			cmdParser.AddOptionValue<string>(new string[] {PARAM_ORGSECRET, "s"}, "Organization Secret Key");
+			cmdParser.AddOptionList<string>(new string[] {PARAM_ACTIONS, "a"}, "Actions to perform from XML configuration file, default to all");
 			try
 			{
 				cmdParser.Parse(args);
 			}
 			catch (Exception ex)
 			{
-				Console.Write(cmdParser.HelpMessage());
+				Console.Write(cmdParser.GetHelpMessage());
 				Console.WriteLine();
 				Console.WriteLine("Error: " + ex.Message);
 				Environment.Exit(1);
 			}
 
-			args = cmdParser.RemainingArgs();
-
-			if (cmdParser.HelpOption.isMatched)
+			if (cmdParser.HelpOption.IsMatched)
 			{
+				Console.Write(cmdParser.GetHelpMessage());
 				return;
 			}
 
@@ -67,19 +58,19 @@ See http://support.spatialkey.com/dmapi for more information
 
 			if (!isAction)
 			{
-				Console.Write(cmdParser.HelpMessage());
+				Console.Write(cmdParser.GetHelpMessage());
 				Console.Write("\nWARNING: No operations performed\n");
 			}
 		}
 
 		private static Boolean ParseConfigXML()
 		{
-			CMDLineParser.Option configOpt = cmdParser.FindOption(PARAM_CONFIG);
-			if (configOpt == null || !configOpt.isMatched)
+			CommandLineParser.OptionValue<string> configOpt = cmdParser.FindOptionValue<string>(PARAM_CONFIG);
+			if (configOpt == null || !configOpt.IsMatched)
 				return false;
 
-			string configFile = configOpt.Value.ToString();
-			string[] args = cmdParser.RemainingArgs();
+			string configFile = configOpt.Value;
+			string[] args = cmdParser.RemainingArgs.ToArray(); // TODO use /actions
 			string[] actions = (args != null && args.Length > 0) ? args : null;
 
 			XmlDocument doc = new XmlDocument();

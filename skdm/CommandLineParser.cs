@@ -300,11 +300,68 @@ namespace skdm
 			if (missingArgs.Count > 0)
 				throw new ExceptionParse(String.Format("The following required options were not set '{0}'", String.Join(", ", missingArgs)));
 		}
+		#endregion
 
+		#region HelpMessage
+		public String GetHelpMessage()
+		{
+			const string indent = "  ";
+			int ind = indent.Length;
+			const int spc = 3;
+
+			// help header
+			string help = HelpPrefix != null ? HelpPrefix : "";
+			help += "\nCommand line options are:\n\n";
+
+			// get the max length of options
+			int len = 0;
+			foreach (IOption option in _options)
+			{
+				foreach (string key in option.Keys)
+				{
+					int nlen = key.Length;
+					if (option.IsNeedsValue)
+						nlen += option.Prompt.Length + 1;
+					len = Math.Max(len, nlen);
+				}
+			}
+
+			// add each option to help
+			bool req = false;
+			foreach (IOption option in _options)
+			{
+				string[] keys = option.Keys;
+
+				for (int i = 0; i < keys.Length; i++)
+				{
+					string line = indent + keys[i];
+					if (option.IsNeedsValue)
+						line += " "+option.Prompt;
+					if (i == 0)
+					{
+						while (line.Length < len + spc + ind)
+							line += " ";
+						if (option.IsRequired)
+						{
+							line += "(*) ";
+							req = true;
+						}
+						line += option.Description;
+					}
+
+					help += line + "\n";
+				}
+
+				help += "\n";
+			}
+			if (req)
+				help += "(*) Required.\n";
+
+			return help;
+		}
 		#endregion
 
 		#region Static Methods
-
 		protected static Boolean IsKey(String key)
 		{
 			return ((key.StartsWith("-") || key.StartsWith("/")));
@@ -317,7 +374,6 @@ namespace skdm
 			else
 				return new String[] { "/" + key, "-" + key };
 		}
-
 		#endregion
 
 		#region IOption Interface
@@ -333,6 +389,8 @@ namespace skdm
 			Boolean IsRequired { get; set; }
 
 			Boolean IsMatched { get; }
+
+			Boolean IsNeedsValue { get; }
 
 			T GetValue<T>();
 
@@ -395,6 +453,8 @@ namespace skdm
 			public Boolean IsMatched { get; protected set; }
 
 			public Boolean IsRequired { get; set; }
+
+			virtual public Boolean IsNeedsValue { get { return true; } }
 
 			public Y GetValue<Y>()
 			{
@@ -466,6 +526,8 @@ namespace skdm
 
 			#region IOption
 
+			override public Boolean IsNeedsValue { get { return false; } }
+
 			override public int Parse(String[] tokens, int index)
 			{
 				// if enough tokens for key & value and the first is one of our keys
@@ -495,6 +557,8 @@ namespace skdm
 			}
 
 			#region IOption
+
+			override public Boolean IsNeedsValue { get { return false; } }
 
 			override public int Parse(String[] tokens, int index)
 			{
