@@ -165,6 +165,84 @@ namespace tests
 			Assert.AreEqual(2, option.Parse(new String[] { "/test", "another value" }, 0));
 			Assert.AreEqual("another value", option.Value);
 		}
+		
+		[Test()]
+		public void TestOptionBoolean()
+		{
+			CommandLineParser.OptionBoolean option = new CommandLineParser.OptionBoolean(new String[] { "bool" });
+			Assert.IsFalse(option.Value);
+			Assert.IsFalse(option.IsMatched);
+			Assert.AreEqual(1, option.Parse(new String[] { "/bool" }, 0));
+			Assert.IsTrue(option.Value);
+			Assert.IsTrue(option.IsMatched);
+		}
+		
+		
+		[Test()]
+		[ExpectedException(typeof(CommandLineParser.ExceptionParse))]
+		public void TestOptionBooleanTwice()
+		{
+			CommandLineParser.OptionBoolean option = new CommandLineParser.OptionBoolean(new String[] { "bool" });
+			Assert.AreEqual(1, option.Parse(new String[] { "-bool" }, 0));
+			option.Parse(new String[] { "/bool" }, 0);
+			Assert.IsTrue(false, "never get here");
+		}
+
+		[Test()]
+		public void TestOptionListOneItem()
+		{
+			CommandLineParser.OptionList<String> option = new CommandLineParser.OptionList<String>(new String[] { "l" });
+			CollectionAssert.IsEmpty(option.Value);
+			Assert.AreEqual(2, option.Parse(new String[] { "/l", "foo" }, 0));
+			CollectionAssert.AreEqual(new String[] {"foo"},option.Value);
+		}
+		
+		[Test()]
+		public void TestOptionListList()
+		{
+			CommandLineParser.OptionList<String> option = new CommandLineParser.OptionList<String>(new String[] { "l" });
+			CollectionAssert.IsEmpty(option.Value);
+			Assert.AreEqual(2, option.Parse(new String[] { "/l", "foo, bar ,baz" }, 0));
+			CollectionAssert.AreEqual(new String[] {"foo", "bar", "baz"},option.Value);
+		}
+		
+		[Test()]
+		public void TestOptionListTwice()
+		{
+			CommandLineParser.OptionList<String> option = new CommandLineParser.OptionList<String>(new String[] { "l" });
+			CollectionAssert.IsEmpty(option.Value);
+			Assert.AreEqual(2, option.Parse(new String[] { "/l", "foo" }, 0));
+			Assert.AreEqual(2, option.Parse(new String[] { "/l", "bar ,baz" }, 0));
+			CollectionAssert.AreEqual(new String[] {"foo", "bar", "baz"},option.Value);
+		}
+
+		[Test()]
+		public void TestOptionCount()
+		{
+			CommandLineParser.OptionCount option = new CommandLineParser.OptionCount(new String[] { "count" });
+			Assert.AreEqual(0, option.Value);
+			Assert.IsFalse(option.IsMatched);
+			Assert.AreEqual(1, option.Parse(new String[] { "/count" }, 0));
+			Assert.AreEqual(1, option.Value);
+			Assert.IsTrue(option.IsMatched);
+		}
+
+		[Test()]
+		public void TestOptionCountTwice()
+		{
+			CommandLineParser.OptionCount option = new CommandLineParser.OptionCount(new String[] { "count" });
+			Assert.AreEqual(0, option.Value);
+			Assert.IsFalse(option.IsMatched);
+
+			Assert.AreEqual(1, option.Parse(new String[] { "/count" }, 0));
+			Assert.AreEqual(1, option.Value);
+			Assert.IsTrue(option.IsMatched);
+
+			Assert.AreEqual(1, option.Parse(new String[] { "/count" }, 0));
+			Assert.AreEqual(2, option.Value);
+			Assert.IsTrue(option.IsMatched);
+		}
+
 	}
 }
 

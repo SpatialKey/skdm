@@ -90,7 +90,6 @@ namespace skdm
 		#endregion
 
 		#region OptionValue Methods
-
 		public OptionValue<T> AddOptionValue<T>(String key, String description = null, String prompt = DEFAULT_PROMPT, T defaultValue = default(T), Boolean isRequired = false)
 		{
 			return AddOptionValue<T>(new String [] { key }, description, prompt, defaultValue, isRequired);
@@ -101,6 +100,18 @@ namespace skdm
 			OptionValue<T> option = new OptionValue<T>(keys, description, prompt, defaultValue, isRequired);
 			AddOption(option);
 			return option;
+		}
+
+		public OptionValue<T> FindOptionValue<T>(String[] keys)
+		{
+			try
+			{
+				return (OptionValue<T>)Convert.ChangeType(FindOption(keys), typeof(OptionValue<T>));
+			}
+			catch
+			{
+				return null;
+			}
 		}
 
 		public OptionValue<T> FindOptionValue<T>(String key)
@@ -114,29 +125,6 @@ namespace skdm
 				return null;
 			}
 		}
-
-		#endregion
-
-		#region OptionList Methods
-
-		/*
-		public OptionList<T> AddOptionList<T>()
-		{
-			OptionList<T> option = new OptionList<T>();
-			AddOption(option);
-			return option;
-		}
-
-		public OptionList<T> FindOptionList<T>(String key)
-		{
-			IOption option = FindOption(key);
-			if (typeof(OptionList<T>).Equals(option))
-				return (OptionList<T>)option;
-			else
-				return null;
-		}
-		*/
-
 		#endregion
 
 		#region OptionBoolean Methods
@@ -163,6 +151,18 @@ namespace skdm
 			HelpOption = AddOptionBoolean(keys, description, false);
 			return HelpOption;
 		}
+		
+		public OptionBoolean FindOptionBoolean(String[] keys)
+		{
+			try
+			{
+				return (OptionBoolean)Convert.ChangeType(FindOption(keys), typeof(OptionBoolean));
+			}
+			catch
+			{
+				return null;
+			}
+		}
 
 		public OptionBoolean FindOptionBoolean(String key)
 		{
@@ -177,8 +177,83 @@ namespace skdm
 		}
 		#endregion
 
-		#region Parse Methods
+		#region OptionList Methods
+		public OptionList<T> AddOptionList<T>(String key, String description = null, String prompt = DEFAULT_PROMPT, List<T> defaultValue = default(List<T>), Boolean isRequired = false)
+		{
+			return AddOptionList<T>(new String [] { key }, description, prompt, defaultValue, isRequired);
+		}
 
+		public OptionList<T> AddOptionList<T>(String[] keys, String description = null, String prompt = DEFAULT_PROMPT, List<T> defaultValue = default(List<T>), Boolean isRequired = false)
+		{
+			OptionList<T> option = new OptionList<T>(keys, description, prompt, defaultValue, isRequired);
+			AddOption(option);
+			return option;
+		}
+
+		public OptionList<T> FindOptionList<T>(String[] keys)
+		{
+			try
+			{
+				return (OptionList<T>)Convert.ChangeType(FindOption(keys), typeof(OptionList<T>));
+			}
+			catch
+			{
+				return null;
+			}
+		}
+
+		public OptionList<T> FindOptionList<T>(String key)
+		{
+			try
+			{
+				return (OptionList<T>)Convert.ChangeType(FindOption(key), typeof(OptionList<T>));
+			}
+			catch
+			{
+				return null;
+			}
+		}
+		#endregion
+
+		#region OptionCount Methods
+		public OptionCount AddOptionCount(String key, String description = null, Boolean isRequired = false)
+		{
+			return AddOptionCount(new String[] { key }, description, isRequired);
+		}
+
+		public OptionCount AddOptionCount(String[] keys, String description = null, Boolean isRequired = false)
+		{
+			OptionCount option = new OptionCount(keys, description, isRequired);
+			AddOption(option);
+			return option;
+		}
+
+		public OptionCount FindOptionCount(String[] keys)
+		{
+			try
+			{
+				return (OptionCount)Convert.ChangeType(FindOption(keys), typeof(OptionCount));
+			}
+			catch
+			{
+				return null;
+			}
+		}
+
+		public OptionCount FindOptionCount(String key)
+		{
+			try
+			{
+				return (OptionCount)Convert.ChangeType(FindOption(key), typeof(OptionCount));
+			}
+			catch
+			{
+				return null;
+			}
+		}
+		#endregion
+
+		#region Parse Methods
 		public void Parse()
 		{
 			Parse(Environment.GetCommandLineArgs());
@@ -275,7 +350,6 @@ namespace skdm
 		#endregion
 
 		#region OptionValue<T> Class
-
 		public class OptionValue<T> : IOption
 		{
 			public OptionValue(String[] keys, String description = null, String prompt = DEFAULT_PROMPT, T defaultValue = default(T), Boolean isRequired = false)
@@ -380,11 +454,9 @@ namespace skdm
 			#endregion
 
 		}
-
 		#endregion
 
 		#region OptionBoolean Class
-
 		public class OptionBoolean : OptionValue<Boolean>
 		{
 			public OptionBoolean(String[] keys, String description = null, Boolean isRequired = false)
@@ -400,6 +472,9 @@ namespace skdm
 				if (tokens == null || tokens.Length <= index || !IsKeyMatch(tokens[index]))
 					return 0;
 
+				if (IsMatched)
+					throw new ExceptionParse(String.Format("Option '{0}' already set.", String.Join(", ", _keys)));
+
 				IsMatched = true;
 				Value = true;
 
@@ -409,28 +484,66 @@ namespace skdm
 			#endregion
 
 		}
-
 		#endregion
-
-		#region OptionList<T> Class
-
-		/*
-		public class OptionList<T> : OptionValue<List<T>>
+		
+		#region OptionBoolean Class
+		public class OptionCount : OptionValue<int>
 		{
+			public OptionCount(String[] keys, String description = null, Boolean isRequired = false)
+				:base(keys, description, null, 0, isRequired)
+			{
+			}
 
 			#region IOption
 
 			override public int Parse(String[] tokens, int index)
 			{
-				if (!IsKeyMatch(key))
+				// if enough tokens for key & value and the first is one of our keys
+				if (tokens == null || tokens.Length <= index || !IsKeyMatch(tokens[index]))
 					return 0;
 
-				String[] split = value.Split(new char[] { ',' });
-				foreach (String cur in split)
-				{
-					Value.Add((T)Convert.ChangeType(cur, typeof(T)));
-				}
 				IsMatched = true;
+				Value++;
+
+				return 1;
+			}
+
+			#endregion
+
+		}
+		#endregion
+
+		#region OptionList<T> Class
+		public class OptionList<T> : OptionValue<List<T>>
+		{
+			public OptionList(String[] keys, String description = null, String prompt = DEFAULT_PROMPT, List<T> defaultValue = default(List<T>), Boolean isRequired = false, String separatorPattern = @"\s*,\s*")
+				:base(keys, description, prompt, (defaultValue != null ? defaultValue : new List<T>()), isRequired)
+			{
+				SeparatorPattern = separatorPattern;
+			}
+
+			public String SeparatorPattern { get; set; }
+
+			#region IOption
+
+			override public int Parse(String[] tokens, int index)
+			{
+				int keyIdx = index;
+				int valueIdx = index + 1;
+
+				// if enough tokens for key & value and the first is one of our keys
+				if (tokens == null || tokens.Length <= valueIdx || !IsKeyMatch(tokens[keyIdx]))
+					return 0;
+
+				if (!IsMatched)
+					Value.Clear();
+
+				IsMatched = true;
+
+				foreach (String tok in Regex.Split(tokens[valueIdx], SeparatorPattern))
+				{
+					Value.Add((T)Convert.ChangeType(tok, typeof(T)));
+				}
 
 				return 2;
 			}
@@ -438,10 +551,9 @@ namespace skdm
 			#endregion
 
 		}
-		*/
-
 		#endregion
 
+		#region Exceptions
 		public class ExceptionCommandLineParser : Exception
 		{
 			public ExceptionCommandLineParser(String message)
@@ -465,6 +577,7 @@ namespace skdm
 			{
 			}
 		}
+		#endregion
 	}
 }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using skdm;
 
@@ -221,7 +222,41 @@ namespace test
 			Assert.IsTrue(cmd.HelpOption.Value);
 			CollectionAssert.AreEqual(new String[] { "-foo", "13" }, cmd.RemainingArgs);
 		}
+		
+		[Test()]
+		public void ParseList()
+		{
+			CommandLineParser cmd = new CommandLineParser(null, false);
+			cmd.AddOptionList<String>("list");
+			CollectionAssert.IsEmpty(cmd.FindOptionList<String>("list").Value);
+			cmd.Parse(new String[] { "-list", "foo", "/list", "some, value" });
+			CollectionAssert.AreEqual(new String[] {"foo", "some", "value"}, cmd.FindOptionList<String>("list").Value);
+		}
+		
+		[Test()]
+		public void ParseListDefault()
+		{
+			CommandLineParser cmd = new CommandLineParser(null, false);
+			cmd.AddOptionList<String>("list", "desc", "LIST", new List<String>{"default list"});
+			CollectionAssert.AreEqual(new String[] {"default list"}, cmd.FindOptionList<String>("list").Value);
+			cmd.Parse(new String[] { "-list", "foo", "/list", "some, value" });
+			CollectionAssert.AreEqual(new String[] {"foo", "some", "value"}, cmd.FindOptionList<String>("list").Value);
+		}
 
+		[Test()]
+		public void ParseCount()
+		{
+			CommandLineParser cmd = new CommandLineParser(null, false);
+			cmd.AddOptionCount("b");
+			Assert.AreEqual(0, cmd.FindOptionCount("b").Value);
+
+			cmd.Parse(new String[] {"/b"});
+			Assert.AreEqual(1, cmd.FindOptionCount("b").Value);
+
+			cmd.Reset();
+			cmd.Parse(new String[] {"/b", "-b", "/b"});
+			Assert.AreEqual(3, cmd.FindOptionCount("b").Value);
+		}
 	}
 }
 
