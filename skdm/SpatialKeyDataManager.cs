@@ -22,7 +22,10 @@ namespace skdm
 	public class SpatialKeyDataManager
 	{
 		public const string API_VERSION = "v2";
-		private const int HTTP_TIMEOUT = 3600000; // 60 min * 60 sec * 1000 msec = 3600000 msec
+		private const int HTTP_TIMEOUT_SHORT = 60000;
+		// 1 min * 60 sec * 1000 msec = 60000 msec
+		private const int HTTP_TIMEOUT_LONG = 3600000;
+		// 60 min * 60 sec * 1000 msec = 3600000 msec
 
 		#region parameters
 
@@ -83,6 +86,7 @@ namespace skdm
 			this.OrganizationAPIKey = organizationAPIKey;
 			this.OrganizationSecretKey = organizationSecretKey;
 			this.UserAPIKey = userAPIKey;
+			Logout();
 		}
 
 		/// <summary>
@@ -109,6 +113,8 @@ namespace skdm
 			if (IsLoginTokenValid())
 				return;
 
+			_accessToken = null;
+
 			Log("START LOGIN: " + OrganizationURL);
 
 			// add the query string
@@ -117,8 +123,15 @@ namespace skdm
 			query["assertion"] = GetOAuthToken();
 
 			HttpWebResponse resp = HttpPost(BuildUrl("oauth.json"), query);
-			Dictionary<string,object> json = HttpResponseToJSON(resp);
-			_accessToken = json["access_token"] as String;
+			if (resp.StatusCode == HttpStatusCode.OK)
+			{
+				Dictionary<string,object> json = HttpResponseToJSON(resp);
+				_accessToken = json["access_token"] as String;
+			}
+			else
+			{
+				// TODO log failure
+			}
 		}
 
 		public bool IsLoginTokenValid()
@@ -138,6 +151,17 @@ namespace skdm
 
 		public void Logout()
 		{
+			if (_accessToken == null || _accessToken.Length == 0)
+				return;
+
+			Log("LOGOUT TOKEN: " + _accessToken);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			HttpWebResponse resp = HttpGet(BuildUrl("oauth.json"), query, "DELETE");
+			HttpResponseToJSON(resp);
+			_accessToken = null;
 		}
 
 		public void Upload()
@@ -191,28 +215,40 @@ namespace skdm
 			{
 				StreamReader reader = new StreamReader(response.GetResponseStream());
 				string result = reader.ReadToEnd();
-				Log(result);
+				Log("JSON RESULT: " + result);
 				json = MiniJson.Deserialize(result) as Dictionary<string, object>;
 			}
 			return json;
 		}
 
-		private HttpWebResponse HttpGet(string url, NameValueCollection query = null)
+		private HttpWebResponse HttpGet(string url, NameValueCollection query = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
 		{
 			string fullURL = url + ToQueryString(query);
 			Log(String.Format("HTTP GET: {0}", fullURL));
 
 			HttpWebRequest request = WebRequest.Create(fullURL) as HttpWebRequest;
-			request.Method = "GET";
-			request.Timeout = HTTP_TIMEOUT;
-			return request.GetResponse() as HttpWebResponse;
+			request.Method = method;
+			request.Timeout = timeout;
+			try
+			{
+				return request.GetResponse() as HttpWebResponse;
+			}
+			catch (WebException we)
+			{
+				var response = we.Response as HttpWebResponse;
+				if (response == null)
+					throw;
+				Log(String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				return response;
+			}
+
 		}
 
-		private HttpWebResponse HttpPost(string url, NameValueCollection query = null)
+		private HttpWebResponse HttpPost(string url, NameValueCollection query = null, int timeout = HTTP_TIMEOUT_SHORT)
 		{
 			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
 			request.Method = "POST";  
-			request.Timeout = HTTP_TIMEOUT;
+			request.Timeout = timeout;
 			request.ContentType = "application/x-www-form-urlencoded";
 
 			// get the query string and trim off the starting "?"
@@ -230,7 +266,18 @@ namespace skdm
 				post.Write(formData, 0, formData.Length);  
 			}
 
-			return request.GetResponse() as HttpWebResponse;
+			try
+			{
+				return request.GetResponse() as HttpWebResponse;
+			}
+			catch (WebException we)
+			{
+				var response = we.Response as HttpWebResponse;
+				if (response == null)
+					throw;
+				Log(String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				return response;
+			}
 		}
 
 		private CustomWebClient CreateCustomWebClient()
@@ -262,17 +309,20 @@ namespace skdm
 		private class CustomWebClient : WebClient
 		{
 			private CookieContainer _cookies;
+			private int _timeout;
 
-			public CustomWebClient(CookieContainer cookies)
+			public CustomWebClient(CookieContainer cookies = null, int timeout = HTTP_TIMEOUT_LONG)
 			{
 				_cookies = cookies;
+				_timeout = timeout;
 			}
 
 			protected override WebRequest GetWebRequest(Uri address)
 			{
 				HttpWebRequest request = (HttpWebRequest)base.GetWebRequest(address);
-				request.CookieContainer = _cookies;
-				request.Timeout = HTTP_TIMEOUT;
+				if (_cookies != null)
+					request.CookieContainer = _cookies;
+				request.Timeout = _timeout;
 				return request;
 			}
 		}
@@ -336,4 +386,3 @@ namespace skdm
 
 	}
 }
-

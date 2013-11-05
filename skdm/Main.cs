@@ -167,7 +167,7 @@ See http://support.spatialkey.com/dmapi for more information
 					errorCode = ERROR_RUN_XML;
 				}
 			}
-
+			skapi.Logout();
 			return true;
 		}
 
