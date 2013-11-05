@@ -153,11 +153,13 @@ See http://support.spatialkey.com/dmapi for more information
 					String organizationAPIKey = GetInnerText(doc, "organizationAPIKey", defaultOrganizationAPIKey); 
 					String organizationSecretKey = GetInnerText(doc, "organizationSecretKey", defaultOrganizationSecretKey); 
 
+					skapi.Init(organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey);
+
 					// Action information
 					String type = GetInnerText(actionNode, "type");
+					String dataPath = GetInnerText(actionNode, "dataPath");
 
-					skapi.Init(organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey);
-					skapi.Login();
+					skapi.Upload(dataPath);
 
 					Log(String.Format("Finished Action: {0}", actionName));
 				}

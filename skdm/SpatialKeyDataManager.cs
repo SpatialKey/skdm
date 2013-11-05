@@ -82,11 +82,12 @@ namespace skdm
 				return;
 			}
 
+			Logout();
+
 			this.OrganizationURL = organizationURL;
 			this.OrganizationAPIKey = organizationAPIKey;
 			this.OrganizationSecretKey = organizationSecretKey;
 			this.UserAPIKey = userAPIKey;
-			Logout();
 		}
 
 		/// <summary>
@@ -108,29 +109,32 @@ namespace skdm
 			return OAuth.GetOAuthToken(UserAPIKey, OrganizationAPIKey, OrganizationSecretKey, 1800);
 		}
 
-		public void Login()
+		public string Login()
 		{
 			if (IsLoginTokenValid())
-				return;
+				return _accessToken;
 
 			_accessToken = null;
 
 			Log("START LOGIN: " + OrganizationURL);
 
 			// add the query string
-			NameValueCollection query = new NameValueCollection();
-			query["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
-			query["assertion"] = GetOAuthToken();
+			NameValueCollection bodyParam = new NameValueCollection();
+			bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
+			bodyParam["assertion"] = GetOAuthToken();
 
-			HttpWebResponse resp = HttpPost(BuildUrl("oauth.json"), query);
-			if (resp.StatusCode == HttpStatusCode.OK)
+			using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
 			{
-				Dictionary<string,object> json = HttpResponseToJSON(resp);
-				_accessToken = json["access_token"] as String;
-			}
-			else
-			{
-				// TODO log failure
+				if (response.StatusCode == HttpStatusCode.OK)
+				{
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					_accessToken = json["access_token"] as String;
+					return _accessToken;
+				}
+				else
+				{
+					return null;
+				}
 			}
 		}
 
@@ -144,9 +148,11 @@ namespace skdm
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
 
-			HttpWebResponse resp = HttpGet(BuildUrl("oauth.json"), query);
-			HttpResponseToJSON(resp);
-			return resp.StatusCode == HttpStatusCode.OK;
+			using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query))
+			{
+				HttpResponseToJSON(response);
+				return response.StatusCode == HttpStatusCode.OK;
+			}
 		}
 
 		public void Logout()
@@ -159,13 +165,34 @@ namespace skdm
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
 
-			HttpWebResponse resp = HttpGet(BuildUrl("oauth.json"), query, "DELETE");
-			HttpResponseToJSON(resp);
-			_accessToken = null;
+			using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query, "DELETE"))
+			{
+				HttpResponseToJSON(response);
+				_accessToken = null;
+			}
 		}
 
-		public void Upload()
+		public string Upload(string path)
 		{
+			if (Login() == null)
+				return null;
+
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+			using (HttpWebResponse response = HttpUploadFile(BuildUrl("upload.json"), path, "file", "text/csv", query, null))
+			{
+				if (response.StatusCode == HttpStatusCode.OK)
+				{
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					string uploadId = (json["upload"] as Dictionary<string,object>)["uploadId"] as String;
+					return uploadId;
+				}
+				else
+				{
+					return null;
+				}
+			}
 		}
 
 		public void GetUploadStatus()
@@ -176,8 +203,9 @@ namespace skdm
 		{
 		}
 
-		public void Import()
+		public bool Import()
 		{
+			return false;
 		}
 
 		public void GetImportStatus()
@@ -215,18 +243,18 @@ namespace skdm
 			{
 				StreamReader reader = new StreamReader(response.GetResponseStream());
 				string result = reader.ReadToEnd();
-				Log("JSON RESULT: " + result);
+				Log("RESULT: " + result);
 				json = MiniJson.Deserialize(result) as Dictionary<string, object>;
 			}
 			return json;
 		}
 
-		private HttpWebResponse HttpGet(string url, NameValueCollection query = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
+		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
 		{
-			string fullURL = url + ToQueryString(query);
-			Log(String.Format("HTTP GET: {0}", fullURL));
+			url = url + ToQueryString(queryParam);
+			Log(String.Format("HTTP GET: {0}", url));
 
-			HttpWebRequest request = WebRequest.Create(fullURL) as HttpWebRequest;
+			HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
 			request.Method = method;
 			request.Timeout = timeout;
 			try
@@ -244,20 +272,21 @@ namespace skdm
 
 		}
 
-		private HttpWebResponse HttpPost(string url, NameValueCollection query = null, int timeout = HTTP_TIMEOUT_SHORT)
+		private HttpWebResponse HttpPost(string url, NameValueCollection queryParam = null, NameValueCollection bodyParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_SHORT)
 		{
+			url = url + ToQueryString(queryParam);
 			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
-			request.Method = "POST";  
+			request.Method = method;  
 			request.Timeout = timeout;
 			request.ContentType = "application/x-www-form-urlencoded";
 
 			// get the query string and trim off the starting "?"
-			string param = ToQueryString(query).Remove(0, 1);
+			string body = ToQueryString(bodyParam).Remove(0, 1);
 
-			Log(String.Format("HTTP POST URL: {0} PARAM: {1}", url, param));
+			Log(String.Format("HTTP POST URL: {0} PARAM: {1}", url, body));
 
 			// Encode the parameters as form data:
-			byte[] formData = UTF8Encoding.UTF8.GetBytes(param);
+			byte[] formData = UTF8Encoding.UTF8.GetBytes(body);
 			request.ContentLength = formData.Length;
 
 			// Send the request:
@@ -278,6 +307,84 @@ namespace skdm
 				Log(String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
 				return response;
 			}
+		}
+
+		private HttpWebResponse HttpUploadFile(string url, string file, string paramName, string contentType, NameValueCollection queryParam, NameValueCollection bodyParam, string method = "POST", int timeout = HTTP_TIMEOUT_LONG)
+		{
+			url = url + ToQueryString(queryParam);
+			Log(string.Format("HTTP UPLOAD {0} to {1}", file, url));
+			string boundary = String.Format("{0:N}", Guid.NewGuid());
+			byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
+
+			HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+			request.ContentType = "multipart/form-data; boundary=" + boundary;
+			request.Method = method;
+			//request.KeepAlive = true;
+			request.Timeout = timeout;
+			//request.CookieContainer = new CookieContainer();
+
+			Log("Content-Type: " + request.ContentType);
+			long bytes = 0;
+			using (Stream rs = request.GetRequestStream())
+			{
+				// Write NVP
+				if (bodyParam != null)
+				{
+					string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
+					foreach (string key in bodyParam.Keys)
+					{
+						bytes += WriteUploadBytes(rs, boundarybytes);
+
+						string formitem = string.Format(formdataTemplate, key, bodyParam[key]);
+						bytes += WriteUploadBytes(rs, System.Text.Encoding.UTF8.GetBytes(formitem));
+					}
+				}
+
+				// Write File Header
+				bytes += WriteUploadBytes(rs, boundarybytes);
+				string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n";
+				string header = string.Format(headerTemplate, paramName, file, contentType);
+				bytes += WriteUploadBytes(rs, System.Text.Encoding.UTF8.GetBytes(header));
+
+				// Write File
+				FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read);
+				byte[] buffer = new byte[4096];
+				int bytesRead = 0;
+				while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+				{
+					bytes += WriteUploadBytes(rs, buffer, bytesRead, false);
+				}
+				fileStream.Close();
+				Log("FILE INSERTED HERE");
+
+				byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
+				bytes += WriteUploadBytes(rs, trailer);
+			}
+
+			try
+			{
+				return request.GetResponse() as HttpWebResponse;
+			}
+			catch (WebException we)
+			{
+				var response = we.Response as HttpWebResponse;
+				if (response == null)
+					throw;
+				Log(String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				return response;
+			}
+		}
+
+		private int WriteUploadBytes(Stream rs, byte[] bytes, int length = -1, bool isLog = true)
+		{
+			if (length < 0)
+				length = bytes.Length;
+
+			rs.Write(bytes, 0, length);
+			if (isLog)
+				Log(Encoding.UTF8.GetString(bytes));
+
+			return length;
 		}
 
 		private CustomWebClient CreateCustomWebClient()
