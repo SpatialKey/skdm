@@ -12,25 +12,21 @@
 
 	<!-- A list of actions to perform, each action  -->	
 	<actions>
-		<action name="csv example">
+		<action name="csv_example">
 			<!-- Can override organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey  -->
-			<type>overwrite</type>
-			<dataPath>SalesData.csv</dataPath>
-			<xmlPath>SalesData.xml</xmlPath>
-			<runAsBackground>true</runAsBackground>
-			<notifyByEmail>true</notifyByEmail>
-			<addAllUsers>false</addAllUsers>
-			<!--
+			<type>import</type>
+			<pathData>sacramento.csv</pathData>
+			<pathXML>sacramento.xml</pathXML>
+			<!-- id needed for type = overwrite or append
 			<datasetId>xxx</datasetId>
 			-->
 		</action>
-		<action name="shape example">
+		<action name="shape_example">
 			<!-- Can override organizationURL, userAPIKey, organizationAPIKey, organizationSecretKey  -->
-			<type>poly</type>
-			<dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
-			<!-- send datasetName for new dataset, datasetId if updating existing dataset -->
-			<datasetName>110th Congressional District</datasetName>
-			<!--
+			<type>import</type>
+			<pathData>110thCongressionalDistrictShapefile.zip</pathData>
+			<pathXML>110thCongressionalDistrictShapefile.xml</pathXML>
+			<!-- id needed for type = overwrite or append
 			<datasetId>xxx</datasetId>
 			-->
 		</action>

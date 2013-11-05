@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<datasetImport>
+  <permissions>
+    <addAllUsers>true</addAllUsers>
+  </permissions>
+  <dataset>
+    <latlon />
+    <datasetColumn>
+      <name>baths</name>
+      <label>baths</label>
+      <type>Integer</type>
+    </datasetColumn>
+    <datasetColumn>
+      <name>zip</name>
+      <label>zip</label>
+      <type>Integer</type>
+    </datasetColumn>
+    <datasetColumn>
+      <name>price</name>
+      <label>price</label>
+      <type>Integer</type>
+    </datasetColumn>
+    <datasetColumn>
+      <name>beds</name>
+      <label>beds</label>
+      <type>Integer</type>
+    </datasetColumn>
+    <datasetColumn>
+      <name>sq__ft</name>
+      <label>sq ft</label>
+      <type>Integer</type>
+    </datasetColumn>
+    <datasetColumn>
+      <name>street</name>
+      <label>street</label>
+      <type>String</type>
+    </datasetColumn>
+    <datasetColumn>
+      <name>state</name>
+      <label>state</label>
+      <type>String</type>
+    </datasetColumn>
+    <datasetColumn>
+      <name>longitude</name>
+      <label>longitude</label>
+      <type>Longitude</type>
+    </datasetColumn>
+    <datasetColumn>
+      <name>latitude</name>
+      <label>latitude</label>
+      <type>Latitude</type>
+    </datasetColumn>
+    <datasetColumn>
+      <name>type</name>
+      <label>type</label>
+      <type>String</type>
+    </datasetColumn>
+    <datasetColumn>
+      <name>sale_date</name>
+      <label>sale date</label>
+      <type>String</type>
+    </datasetColumn>
+    <datasetColumn>
+      <name>city</name>
+      <label>city</label>
+      <type>String</type>
+    </datasetColumn>
+    <type>CSV</type>
+    <name>TEST Sacramento Realestate Transactions</name>
+    <preparedWith>Spatialkey API</preparedWith>
+    <preparedDate>2013-11-05T17:29:28.650-05:00</preparedDate>
+    <expirationDate>2013-11-15T17:29:28.649-05:00</expirationDate>
+  </dataset>
+</datasetImport>

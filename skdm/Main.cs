@@ -110,15 +110,17 @@ See http://support.spatialkey.com/dmapi for more information
 
 		private static Boolean ParseConfigXML()
 		{
+			bool isRanAction = false;
 			CommandLineParser.OptionValue<string> configOpt = cmdParser.FindOptionValue<string>(PARAM_XML);
 			if (configOpt == null || !configOpt.IsMatched)
-				return false;
+				return isRanAction;
 
 			Log(String.Format("Running XML '{0}'", configOpt.Value));
 
 			string configFile = configOpt.Value;
 			List<string> actions = cmdParser.FindOptionList<string>(PARAM_ACTIONS).Value;
 
+			bool isUpdateDoc = false;
 			XmlDocument doc = new XmlDocument();
 			doc.Load(configFile);
 
@@ -143,6 +145,8 @@ See http://support.spatialkey.com/dmapi for more information
 					if (!(actions == null || actions.Count == 0 || actions.Contains(actionName) || actions.FindIndex(x => x.Equals(ACTION_ALL, StringComparison.OrdinalIgnoreCase) ) >= 0))
 						continue;
 
+					isRanAction = true;
+
 					Log(String.Format("Running Action: {0}", actionName));
 
 					// Action override URL info
@@ -156,10 +160,25 @@ See http://support.spatialkey.com/dmapi for more information
 					skapi.Init(organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey);
 
 					// Action information
-					String type = GetInnerText(actionNode, "type");
-					String dataPath = GetInnerText(actionNode, "dataPath");
+					String type = GetInnerText(actionNode, "type").ToLower();
+					if (type == "import" || type == "overwrite" || type == "append")
+					{
+						String pathData = GetInnerText(actionNode, "pathData");
+						String pathXML = GetInnerText(actionNode, "pathXML");
+						String datasetId = GetInnerText(actionNode, "datasetId");
+						string uploadId = null;
 
-					skapi.Upload(dataPath);
+						if (type == "import" || datasetId == null || datasetId.Length == 0)
+						{
+							uploadId = skapi.Upload(pathData);
+							datasetId = skapi.Import(uploadId, pathXML);
+						}
+
+					}
+					else
+					{
+						Log(String.Format("ERROR Action '{0}' had an unknown type '{1}", actionName, type));
+					}
 
 					Log(String.Format("Finished Action: {0}", actionName));
 				}
@@ -170,7 +189,11 @@ See http://support.spatialkey.com/dmapi for more information
 				}
 			}
 			skapi.Logout();
-			return true;
+
+			if (isUpdateDoc)
+				doc.Save(configFile);
+
+			return isRanAction;
 		}
 
 		private static String GetInnerText(XmlNode node, String path, String defaultValue = "")

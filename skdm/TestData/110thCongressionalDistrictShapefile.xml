@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<datasetImport>
+  <permissions>
+    <addAllUsers>true</addAllUsers>
+  </permissions>
+  <dataset>
+    <type>Shapefile</type>
+    <name>TEST 110th Congressional Districts</name>
+    <preparedWith>Spatialkey API</preparedWith>
+    <preparedDate>2013-11-05T17:29:28.650-05:00</preparedDate>
+    <expirationDate>2013-11-15T17:29:28.649-05:00</expirationDate>
+  </dataset>
+</datasetImport>

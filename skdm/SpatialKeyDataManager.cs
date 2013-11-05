@@ -22,10 +22,12 @@ namespace skdm
 	public class SpatialKeyDataManager
 	{
 		public const string API_VERSION = "v2";
-		private const int HTTP_TIMEOUT_SHORT = 60000;
 		// 1 min * 60 sec * 1000 msec = 60000 msec
-		private const int HTTP_TIMEOUT_LONG = 3600000;
+		private const int HTTP_TIMEOUT_SHORT = 60000;
+		// 15 min * 60 sec * 1000 msec = 900000 msec 
+		private const int HTTP_TIMEOUT_MED = 900000; 
 		// 60 min * 60 sec * 1000 msec = 3600000 msec
+		private const int HTTP_TIMEOUT_LONG = 3600000; 
 
 		#region parameters
 
@@ -61,7 +63,6 @@ namespace skdm
 
 		#region dataMartAPI properties - set by calls
 
-		private CookieCollection _cookies;
 		private String _accessToken;
 
 		#endregion
@@ -180,7 +181,7 @@ namespace skdm
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
-			using (HttpWebResponse response = HttpUploadFile(BuildUrl("upload.json"), path, "file", "text/csv", query, null))
+			using (HttpWebResponse response = HttpUploadFile(BuildUrl("upload.json"), path, "file", "application/octet-stream", query, null))
 			{
 				if (response.StatusCode == HttpStatusCode.OK)
 				{
@@ -195,21 +196,115 @@ namespace skdm
 			}
 		}
 
-		public void GetUploadStatus()
+		public string GetUploadStatus(string uploadId)
 		{
+			if (Login() == null)
+				return null;
+
+			Log("UPLOAD STATUS: " + uploadId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query))
+			{
+				Dictionary<string,object> json = HttpResponseToJSON(response);
+				return json["status"] as String;
+			}
+		}
+
+		public void WaitUploadComplete(string uploadId)
+		{
+			DateTime start = DateTime.Now;
+			while (IsUploadStatusWorking(GetUploadStatus(uploadId)))
+			{
+				if (DateTime.Now.Subtract(start).TotalMilliseconds > HTTP_TIMEOUT_MED)
+					throw new Exception("Timed out waiting for upload to complete");
+
+				System.Threading.Thread.Sleep(10000);
+			}
+		}
+
+		private static readonly List<string> UPLOAD_IDLE_STATUSES = new List<string>{"UPLOAD_IDLE", "UPLOAD_CANCELED", "IMPORT_COMPLETE_CLEAN", "IMPORT_COMPLETE_WARNING"};
+		private bool IsUploadStatusWorking(string status)
+		{
+			return !(status.IndexOf("ERROR_") == 0 || UPLOAD_IDLE_STATUSES.IndexOf(status) >= 0);
 		}
 
 		public void GetSampleImportConfiguration()
 		{
 		}
 
-		public bool Import()
+		public string Import(string uploadId, string pathConfig)
 		{
-			return false;
+			if (Login() == null)
+				return null;
+
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+			using (HttpWebResponse response = HttpUploadFile(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, "file", "application/octet-stream", query, null))
+			{
+				if (response.StatusCode == HttpStatusCode.OK)
+				{
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					return null;
+				}
+				else
+				{
+					return null;
+				}
+			}
+		}
+
+		public void Append(string uploadId, string datasetId, string pathConfig)
+		{
+			AppendOrOverwrite(uploadId, datasetId, pathConfig, "Append");
+		}
+
+		public void Overwrite(string uploadId, string datasetId, string pathConfig)
+		{
+			AppendOrOverwrite(uploadId, datasetId, pathConfig, "Overwrite");
+		}
+
+		private void AppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
+		{
+			if (Login() == null)
+				return;
+
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+			using (HttpWebResponse response = HttpUploadFile(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, "file", "application/octet-stream", query, null))
+			{
+				if (response.StatusCode == HttpStatusCode.OK)
+				{
+					HttpResponseToJSON(response);
+				}
+				else
+				{
+				}
+			}
 		}
 
 		public void GetImportStatus()
 		{
+		}
+
+		public void CancelUpload(string uploadId)
+		                         {
+			if (Login() == null)
+				return;
+
+			Log("UPLOAD STATUS: " + uploadId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
+			{
+				HttpResponseToJSON(response);
+			}
 		}
 
 		#endregion
@@ -313,13 +408,13 @@ namespace skdm
 		{
 			url = url + ToQueryString(queryParam);
 			Log(string.Format("HTTP UPLOAD {0} to {1}", file, url));
-			string boundary = String.Format("{0:N}", Guid.NewGuid());
+			string boundary = String.Format("-----------{0:N}", Guid.NewGuid());
 			byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
 
 			HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
 			request.ContentType = "multipart/form-data; boundary=" + boundary;
 			request.Method = method;
-			//request.KeepAlive = true;
+			request.KeepAlive = true;
 			request.Timeout = timeout;
 			//request.CookieContainer = new CookieContainer();
 
@@ -385,28 +480,6 @@ namespace skdm
 				Log(Encoding.UTF8.GetString(bytes));
 
 			return length;
-		}
-
-		private CustomWebClient CreateCustomWebClient()
-		{
-			CookieContainer cookieJar = new CookieContainer();
-			if (_cookies != null)
-			{
-				foreach (Cookie c in _cookies)
-				{
-					Cookie cookie = new Cookie(c.Name, c.Value);
-					cookieJar.Add(new Uri(OrganizationURL), cookie);
-				}
-			}
-			return new CustomWebClient(cookieJar);
-		}
-
-		private void AddCookiesToQuery(NameValueCollection query)
-		{
-			foreach (Cookie c in _cookies)
-			{
-				query.Add(c.Name, c.Value);
-			}
 		}
 
 		/// <summary>
