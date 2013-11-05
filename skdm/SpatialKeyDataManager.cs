@@ -109,19 +109,15 @@ namespace skdm
 			if (IsLoginTokenValid())
 				return;
 
-			string url = BuildUrl("oauth.json");
-			Log("START LOGIN: " + url);
+			Log("START LOGIN: " + OrganizationURL);
 
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
 			query["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 			query["assertion"] = GetOAuthToken();
-			Log("QUERY PARAMS: " + NameValueCollectionToString(query));
 
-			CustomWebClient client = CreateCustomWebClient();
-			byte[] response = client.UploadValues(url, "POST", query);
-			Console.WriteLine(Encoding.UTF8.GetString(response));
-			Dictionary<string,object> json = MiniJson.Deserialize(Encoding.UTF8.GetString(response)) as Dictionary<string,object>;
+			HttpWebResponse resp = HttpPost(BuildUrl("oauth.json"), query);
+			Dictionary<string,object> json = HttpResponseToJSON(resp);
 			_accessToken = json["access_token"] as String;
 		}
 
@@ -220,10 +216,9 @@ namespace skdm
 			request.ContentType = "application/x-www-form-urlencoded";
 
 			// get the query string and trim off the starting "?"
-			string param = ToQueryString(query);
-			param.Remove(0, 1);
+			string param = ToQueryString(query).Remove(0, 1);
 
-			Log(String.Format("HTTP POST: {0} : {1}", url, param));
+			Log(String.Format("HTTP POST URL: {0} PARAM: {1}", url, param));
 
 			// Encode the parameters as form data:
 			byte[] formData = UTF8Encoding.UTF8.GetBytes(param);
