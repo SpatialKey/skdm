@@ -21,7 +21,8 @@ namespace skdm
 	/// <see cref="http://support.spatialkey.com/dmapi"/>
 	public class SpatialKeyDataManager
 	{
-		public const string API_VERSION = "v1";
+		public const string API_VERSION = "v2";
+		private const int HTTP_TIMEOUT = 3600000; // 60 min * 60 sec * 1000 msec = 3600000 msec
 
 		#region parameters
 
@@ -129,20 +130,14 @@ namespace skdm
 			if (_accessToken == null || _accessToken.Length == 0)
 				return false;
 
+			Log("VALIDATE TOKEN: " + _accessToken);
+
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
-			string url = BuildUrl("oauth.json", query);
-			Log("VALIDATE TOKEN: " + url);
 
-			HttpWebRequest req = WebRequest.Create(url) as HttpWebRequest;
-			string result = null;
-			using (HttpWebResponse resp = req.GetResponse() as HttpWebResponse)
-			{
-				StreamReader reader = new StreamReader(resp.GetResponseStream());
-				result = reader.ReadToEnd();
-				Console.WriteLine(result);
-				return resp.StatusCode == HttpStatusCode.OK;
-			}
+			HttpWebResponse resp = HttpGet(BuildUrl("oauth.json"), query);
+			HttpResponseToJSON(resp);
+			return resp.StatusCode == HttpStatusCode.OK;
 		}
 
 		public void Logout()
@@ -173,10 +168,10 @@ namespace skdm
 
 		#region helpers
 
-		private string BuildUrl(string path, NameValueCollection query = null)
+		private string BuildUrl(string command, NameValueCollection query = null)
 		{
 			UriBuilder uri = new UriBuilder(OrganizationURL);
-			uri.Path = String.Format("/SpatialKeyFramework/api/{0}/{1}", API_VERSION, path);
+			uri.Path = String.Format("/SpatialKeyFramework/api/{0}/{1}", API_VERSION, command);
 			return uri.ToString() + ToQueryString(query);
 		}
 
@@ -186,10 +181,61 @@ namespace skdm
 				return "";
 
 			List<string> list = new List<string>();
-			foreach (string key in nvc) {
+			foreach (string key in nvc)
+			{
 				list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(key), HttpUtility.UrlEncode(nvc[key])));
 			}
 			return "?" + string.Join("&", list);
+		}
+
+		private Dictionary<string, object> HttpResponseToJSON(HttpWebResponse response)
+		{
+			Dictionary<string, object> json;
+			using (response)
+			{
+				StreamReader reader = new StreamReader(response.GetResponseStream());
+				string result = reader.ReadToEnd();
+				Log(result);
+				json = MiniJson.Deserialize(result) as Dictionary<string, object>;
+			}
+			return json;
+		}
+
+		private HttpWebResponse HttpGet(string url, NameValueCollection query = null)
+		{
+			string fullURL = url + ToQueryString(query);
+			Log(String.Format("HTTP GET: {0}", fullURL));
+
+			HttpWebRequest request = WebRequest.Create(fullURL) as HttpWebRequest;
+			request.Method = "GET";
+			request.Timeout = HTTP_TIMEOUT;
+			return request.GetResponse() as HttpWebResponse;
+		}
+
+		private HttpWebResponse HttpPost(string url, NameValueCollection query = null)
+		{
+			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
+			request.Method = "POST";  
+			request.Timeout = HTTP_TIMEOUT;
+			request.ContentType = "application/x-www-form-urlencoded";
+
+			// get the query string and trim off the starting "?"
+			string param = ToQueryString(query);
+			param.Remove(0, 1);
+
+			Log(String.Format("HTTP POST: {0} : {1}", url, param));
+
+			// Encode the parameters as form data:
+			byte[] formData = UTF8Encoding.UTF8.GetBytes(param);
+			request.ContentLength = formData.Length;
+
+			// Send the request:
+			using (Stream post = request.GetRequestStream())
+			{  
+				post.Write(formData, 0, formData.Length);  
+			}
+
+			return request.GetResponse() as HttpWebResponse;
 		}
 
 		private CustomWebClient CreateCustomWebClient()
@@ -231,7 +277,7 @@ namespace skdm
 			{
 				HttpWebRequest request = (HttpWebRequest)base.GetWebRequest(address);
 				request.CookieContainer = _cookies;
-				request.Timeout = 3600000; // 60 min * 60 sec * 1000 msec = 3600000 msec
+				request.Timeout = HTTP_TIMEOUT;
 				return request;
 			}
 		}
