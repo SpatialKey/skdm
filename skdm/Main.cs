@@ -123,18 +123,17 @@ See http://support.spatialkey.com/dmapi for more information
 			doc.Load(configFile);
 
 			// Default URL info
-			String defaultOrganizationName = GetInnerText(doc, "/config/organizationName");
-			String defaultClusterDomainUrl = GetInnerText(doc, "/config/clusterDomainUrl");
+			String defaultOrganizationURL = GetInnerText(doc, "/config/organizationURL");
 
 			// Default authentication info
 			String defaultUserAPIKey = GetInnerText(doc, "/config/userAPIKey", clUserAPIKey);
-			String defaultOrgAPIKey = GetInnerText(doc, "/config/orgAPIKey", clOrgAPIKey);
-			String defaultOrgSecretKey = GetInnerText(doc, "/config/orgSecretKey", clOrgSecretKey); 
+			String defaultOrganizationAPIKey = GetInnerText(doc, "/config/organizationAPIKey", clOrgAPIKey);
+			String defaultOrganizationSecretKey = GetInnerText(doc, "/config/organizationSecretKey", clOrgSecretKey); 
 
 			var actionNodes = doc.SelectNodes("/config/actions/action");
 
 			// Last authenticate
-			SpatialKeyDataManager skapi = null;
+			SpatialKeyDataManager skapi = new SpatialKeyDataManager(Log);
 
 			foreach (XmlNode actionNode in actionNodes)
 			{
@@ -143,21 +142,22 @@ See http://support.spatialkey.com/dmapi for more information
 					String actionName = GetInnerText(actionNode, "@name");
 					if (!(actions == null || actions.Count == 0 || actions.Contains(actionName) || actions.FindIndex(x => x.Equals(ACTION_ALL, StringComparison.OrdinalIgnoreCase) ) >= 0))
 						continue;
+
 					Log(String.Format("Running Action: {0}", actionName));
 
 					// Action override URL info
-					String organizationName = GetInnerText(doc, "organizationName", defaultOrganizationName);
-					String clusterDomainUrl = GetInnerText(doc, "clusterDomainUrl", defaultClusterDomainUrl);
+					String organizationURL = GetInnerText(doc, "organizationURL", defaultOrganizationURL);
 
 					// Action override authentication info
 					String userAPIKey = GetInnerText(doc, "userAPIKey", defaultUserAPIKey); 
-					String orgAPIKey = GetInnerText(doc, "orgAPIKey", defaultOrgAPIKey); 
-					String orgSecretKey = GetInnerText(doc, "orgSecretKey", defaultOrgSecretKey); 
+					String organizationAPIKey = GetInnerText(doc, "organizationAPIKey", defaultOrganizationAPIKey); 
+					String organizationSecretKey = GetInnerText(doc, "organizationSecretKey", defaultOrganizationSecretKey); 
 
 					// Action information
 					String type = GetInnerText(actionNode, "type");
 
-					// TODO do the action
+					skapi.Init(organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey);
+					skapi.Login();
 
 					Log(String.Format("Finished Action: {0}", actionName));
 				}
