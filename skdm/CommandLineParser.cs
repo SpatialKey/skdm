@@ -44,20 +44,25 @@ namespace skdm
 
 		#endregion
 
-		public Command AddCommand(String[] keys, string description, RunCommand run, CommandLineParser parser)
+		public Command AddCommand(String[] keys, string description, string commandArguments, RunCommand run, CommandLineParser parser = null)
 		{
 			Command cmd = FindCommand(keys);
 			if (cmd != null)
 				throw new ExceptionCommand(String.Format("The command '{0}' already exists", string.Join(", ", keys)));
 
-			// make sure command options not in options
-			if (parser != null)
+			if (parser == null)
 			{
-				foreach (IOption option in parser.Options)
-				{
-					ThrowIfOptionExisting(option);
-				}
+				parser = new CommandLineParser(keys[0], description);
+				// TODO dangerous to add options after creation
 			}
+			parser.CommandArguments = commandArguments;
+
+			// make sure command options not in options
+			foreach (IOption option in parser.Options)
+			{
+				ThrowIfOptionExisting(option);
+			}
+
 
 			cmd = new Command(keys, description, run, parser);
 			_commands.Add(cmd);
@@ -67,8 +72,7 @@ namespace skdm
 
 		public void AddCommandHelp()
 		{
-			CommandLineParser clp = new CommandLineParser("help", "Show help for specific command.  Try '/help' for general help.", "[<command>]");
-			AddCommand(new string[] { "help" }, clp.Description, RunHelpCommand, clp);
+			AddCommand(new string[] { "help" }, "Show help for specific command.  Try '/help' for general help.", "[<command>]", RunHelpCommand);
 		}
 
 		private Boolean RunHelpCommand(string command, Queue<string> args)

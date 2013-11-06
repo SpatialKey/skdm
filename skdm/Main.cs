@@ -33,14 +33,9 @@ See http://support.spatialkey.com/dmapi for more information";
 				clp.AddCommandHelp();
 				clp.AddOptionValue<int>(new string[] { PARAM_TTL, "-t" }, "oAuth token time to live in seconds (Default 60)", "TTL", 60);
 
-				CommandLineParser oauthCLP = new CommandLineParser("oauth", "Get oAuth token for given keys", "ORG_API_KEY ORG_SECRET_KEY USER_API_KEY");
-				clp.AddCommand(new string[] { oauthCLP.Name }, oauthCLP.Description, RunOAuthCommand, oauthCLP);
-				
-				CommandLineParser uploadCLP = new CommandLineParser("upload", "Upload dataset data", "COMMAND_FILE [[ACTION1] ... [ACTIONN]]");
-				clp.AddCommand(new string[] { uploadCLP.Name }, uploadCLP.Description, RunUploadCommand, uploadCLP);
-				
-				CommandLineParser suggestCLP = new CommandLineParser("suggest", "Get suggested config for data file. Type is 'csv' or 'shape'", "COMMAND_FILE ACTION TYPE");
-				clp.AddCommand(new string[] { suggestCLP.Name }, suggestCLP.Description, RunUploadCommand, suggestCLP);
+				clp.AddCommand(new string[] { "oauth" },"Get oAuth token for given keys", "ORG_API_KEY ORG_SECRET_KEY USER_API_KEY", RunOAuthCommand);
+				clp.AddCommand(new string[] { "upload" }, "Upload dataset data", "COMMAND_FILE [[ACTION1] ... [ACTIONN]]", RunUploadCommand);
+				clp.AddCommand(new string[] { "suggest" }, "Get suggested config for data file. Type is 'csv' or 'shape'", "COMMAND_FILE ACTION TYPE", RunUploadCommand);
 
 				clp.Parse(args);
 			}
