@@ -15,7 +15,6 @@ namespace skdm
 		private static string HELP_DESCRIPTION = @"Command line tool to work with the data API or create oAuth tokens.
 See http://support.spatialkey.com/dmapi for more information";
 		private const string PARAM_TTL = "ttl";
-		private const string ACTION_ALL = "all";
 		private const string COMMAND_OAUTH = "oAuth";
 		private const int ERROR_SUCCESS = 0;
 		private const int ERROR_COMMAND_LINE = 1;
@@ -74,8 +73,9 @@ See http://support.spatialkey.com/dmapi for more information";
 			string orgSecretKey = args.Dequeue();
 			string userAPIKey = args.Dequeue();
 
-			Log(String.Format("oAuth for Org API Key: {0} Org Secret Key: {1} User API Key: {2}", orgAPIKey, orgSecretKey, userAPIKey));
-			Log(OAuth.GetOAuthToken(userAPIKey, orgAPIKey, orgSecretKey, clp.FindOptionValue<int>(PARAM_TTL).Value));
+			Console.WriteLine(String.Format("oAuth for{0}  Org API Key:    {1}{0}  Org Secret Key: {2}{0}  User API Key:   {3}{0}-----", Environment.NewLine, orgAPIKey, orgSecretKey, userAPIKey));
+			Console.WriteLine(OAuth.GetOAuthToken(userAPIKey, orgAPIKey, orgSecretKey, clp.FindOptionValue<int>(PARAM_TTL).Value));
+			Console.WriteLine("-----");
 
 			return true;
 		}
@@ -85,14 +85,14 @@ See http://support.spatialkey.com/dmapi for more information";
 			if (args.Count < 1)
 				return false;
 
+			// TODO use TTL argument
+
 			bool isRanAction = false;
 			string configFile = args.Dequeue();
 			Log(String.Format("Running XML '{0}'", configFile));
 
 			List<string> actions = new List<string>(args);
 			args.Clear();
-			if (actions.Count < 1)
-				actions.Add(ACTION_ALL);
 
 			bool isUpdateDoc = false;
 			XmlDocument doc = new XmlDocument();
@@ -116,7 +116,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				try
 				{
 					String actionName = GetInnerText(actionNode, "@name");
-					if (!(actions == null || actions.Count == 0 || actions.Contains(actionName) || actions.FindIndex(x => x.Equals(ACTION_ALL, StringComparison.OrdinalIgnoreCase)) >= 0))
+					if (!(actions.Count == 0 || actions.Contains(actionName)))
 						continue;
 
 					isRanAction = true;
@@ -172,7 +172,7 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			if (!isRanAction)
 			{
-				Log(String.Format("WARNING no upload actions run from {0}.  Check config file and specified actions '{1}'.", configFile, String.Join(", ", actions)));
+				Log(String.Format("WARNING no upload actions run from {0}.  Check config file and specified actions '{1}'.", configFile, (actions.Count > 0 ? String.Join(", ", actions) : "ALL")));
 			}
 
 			return true;
