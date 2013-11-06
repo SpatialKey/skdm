@@ -594,19 +594,20 @@ namespace skdm
 		/// <param name='fileExtension'>
 		/// File extension.
 		/// </param>
-		private string GetTempFile(string fileExtension)
+		public static string GetTempFile(string fileExtension, string prefix = "", string path = null)
 		{
-			string temp = System.IO.Path.GetTempPath();
-			string res = string.Empty;
+			if (path == null)
+				path = System.IO.Path.GetTempPath();
+			string filename = string.Empty;
 			while (true)
 			{
-				res = string.Format("{0}.{1}", Guid.NewGuid().ToString(), fileExtension);
-				res = System.IO.Path.Combine(temp, res);
-				if (!System.IO.File.Exists(res))
+				filename = string.Format("{0}{1}.{2}", prefix, Guid.NewGuid().ToString(), fileExtension);
+				filename = System.IO.Path.Combine(path, filename);
+				if (!System.IO.File.Exists(filename))
 				{
 					try
 					{
-						System.IO.FileStream s = System.IO.File.Create(res);
+						System.IO.FileStream s = System.IO.File.Create(filename);
 						s.Close();
 						break;
 					}
@@ -616,7 +617,7 @@ namespace skdm
 					}
 				}
 			}
-			return res;
+			return filename;
 		}
 
 		#endregion

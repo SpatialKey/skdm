@@ -6,6 +6,7 @@
 using System;
 using System.Xml;
 using System.Net;
+using System.IO;
 using System.Collections.Generic;
 
 namespace skdm
@@ -74,35 +75,6 @@ See http://support.spatialkey.com/dmapi for more information";
 			// TODO need different levels of loggin
 			//Log(String.Format("oAuth for{0}  Org API Key:    {1}{0}  Org Secret Key: {2}{0}  User API Key:   {3}{0}-----", Environment.NewLine, orgAPIKey, orgSecretKey, userAPIKey));
 			Console.WriteLine(OAuth.GetOAuthToken(userAPIKey, orgAPIKey, orgSecretKey, clp.FindOptionValue<int>(PARAM_TTL).Value));
-
-			return true;
-		}
-
-		private static Boolean RunSuggestCommand(string command, Queue<string> args)
-		{
-			if (args.Count < 6)
-				return false;
-
-			string url = args.Dequeue();
-			string orgAPIKey = args.Dequeue();
-			string orgSecretKey = args.Dequeue();
-			string userAPIKey = args.Dequeue();
-			string dataFile = args.Dequeue();
-			string method = args.Dequeue();
-			if (method.ToLower() == "csv")
-				method = "ImportCSV";
-			else if (method.ToLower() == "shape")
-				method = "ImportShapefile";
-			else
-				return false;
-
-			SpatialKeyDataManager skapi = new SpatialKeyDataManager(Log);
-			skapi.Init(url, orgAPIKey, orgSecretKey, userAPIKey);
-
-			string uploadId = skapi.Upload(dataFile);
-			skapi.WaitUploadComplete(uploadId);
-			skapi.GetSampleImportConfiguration(uploadId, method);
-			skapi.CancelUpload(uploadId);
 
 			return true;
 		}
@@ -188,6 +160,7 @@ See http://support.spatialkey.com/dmapi for more information";
 					if (command.ToLower() == "suggest")
 					{
 						String pathData = GetInnerText(actionNode, "pathData");
+						String pathXML = GetInnerText(actionNode, "pathXML");
 
 						// TODO only need the first 500 rows
 
@@ -195,7 +168,17 @@ See http://support.spatialkey.com/dmapi for more information";
 						skapi.WaitUploadComplete(uploadId);
 						string xml = skapi.GetSampleImportConfiguration(uploadId, method);
 						if (xml != null)
-							Console.WriteLine(xml);
+						{
+							if (File.Exists(pathXML))
+							{
+								pathXML = SpatialKeyDataManager.GetTempFile("xml", Path.GetFileNameWithoutExtension(pathData)+"_", Path.GetPathRoot(pathXML));
+							}
+							using (StreamWriter outfile = new StreamWriter(pathXML))
+							{
+								outfile.Write(xml);
+							}
+							Log(String.Format("Wrote Sample XML to '{0}'", pathXML));
+						}
 						skapi.CancelUpload(uploadId);
 					}
 					else
