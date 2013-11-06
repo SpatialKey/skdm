@@ -237,8 +237,31 @@ namespace skdm
 			return !(status.IndexOf("ERROR_") == 0 || UPLOAD_IDLE_STATUSES.IndexOf(status) >= 0);
 		}
 
-		public void GetSampleImportConfiguration()
+		public string GetSampleImportConfiguration(string uploadId, string method)
 		{
+			if (Login() == null)
+				return null;
+
+			Log("GET SAMPLE IMPORT CONFIG: " + uploadId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}/construct/{1}.xml", uploadId, method)), query))
+			{
+				StreamReader reader = new StreamReader(response.GetResponseStream());
+				string result = reader.ReadToEnd();
+				if (response.StatusCode == HttpStatusCode.OK)
+				{
+					return result;
+				}
+				else
+				{
+					Log(result);
+					return null;
+				}
+
+			}
 		}
 
 		public bool Import(string uploadId, string pathConfig)

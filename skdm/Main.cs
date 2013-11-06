@@ -37,7 +37,10 @@ See http://support.spatialkey.com/dmapi for more information";
 				clp.AddCommand(new string[] { "oauth" }, oauthCLP.Description, RunOAuthCommand, oauthCLP);
 				
 				CommandLineParser uploadCLP = new CommandLineParser("upload", "Upload dataset data", "COMMAND_FILE [[ACTION1] ... [ACTIONN]]");
-				clp.AddCommand(new string[] { "upload" }, "Upload data over the API", RunUploadCommand, uploadCLP);
+				clp.AddCommand(new string[] { "upload" }, uploadCLP.Description, RunUploadCommand, uploadCLP);
+				
+				CommandLineParser suggestCLP = new CommandLineParser("suggest", "Get suggested config for data file. Type is 'csv' or 'shape'", "COMMAND_FILE ACTION TYPE");
+				clp.AddCommand(new string[] { "suggest" }, suggestCLP.Description, RunUploadCommand, uploadCLP);
 
 				clp.Parse(args);
 			}
@@ -73,28 +76,82 @@ See http://support.spatialkey.com/dmapi for more information";
 			string orgSecretKey = args.Dequeue();
 			string userAPIKey = args.Dequeue();
 
-			Console.WriteLine(String.Format("oAuth for{0}  Org API Key:    {1}{0}  Org Secret Key: {2}{0}  User API Key:   {3}{0}-----", Environment.NewLine, orgAPIKey, orgSecretKey, userAPIKey));
+			// TODO need different levels of loggin
+			//Log(String.Format("oAuth for{0}  Org API Key:    {1}{0}  Org Secret Key: {2}{0}  User API Key:   {3}{0}-----", Environment.NewLine, orgAPIKey, orgSecretKey, userAPIKey));
 			Console.WriteLine(OAuth.GetOAuthToken(userAPIKey, orgAPIKey, orgSecretKey, clp.FindOptionValue<int>(PARAM_TTL).Value));
-			Console.WriteLine("-----");
+
+			return true;
+		}
+
+		private static Boolean RunSuggestCommand(string command, Queue<string> args)
+		{
+			if (args.Count < 6)
+				return false;
+
+			string url = args.Dequeue();
+			string orgAPIKey = args.Dequeue();
+			string orgSecretKey = args.Dequeue();
+			string userAPIKey = args.Dequeue();
+			string dataFile = args.Dequeue();
+			string method = args.Dequeue();
+			if (method.ToLower() == "csv")
+				method = "ImportCSV";
+			else if (method.ToLower() == "shape")
+				method = "ImportShapefile";
+			else
+				return false;
+
+			SpatialKeyDataManager skapi = new SpatialKeyDataManager(Log);
+			skapi.Init(url, orgAPIKey, orgSecretKey, userAPIKey);
+
+			string uploadId = skapi.Upload(dataFile);
+			skapi.WaitUploadComplete(uploadId);
+			skapi.GetSampleImportConfiguration(uploadId, method);
+			skapi.CancelUpload(uploadId);
 
 			return true;
 		}
 
 		private static Boolean RunUploadCommand(string command, Queue<string> args)
 		{
-			if (args.Count < 1)
-				return false;
+			string configFile;
+			List<string> actions;
+			string method = "";
+
+			if (command.ToLower() == "suggest")
+			{
+				if (args.Count < 3)
+					return false;
+
+				configFile = args.Dequeue();
+				actions = new List<string>(new string[]{args.Dequeue()});
+
+				method = args.Dequeue();
+				if (method.ToLower() == "csv")
+					method = "ImportCSV";
+				else if (method.ToLower() == "shape")
+					method = "ImportShapefile";
+				else
+					return false;
+
+				Log(String.Format("Suggest XML '{0}' for '{1}'", configFile, actions[0]));
+			}
+			else
+			{
+				if (args.Count < 1)
+					return false;
+
+				configFile = args.Dequeue();
+				actions = new List<string>(args);
+				args.Clear();
+				Log(String.Format("Running XML '{0}'", configFile));
+			}
 
 			// TODO use TTL argument
 
 			bool isRanAction = false;
-			string configFile = args.Dequeue();
-			Log(String.Format("Running XML '{0}'", configFile));
-
-			List<string> actions = new List<string>(args);
-			args.Clear();
-
 			bool isUpdateDoc = false;
+
 			XmlDocument doc = new XmlDocument();
 			doc.Load(configFile);
 
@@ -133,28 +190,44 @@ See http://support.spatialkey.com/dmapi for more information";
 
 					skapi.Init(organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey);
 
-					// Action information
-					String type = GetInnerText(actionNode, "type").ToLower();
-					if (type == "import" || type == "overwrite" || type == "append")
+					if (command.ToLower() == "suggest")
 					{
 						String pathData = GetInnerText(actionNode, "pathData");
-						String pathXML = GetInnerText(actionNode, "pathXML");
-						String datasetId = GetInnerText(actionNode, "datasetId");
-						string uploadId = null;
 
-						if (type == "import" || datasetId == null || datasetId.Length == 0)
-						{
-							uploadId = skapi.Upload(pathData);
-							if (skapi.Import(uploadId, pathXML))
-							{
-								skapi.WaitUploadComplete(uploadId);
-							}
-						}
+						// TODO only need the first 500 rows
 
+						string uploadId = skapi.Upload(pathData);
+						skapi.WaitUploadComplete(uploadId);
+						string xml = skapi.GetSampleImportConfiguration(uploadId, method);
+						if (xml != null)
+							Console.WriteLine(xml);
+						skapi.CancelUpload(uploadId);
 					}
 					else
 					{
-						Log(String.Format("ERROR Action '{0}' had an unknown type '{1}", actionName, type));
+						// Action information
+						String type = GetInnerText(actionNode, "type").ToLower();
+						if (type == "import" || type == "overwrite" || type == "append")
+						{
+							String pathData = GetInnerText(actionNode, "pathData");
+							String pathXML = GetInnerText(actionNode, "pathXML");
+							String datasetId = GetInnerText(actionNode, "datasetId");
+							string uploadId = null;
+
+							if (type == "import" || datasetId == null || datasetId.Length == 0)
+							{
+								uploadId = skapi.Upload(pathData);
+								if (skapi.Import(uploadId, pathXML))
+								{
+									skapi.WaitUploadComplete(uploadId);
+								}
+							}
+
+						}
+						else
+						{
+							Log(String.Format("ERROR Action '{0}' had an unknown type '{1}", actionName, type));
+						}
 					}
 
 					Log(String.Format("Finished Action: {0}", actionName));
