@@ -172,7 +172,7 @@ namespace skdm
 
 		public IOption FindOption(String key)
 		{
-		String[] keys = KeyPermutations(key);
+			String[] keys = KeyPermutations(key);
 			foreach (IOption cur in _options)
 			{
 				if (cur.IsKeyMatch(keys))
@@ -490,14 +490,10 @@ namespace skdm
 			return string.Join(Environment.NewLine, lines);
 		}
 
-		public String GetHelpMessage()
+		public String GetUsageMessage()
 		{
-			StringBuilder help = new StringBuilder();
 			StringBuilder line;
-
-			// show usage
-			help.AppendLine();
-			line = new StringBuilder(String.Format("USAGE: {0}", Name));
+			line = new StringBuilder(Name);
 			if (_options.Count > 0)
 			{
 				foreach (IOption option in _options)
@@ -519,7 +515,17 @@ namespace skdm
 			}
 			else if (CommandArguments != null && CommandArguments.Length > 0)
 				line.AppendFormat(" {0}", CommandArguments);
-			help.AppendLine(WrapString(line.ToString()));
+
+			return line.ToString();
+		}
+
+		public String GetHelpMessage()
+		{
+			StringBuilder help = new StringBuilder();
+
+			// show usage
+			help.Append("USAGE: ");
+			help.AppendLine(WrapString(GetUsageMessage()));
 
 			// show description
 			if (Description != null && Description.Length > 0)
@@ -554,7 +560,14 @@ namespace skdm
 				foreach (Command command in _commands)
 				{
 					help.AppendLine();
-					help.AppendLine(WrapString(String.Join(", ", command.Keys), -1, 2));
+					if (command.Parser != null)
+					{
+						help.AppendLine(WrapString(command.Parser.GetUsageMessage(), -1, 2));
+						if (command.Keys.Length > 1)
+							help.AppendLine(WrapString(String.Join(", ", command.Keys), -1, 2));
+					}
+					else
+						help.AppendLine(WrapString(String.Join(", ", command.Keys), -1, 2));
 					help.AppendLine(WrapString(command.Description, -1, 4));
 				}
 			}
@@ -710,6 +723,7 @@ namespace skdm
 				if (_keys.Count < 1)
 					throw new ExceptionOption(String.Format("No keys set for '{0}'", Description));
 			}
+
 			#region IOption
 
 			public String [] Keys { get { return _keys.ToArray(); } }
