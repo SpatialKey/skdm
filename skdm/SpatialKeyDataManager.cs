@@ -235,39 +235,33 @@ namespace skdm
 		{
 		}
 
-		public string Import(string uploadId, string pathConfig)
+		public bool Import(string uploadId, string pathConfig)
 		{
 			if (Login() == null)
-				return null;
+				return false;
 
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
-			using (HttpWebResponse response = HttpUploadFile(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, "file", "application/octet-stream", query, null))
+
+			using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, query))
 			{
-				if (response.StatusCode == HttpStatusCode.OK)
-				{
-					Dictionary<string,object> json = HttpResponseToJSON(response);
-					return null;
-				}
-				else
-				{
-					return null;
-				}
+				HttpResponseToJSON(response);
+				return response.StatusCode == HttpStatusCode.OK;
 			}
 		}
 
-		public void Append(string uploadId, string datasetId, string pathConfig)
+		public bool Append(string uploadId, string datasetId, string pathConfig)
 		{
-			AppendOrOverwrite(uploadId, datasetId, pathConfig, "Append");
+			return AppendOrOverwrite(uploadId, datasetId, pathConfig, "Append");
 		}
 
-		public void Overwrite(string uploadId, string datasetId, string pathConfig)
+		public bool Overwrite(string uploadId, string datasetId, string pathConfig)
 		{
-			AppendOrOverwrite(uploadId, datasetId, pathConfig, "Overwrite");
+			return AppendOrOverwrite(uploadId, datasetId, pathConfig, "Overwrite");
 		}
 
-		private void AppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
+		private bool AppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
 		{
 			if (Login() == null)
 				return;
@@ -275,15 +269,12 @@ namespace skdm
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
-			using (HttpWebResponse response = HttpUploadFile(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, "file", "application/octet-stream", query, null))
+			query["method"] = method;
+
+			using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
 			{
-				if (response.StatusCode == HttpStatusCode.OK)
-				{
-					HttpResponseToJSON(response);
-				}
-				else
-				{
-				}
+				HttpResponseToJSON(response);
+				return response.StatusCode == HttpStatusCode.OK;
 			}
 		}
 
@@ -388,6 +379,43 @@ namespace skdm
 			using (Stream post = request.GetRequestStream())
 			{  
 				post.Write(formData, 0, formData.Length);  
+			}
+
+			try
+			{
+				return request.GetResponse() as HttpWebResponse;
+			}
+			catch (WebException we)
+			{
+				var response = we.Response as HttpWebResponse;
+				if (response == null)
+					throw;
+				Log(String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				return response;
+			}
+		}
+
+		private HttpWebResponse HttpPostXml(string url, string pathXML, NameValueCollection queryParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_MED)
+		{
+			url = url + ToQueryString(queryParam);
+			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
+			request.Method = method;  
+			request.Timeout = timeout;
+			request.ContentType = "application/xml";
+
+			Log(String.Format("HTTP POST URL: {0} XML: {1}", url, pathXML));
+
+			// Send the xml:
+			using (Stream rs = request.GetRequestStream())
+			{  
+				FileStream fileStream = new FileStream(pathXML, FileMode.Open, FileAccess.Read);
+				byte[] buffer = new byte[4096];
+				int bytesRead = 0;
+				while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+				{
+					WriteUploadBytes(rs, buffer, bytesRead, false);
+				}
+				fileStream.Close();
 			}
 
 			try

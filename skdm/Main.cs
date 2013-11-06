@@ -171,7 +171,10 @@ See http://support.spatialkey.com/dmapi for more information
 						if (type == "import" || datasetId == null || datasetId.Length == 0)
 						{
 							uploadId = skapi.Upload(pathData);
-							datasetId = skapi.Import(uploadId, pathXML);
+							if (skapi.Import(uploadId, pathXML))
+							{
+								skapi.WaitUploadComplete(uploadId);
+							}
 						}
 
 					}
