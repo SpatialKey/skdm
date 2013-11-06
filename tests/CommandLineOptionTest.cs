@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using NUnit.Framework;
 using skdm;
 
@@ -96,32 +97,24 @@ namespace tests
 		public void TestOptionValueParseStringSuccess()
 		{
 			CommandLineParser.OptionValue<String> option = new CommandLineParser.OptionValue<String>(new String[]{"test"}, "desc", "VAL", "original value");
-			Assert.AreEqual(2, option.Parse(new String[] { "/test", "some value" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/test", "some value" })));
 			Assert.AreEqual("some value", option.Value);
-		}
-
-		[Test()]
-		public void TestOptionValueParseStringSuccessIndex()
-		{
-			CommandLineParser.OptionValue<String> option = new CommandLineParser.OptionValue<String>(new String[]{"test"}, "desc", "VAL", "original value");
-			Assert.AreEqual(2, option.Parse(new String[] { "/foo", "/test", "another value" }, 1));
-			Assert.AreEqual("another value", option.Value);
 		}
 
 		[Test()]
 		public void TestOptionValueParseStringFail()
 		{
 			CommandLineParser.OptionValue<String> option = new CommandLineParser.OptionValue<String>(new String[]{"test"}, "desc", "VAL", "original value");
-			Assert.AreEqual(0, option.Parse(new String[] { "/foo", "/test", "third value" }, 0));
-			Assert.AreEqual(0, option.Parse(new String[] { "/test" }, 0));
+			Assert.IsFalse(option.Parse(new Queue<String> (new string[]{ "/foo", "/test", "third value" })));
+			Assert.IsFalse(option.Parse(new Queue<String> (new string[]{ "/test" })));
 		}
 
 		[Test()]
 		public void TestOptionValueParseStringFailThenSuccess()
 		{
 			CommandLineParser.OptionValue<String> option = new CommandLineParser.OptionValue<String>(new String[]{"test"}, "desc", "VAL", "original value");
-			Assert.AreEqual(0, option.Parse(new String[] { "/foo", "third value" }, 0));
-			Assert.AreEqual(2, option.Parse(new String[] { "/test", "some value" }, 0));
+			Assert.IsFalse(option.Parse(new Queue<String> (new string[]{ "/foo", "third value" })));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/test", "some value" })));
 			Assert.AreEqual("some value", option.Value);
 		}
 
@@ -130,11 +123,11 @@ namespace tests
 		public void TestOptionValueParseStringTwiceException()
 		{
 			CommandLineParser.OptionValue<String> option = new CommandLineParser.OptionValue<String>(new String[]{"test"}, "desc", "VAL", "original value");
-			Assert.AreEqual(2, option.Parse(new String[] { "/test", "some value" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/test", "some value" })));
 			Assert.AreEqual("some value", option.Value);
 			//Assert.Throws<CommandLineParser.ParseException>(
-			//	() => option.Parse(new String[] { "/test", "some value" }, 0);
-			Assert.AreEqual(2, option.Parse(new String[] { "/test", "some value" }, 0));
+			//	() => option.Parse(new Queue<String> (new string[]{ "/test", "some value" });
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/test", "some value" })));
 			Assert.IsTrue(false, "never get here");
 		}
 
@@ -142,7 +135,7 @@ namespace tests
 		public void TestOptionValueParseIntSuccess()
 		{
 			CommandLineParser.OptionValue<int> option = new CommandLineParser.OptionValue<int>(new String[]{"test"});
-			Assert.AreEqual(2, option.Parse(new String[] { "/test", "99" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/test", "99" })));
 			Assert.AreEqual(99, option.Value);
 		}
 				
@@ -150,7 +143,7 @@ namespace tests
 		public void TestOptionValueParseDoubleSuccess()
 		{
 			CommandLineParser.OptionValue<double> option = new CommandLineParser.OptionValue<double>(new String[]{"test"});
-			Assert.AreEqual(2, option.Parse(new String[] { "/test", "-123.456" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/test", "-123.456" })));
 			Assert.AreEqual(-123.456, option.Value);
 		}
 
@@ -158,11 +151,11 @@ namespace tests
 		public void TestOptionValueParseTwiceAfterReset()
 		{
 			CommandLineParser.OptionValue<String> option = new CommandLineParser.OptionValue<String>(new String[]{"test"}, "desc", "VAL", "original value");
-			Assert.AreEqual(2, option.Parse(new String[] { "/test", "some value" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/test", "some value" })));
 			Assert.AreEqual("some value", option.Value);
 			option.Reset();
 			Assert.AreEqual("original value", option.Value);
-			Assert.AreEqual(2, option.Parse(new String[] { "/test", "another value" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/test", "another value" })));
 			Assert.AreEqual("another value", option.Value);
 		}
 		
@@ -172,7 +165,7 @@ namespace tests
 			CommandLineParser.OptionBoolean option = new CommandLineParser.OptionBoolean(new String[] { "bool" });
 			Assert.IsFalse(option.Value);
 			Assert.IsFalse(option.IsMatched);
-			Assert.AreEqual(1, option.Parse(new String[] { "/bool" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/bool" })));
 			Assert.IsTrue(option.Value);
 			Assert.IsTrue(option.IsMatched);
 		}
@@ -183,8 +176,8 @@ namespace tests
 		public void TestOptionBooleanTwice()
 		{
 			CommandLineParser.OptionBoolean option = new CommandLineParser.OptionBoolean(new String[] { "bool" });
-			Assert.AreEqual(1, option.Parse(new String[] { "-bool" }, 0));
-			option.Parse(new String[] { "/bool" }, 0);
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "-bool" })));
+			option.Parse(new Queue<String> (new string[]{ "/bool" }));
 			Assert.IsTrue(false, "never get here");
 		}
 
@@ -193,7 +186,7 @@ namespace tests
 		{
 			CommandLineParser.OptionList<String> option = new CommandLineParser.OptionList<String>(new String[] { "l" });
 			CollectionAssert.IsEmpty(option.Value);
-			Assert.AreEqual(2, option.Parse(new String[] { "/l", "foo" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/l", "foo" })));
 			CollectionAssert.AreEqual(new String[] {"foo"},option.Value);
 		}
 		
@@ -202,7 +195,7 @@ namespace tests
 		{
 			CommandLineParser.OptionList<String> option = new CommandLineParser.OptionList<String>(new String[] { "l" });
 			CollectionAssert.IsEmpty(option.Value);
-			Assert.AreEqual(2, option.Parse(new String[] { "/l", "foo, bar ,baz" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/l", "foo, bar ,baz" })));
 			CollectionAssert.AreEqual(new String[] {"foo", "bar", "baz"},option.Value);
 		}
 		
@@ -211,8 +204,8 @@ namespace tests
 		{
 			CommandLineParser.OptionList<String> option = new CommandLineParser.OptionList<String>(new String[] { "l" });
 			CollectionAssert.IsEmpty(option.Value);
-			Assert.AreEqual(2, option.Parse(new String[] { "/l", "foo" }, 0));
-			Assert.AreEqual(2, option.Parse(new String[] { "/l", "bar ,baz" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/l", "foo" })));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/l", "bar ,baz" })));
 			CollectionAssert.AreEqual(new String[] {"foo", "bar", "baz"},option.Value);
 		}
 
@@ -222,7 +215,7 @@ namespace tests
 			CommandLineParser.OptionCount option = new CommandLineParser.OptionCount(new String[] { "count" });
 			Assert.AreEqual(0, option.Value);
 			Assert.IsFalse(option.IsMatched);
-			Assert.AreEqual(1, option.Parse(new String[] { "/count" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/count" })));
 			Assert.AreEqual(1, option.Value);
 			Assert.IsTrue(option.IsMatched);
 		}
@@ -234,11 +227,11 @@ namespace tests
 			Assert.AreEqual(0, option.Value);
 			Assert.IsFalse(option.IsMatched);
 
-			Assert.AreEqual(1, option.Parse(new String[] { "/count" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/count" })));
 			Assert.AreEqual(1, option.Value);
 			Assert.IsTrue(option.IsMatched);
 
-			Assert.AreEqual(1, option.Parse(new String[] { "/count" }, 0));
+			Assert.IsTrue(option.Parse(new Queue<String> (new string[]{ "/count" })));
 			Assert.AreEqual(2, option.Value);
 			Assert.IsTrue(option.IsMatched);
 		}

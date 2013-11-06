@@ -21,6 +21,6 @@ Global
 		{9671FC81-1F0F-4596-896D-B27015CEDF9B}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = skdm\skdm.csproj
+		StartupItem = tests\tests.csproj
 	EndGlobalSection
 EndGlobal

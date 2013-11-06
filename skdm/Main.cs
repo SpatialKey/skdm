@@ -13,7 +13,13 @@ namespace skdm
 	class MainClass
 	{
 		private static string _helpPrefix = @"
-skdm [options]
+skdm [options] <command> [<args>]
+
+The available commands are:
+  help    Show general or command specific help
+  oauth   Get an oAuth token.
+  upload  Upload data
+
 See http://support.spatialkey.com/dmapi for more information
 ";
 		private const string PARAM_XML = "xml";
@@ -86,6 +92,28 @@ See http://support.spatialkey.com/dmapi for more information
 			}
 
 			Environment.Exit(errorCode);
+		}
+
+		private static void ProcessCommands()
+		{
+			Stack<string> commands = new Stack<string>(cmdParser.RemainingArgs);
+
+			while (commands.Count > 0)
+			{
+				string command = commands.Pop().ToLower();
+				switch (command)
+				{
+				case "help":
+					break;
+				case "oauth":
+					break;
+				case "upload":
+					break;
+				default:
+					Log(String.Format("ERROR Unknown Command '{0}'", command));
+					break;
+				}
+			}
 		}
 
 		private static Boolean GetOAuth()

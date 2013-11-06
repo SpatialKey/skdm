@@ -7,10 +7,14 @@ namespace skdm
 	public class CommandLineParser
 	{
 		public const String DEFAULT_PROMPT = "[...]";
-		public static readonly String[] DEFAULT_HELP_KEYS = new string[] {"help","h", "?"};
+		public static readonly String[] DEFAULT_HELP_KEYS = new string[] { "help", "h", "?" };
 		public const String DEFAULT_HELP_DESCRIPTION = "Show help message";
 
+		public delegate void ParseCommand(Stack<string> args);
+		public delegate void RunCommand(Stack<string> args);
+
 		private List<IOption> _options = new List<IOption>();
+		private List<Command> _commands = new List<Command>();
 
 		#region Public Members
 
@@ -34,6 +38,23 @@ namespace skdm
 		}
 
 		#endregion
+
+		public void AddCommand(string name, ParseCommand parse, string description, string help)
+		{
+			foreach (Command cmd in _commands)
+			{
+				if (cmd.Name.ToLower() == name.ToLower())
+					throw new ExceptionCommand(String.Format("The command '{0}' already exists",name));
+			}
+
+			Command newCmd = new Command();
+			newCmd.Description = description;
+			newCmd.Name = name;
+			newCmd.Parse = parse;
+			newCmd.Help = help;
+		
+			_commands.Add(newCmd);
+		}
 
 		#region IOption Methods
 
@@ -90,6 +111,7 @@ namespace skdm
 		#endregion
 
 		#region OptionValue Methods
+
 		public OptionValue<T> AddOptionValue<T>(String key, String description = null, String prompt = DEFAULT_PROMPT, T defaultValue = default(T), Boolean isRequired = false)
 		{
 			return AddOptionValue<T>(new String [] { key }, description, prompt, defaultValue, isRequired);
@@ -125,9 +147,11 @@ namespace skdm
 				return null;
 			}
 		}
+
 		#endregion
 
 		#region OptionBoolean Methods
+
 		public OptionBoolean AddOptionBoolean(String key, String description = null, Boolean isRequired = false)
 		{
 			return AddOptionBoolean(new String[] { key }, description, isRequired);
@@ -151,7 +175,7 @@ namespace skdm
 			HelpOption = AddOptionBoolean(keys, description, false);
 			return HelpOption;
 		}
-		
+
 		public OptionBoolean FindOptionBoolean(String[] keys)
 		{
 			try
@@ -175,9 +199,11 @@ namespace skdm
 				return null;
 			}
 		}
+
 		#endregion
 
 		#region OptionList Methods
+
 		public OptionList<T> AddOptionList<T>(String key, String description = null, String prompt = DEFAULT_PROMPT, List<T> defaultValue = default(List<T>), Boolean isRequired = false)
 		{
 			return AddOptionList<T>(new String [] { key }, description, prompt, defaultValue, isRequired);
@@ -213,9 +239,11 @@ namespace skdm
 				return null;
 			}
 		}
+
 		#endregion
 
 		#region OptionCount Methods
+
 		public OptionCount AddOptionCount(String key, String description = null, Boolean isRequired = false)
 		{
 			return AddOptionCount(new String[] { key }, description, isRequired);
@@ -251,9 +279,11 @@ namespace skdm
 				return null;
 			}
 		}
+
 		#endregion
 
 		#region Parse Methods
+
 		public void Parse()
 		{
 			Parse(Environment.GetCommandLineArgs());
@@ -261,20 +291,24 @@ namespace skdm
 
 		public void Parse(String[] args)
 		{
+			Queue<string> queue = new Queue<string>(args);
 			RemainingArgs = new List<String>();
 
 			// Loop through argments
-			int i = 0;
-			while (args != null && i < args.Length)
+			while (queue.Count > 0)
 			{
+				// give each command a try
+				foreach (Command cmd in _commands)
+				{
+					// TODO handle command
+				}
+
 				// Give each option a try at the current argument until find match
 				Boolean isFound = false;
 				foreach (IOption option in _options)
 				{
-					int increment = option.Parse(args, i);
-					if (increment > 0)
+					if (option.Parse(queue))
 					{
-						i += increment;
 						isFound = true;
 						break;
 					}
@@ -283,8 +317,7 @@ namespace skdm
 				// if none of the options parsed current, bump up by one
 				if (!isFound)
 				{
-					RemainingArgs.Add(args[i]);
-					i++;
+					RemainingArgs.Add(queue.Dequeue());
 				}
 			}
 
@@ -300,9 +333,11 @@ namespace skdm
 			if (missingArgs.Count > 0)
 				throw new ExceptionParse(String.Format("The following required options were not set '{0}'", String.Join(", ", missingArgs)));
 		}
+
 		#endregion
 
 		#region HelpMessage
+
 		public String GetHelpMessage()
 		{
 			// TODO need nicer formatting for alternate commands
@@ -339,7 +374,7 @@ namespace skdm
 				{
 					string line = indent + keys[i];
 					if (option.IsNeedsValue)
-						line += " "+option.Prompt;
+						line += " " + option.Prompt;
 					if (i == 0)
 					{
 						while (line.Length < len + spc + ind)
@@ -362,9 +397,11 @@ namespace skdm
 
 			return help;
 		}
+
 		#endregion
 
 		#region Static Methods
+
 		protected static Boolean IsKey(String key)
 		{
 			return ((key.StartsWith("-") || key.StartsWith("/")));
@@ -376,6 +413,18 @@ namespace skdm
 				return new String[] { key };
 			else
 				return new String[] { "/" + key, "-" + key };
+		}
+
+		#endregion
+
+		#region Command
+		private class Command
+		{
+			public ParseCommand Parse { get; set; }
+			public string Name { get; set; }
+			public string Description { get; set; }
+			public string Help { get; set; }
+			public Queue<string> args;
 		}
 		#endregion
 
@@ -403,7 +452,7 @@ namespace skdm
 
 			Boolean IsKeyMatch(IOption option);
 
-			int Parse(String[] tokens, int index);
+			Boolean Parse(Queue<string> args);
 
 			void Reset();
 		}
@@ -411,6 +460,7 @@ namespace skdm
 		#endregion
 
 		#region OptionValue<T> Class
+
 		public class OptionValue<T> : IOption
 		{
 			public OptionValue(String[] keys, String description = null, String prompt = DEFAULT_PROMPT, T defaultValue = default(T), Boolean isRequired = false)
@@ -489,23 +539,22 @@ namespace skdm
 				return IsKeyMatch(option.Keys);
 			}
 
-			virtual public int Parse(String[] tokens, int index)
+			virtual public Boolean Parse(Queue<string> args)
 			{
-				int keyIdx = index;
-				int valueIdx = index + 1;
+				if (args == null || args.Count < 2 || !IsKeyMatch(args.Peek()))
+					return false;
 
-				// if enough tokens for key & value and the first is one of our keys
-				if (tokens == null || tokens.Length <= valueIdx || !IsKeyMatch(tokens[keyIdx]))
-					return 0;
+				// remove the key
+				args.Dequeue();
 
 				if (IsMatched)
 					throw new ExceptionParse(String.Format("Option '{0}' already set.", String.Join(", ", _keys)));
 
 				IsMatched = true;
 
-				Value = (T)Convert.ChangeType(tokens[valueIdx], typeof(T));
+				Value = (T)Convert.ChangeType(args.Dequeue(), typeof(T));
 
-				return 2;
+				return true;
 			}
 
 			virtual public void Reset()
@@ -517,9 +566,11 @@ namespace skdm
 			#endregion
 
 		}
+
 		#endregion
 
 		#region OptionBoolean Class
+
 		public class OptionBoolean : OptionValue<Boolean>
 		{
 			public OptionBoolean(String[] keys, String description = null, Boolean isRequired = false)
@@ -531,11 +582,13 @@ namespace skdm
 
 			override public Boolean IsNeedsValue { get { return false; } }
 
-			override public int Parse(String[] tokens, int index)
+			override public Boolean Parse(Queue<string> args)
 			{
-				// if enough tokens for key & value and the first is one of our keys
-				if (tokens == null || tokens.Length <= index || !IsKeyMatch(tokens[index]))
-					return 0;
+				if (args == null || args.Count < 1 || !IsKeyMatch(args.Peek()))
+					return false;
+
+				// remove the key
+				args.Dequeue();
 
 				if (IsMatched)
 					throw new ExceptionParse(String.Format("Option '{0}' already set.", String.Join(", ", _keys)));
@@ -543,15 +596,17 @@ namespace skdm
 				IsMatched = true;
 				Value = true;
 
-				return 1;
+				return true;
 			}
 
 			#endregion
 
 		}
+
 		#endregion
-		
+
 		#region OptionBoolean Class
+
 		public class OptionCount : OptionValue<int>
 		{
 			public OptionCount(String[] keys, String description = null, Boolean isRequired = false)
@@ -563,24 +618,28 @@ namespace skdm
 
 			override public Boolean IsNeedsValue { get { return false; } }
 
-			override public int Parse(String[] tokens, int index)
+			override public Boolean Parse(Queue<string> args)
 			{
-				// if enough tokens for key & value and the first is one of our keys
-				if (tokens == null || tokens.Length <= index || !IsKeyMatch(tokens[index]))
-					return 0;
+				if (args == null || args.Count < 1 || !IsKeyMatch(args.Peek()))
+					return false;
+
+				// remove the key
+				args.Dequeue();
 
 				IsMatched = true;
 				Value++;
 
-				return 1;
+				return true;
 			}
 
 			#endregion
 
 		}
+
 		#endregion
 
 		#region OptionList<T> Class
+
 		public class OptionList<T> : OptionValue<List<T>>
 		{
 			public OptionList(String[] keys, String description = null, String prompt = DEFAULT_PROMPT, List<T> defaultValue = default(List<T>), Boolean isRequired = false, String separatorPattern = @"\s*,\s*")
@@ -593,34 +652,35 @@ namespace skdm
 
 			#region IOption
 
-			override public int Parse(String[] tokens, int index)
+			override public Boolean Parse(Queue<string> args)
 			{
-				int keyIdx = index;
-				int valueIdx = index + 1;
+				if (args == null || args.Count < 2 || !IsKeyMatch(args.Peek()))
+					return false;
 
-				// if enough tokens for key & value and the first is one of our keys
-				if (tokens == null || tokens.Length <= valueIdx || !IsKeyMatch(tokens[keyIdx]))
-					return 0;
+				// remove the key
+				args.Dequeue();
 
 				if (!IsMatched)
 					Value.Clear();
 
 				IsMatched = true;
 
-				foreach (String tok in Regex.Split(tokens[valueIdx], SeparatorPattern))
+				foreach (String tok in Regex.Split(args.Dequeue(), SeparatorPattern))
 				{
 					Value.Add((T)Convert.ChangeType(tok, typeof(T)));
 				}
 
-				return 2;
+				return true;
 			}
 
 			#endregion
 
 		}
+
 		#endregion
 
 		#region Exceptions
+
 		public class ExceptionCommandLineParser : Exception
 		{
 			public ExceptionCommandLineParser(String message)
@@ -637,6 +697,14 @@ namespace skdm
 			}
 		}
 
+		public class ExceptionCommand : ExceptionCommandLineParser
+		{
+			public ExceptionCommand(String message)
+				: base(message)
+			{
+			}
+		}
+
 		public class ExceptionParse : ExceptionCommandLineParser
 		{
 			public ExceptionParse(String message)
@@ -644,7 +712,9 @@ namespace skdm
 			{
 			}
 		}
+
 		#endregion
+
 	}
 }
 

@@ -264,7 +264,7 @@ namespace skdm
 		private bool AppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
 		{
 			if (Login() == null)
-				return;
+				return false;
 
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
