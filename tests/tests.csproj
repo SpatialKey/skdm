@@ -36,7 +36,6 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CommandLineParserTest.cs" />
-    <Compile Include="OAuthTest.cs" />
     <Compile Include="CommandLineOptionTest.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />

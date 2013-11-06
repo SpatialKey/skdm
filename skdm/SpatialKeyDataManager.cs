@@ -24,10 +24,10 @@ namespace skdm
 		public const string API_VERSION = "v2";
 		// 1 min * 60 sec * 1000 msec = 60000 msec
 		private const int HTTP_TIMEOUT_SHORT = 60000;
-		// 15 min * 60 sec * 1000 msec = 900000 msec 
-		private const int HTTP_TIMEOUT_MED = 900000; 
+		// 15 min * 60 sec * 1000 msec = 900000 msec
+		private const int HTTP_TIMEOUT_MED = 900000;
 		// 60 min * 60 sec * 1000 msec = 3600000 msec
-		private const int HTTP_TIMEOUT_LONG = 3600000; 
+		private const int HTTP_TIMEOUT_LONG = 3600000;
 
 		#region parameters
 
@@ -225,7 +225,13 @@ namespace skdm
 			}
 		}
 
-		private static readonly List<string> UPLOAD_IDLE_STATUSES = new List<string>{"UPLOAD_IDLE", "UPLOAD_CANCELED", "IMPORT_COMPLETE_CLEAN", "IMPORT_COMPLETE_WARNING"};
+		private static readonly List<string> UPLOAD_IDLE_STATUSES = new List<string> {
+			"UPLOAD_IDLE",
+			"UPLOAD_CANCELED",
+			"IMPORT_COMPLETE_CLEAN",
+			"IMPORT_COMPLETE_WARNING"
+		};
+
 		private bool IsUploadStatusWorking(string status)
 		{
 			return !(status.IndexOf("ERROR_") == 0 || UPLOAD_IDLE_STATUSES.IndexOf(status) >= 0);
@@ -283,7 +289,7 @@ namespace skdm
 		}
 
 		public void CancelUpload(string uploadId)
-		                         {
+		{
 			if (Login() == null)
 				return;
 

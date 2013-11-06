@@ -1,4 +1,6 @@
 using System;
+using System.Text;
+using System.IO;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
@@ -6,12 +8,11 @@ namespace skdm
 {
 	public class CommandLineParser
 	{
-		public const String DEFAULT_PROMPT = "[...]";
+		public const String DEFAULT_PROMPT = "VALUE";
 		public static readonly String[] DEFAULT_HELP_KEYS = new string[] { "help", "h", "?" };
 		public const String DEFAULT_HELP_DESCRIPTION = "Show help message";
 
-		public delegate void ParseCommand(Stack<string> args);
-		public delegate void RunCommand(Stack<string> args);
+		public delegate Boolean RunCommand(string command, Queue<string> args);
 
 		private List<IOption> _options = new List<IOption>();
 		private List<Command> _commands = new List<Command>();
@@ -22,7 +23,11 @@ namespace skdm
 
 		public List<String> RemainingArgs { get; protected set; }
 
-		public String HelpPrefix { get; set; }
+		public String Name { get; set; }
+
+		public String Description { get; set; }
+
+		public String CommandArguments { get; set; }
 
 		public IOption[] Options { get { return _options.ToArray(); } }
 
@@ -30,42 +35,118 @@ namespace skdm
 
 		#region Constructor
 
-		public CommandLineParser(string helpPrefix = null, bool isAddHelp = true)
+		public CommandLineParser(string name, string description = null, string commandArguments = "")
 		{
-			HelpPrefix = helpPrefix;
-			if (isAddHelp)
-				AddOptionHelp();
+			Name = name;
+			Description = description;
+			CommandArguments = commandArguments;
 		}
 
 		#endregion
 
-		public void AddCommand(string name, ParseCommand parse, string description, string help)
+		public Command AddCommand(String[] keys, string description, RunCommand run, CommandLineParser parser)
 		{
-			foreach (Command cmd in _commands)
+			Command cmd = FindCommand(keys);
+			if (cmd != null)
+				throw new ExceptionCommand(String.Format("The command '{0}' already exists", string.Join(", ", keys)));
+
+			// make sure command options not in options
+			if (parser != null)
 			{
-				if (cmd.Name.ToLower() == name.ToLower())
-					throw new ExceptionCommand(String.Format("The command '{0}' already exists",name));
+				foreach (IOption option in parser.Options)
+				{
+					ThrowIfOptionExisting(option);
+				}
 			}
 
-			Command newCmd = new Command();
-			newCmd.Description = description;
-			newCmd.Name = name;
-			newCmd.Parse = parse;
-			newCmd.Help = help;
-		
-			_commands.Add(newCmd);
+			cmd = new Command(keys, description, run, parser);
+			_commands.Add(cmd);
+
+			return cmd;
+		}
+
+		public void AddCommandHelp()
+		{
+			CommandLineParser clp = new CommandLineParser("help", "Show help for specific command.  Try '/help' for general help.", "[<command>]");
+			AddCommand(new string[] { "help" }, clp.Description, RunHelpCommand, clp);
+		}
+
+		private Boolean RunHelpCommand(string command, Queue<string> args)
+		{
+			if (args.Count > 0)
+			{
+				string key = args.Dequeue();
+				Command cmd = FindCommand(key);
+				if (cmd != null && cmd.Parser != null)
+					Console.WriteLine(cmd.Parser.GetHelpMessage());
+				else
+					Console.WriteLine(String.Format("No help available for command '{0}'", key));
+			}
+			else
+			{
+				return false; // this will have RunCommands() show the help for for the help command
+			}
+			return true;
+		}
+
+		public Command FindCommand(IOption command)
+		{
+			foreach (Command cur in _commands)
+			{
+				if (cur.IsKeyMatch(command))
+					return cur;
+			}
+			return null;
+		}
+
+		public Command FindCommand(String[] keys)
+		{
+			foreach (String key in keys)
+			{
+				Command match = FindCommand(key);
+				if (match != null)
+					return match;
+			}
+			return null;
+		}
+
+		public Command FindCommand(String key)
+		{
+			foreach (Command cur in _commands)
+			{
+				if (cur.IsKeyMatch(key))
+					return cur;
+			}
+			return null;
 		}
 
 		#region IOption Methods
 
 		public void AddOption(IOption option)
 		{
+			ThrowIfOptionExisting(option);
+			_options.Add(option);
+		}
+
+		protected void ThrowIfOptionExisting(IOption option)
+		{
 			IOption existing = FindOption(option);
+
+			// make sure options not in commands
+			if (existing == null)
+			{
+				foreach (Command command in _commands)
+				{
+					if (command.Parser != null && (existing = FindOption(option)) != null)
+					{
+						break;
+					}
+				}
+			}
 			if (existing != null)
 			{
 				throw new ExceptionOption(String.Format("The option '{0}' exists as '{1}'", String.Join(", ", option.Keys), String.Join(", ", existing.Keys)));
 			}
-			_options.Add(option);
 		}
 
 		public IOption FindOption(IOption option)
@@ -91,10 +172,20 @@ namespace skdm
 
 		public IOption FindOption(String key)
 		{
-			String[] keys = KeyPermutations(key);
+		String[] keys = KeyPermutations(key);
 			foreach (IOption cur in _options)
 			{
 				if (cur.IsKeyMatch(keys))
+					return cur;
+			}
+			return null;
+		}
+
+		protected IOption FindOptionExact(String key)
+		{
+			foreach (IOption cur in _options)
+			{
+				if (cur.IsKeyMatch(key))
 					return cur;
 			}
 			return null;
@@ -297,28 +388,12 @@ namespace skdm
 			// Loop through argments
 			while (queue.Count > 0)
 			{
-				// give each command a try
-				foreach (Command cmd in _commands)
-				{
-					// TODO handle command
-				}
-
-				// Give each option a try at the current argument until find match
-				Boolean isFound = false;
-				foreach (IOption option in _options)
-				{
-					if (option.Parse(queue))
-					{
-						isFound = true;
-						break;
-					}
-				}
-
-				// if none of the options parsed current, bump up by one
-				if (!isFound)
-				{
-					RemainingArgs.Add(queue.Dequeue());
-				}
+				string current = queue.Dequeue();
+				IOption option = FindOptionExact(current);  // want exact option
+				if (option != null)
+					option.Parse(current, queue);
+				else
+					RemainingArgs.Add(current);
 			}
 
 			// make sure all the required options have been read
@@ -332,70 +407,159 @@ namespace skdm
 			}
 			if (missingArgs.Count > 0)
 				throw new ExceptionParse(String.Format("The following required options were not set '{0}'", String.Join(", ", missingArgs)));
+
+		}
+
+		public bool RunCommands()
+		{
+			Queue<string> queue = new Queue<string>(RemainingArgs);
+			RemainingArgs = new List<String>();
+
+			bool isRunCommand = false;
+
+			// Loop through argments
+			while (queue.Count > 0)
+			{
+				string current = queue.Dequeue();
+				Command command = FindCommand(current);
+				if (command != null)
+				{
+					isRunCommand = true;
+					if (!command.Run(current, queue))
+					{
+						if (command.Parser != null)
+							Console.WriteLine(command.Parser.GetHelpMessage());
+						else
+							Console.WriteLine(String.Format("Failed to run command {0} with arguments '{1}'", current, string.Join(" ", queue)));
+					}
+				}
+				else
+					RemainingArgs.Add(current);
+			}
+
+			return isRunCommand;
 		}
 
 		#endregion
 
 		#region HelpMessage
 
-		public String GetHelpMessage()
+		protected String WrapString(string str, int maxLength = -1, int firstIndent = 0, int secondIndent = -1)
 		{
-			// TODO need nicer formatting for alternate commands
-			// TODO need description text wrapping 
+			// Return empty list of strings if the text was empty
+			if (str.Length == 0)
+				return "";
 
-			const string indent = "  ";
-			int ind = indent.Length;
-			const int spc = 3;
+			if (maxLength < 0)
+				maxLength = Console.BufferWidth;
+			if (secondIndent < 0)
+				secondIndent = firstIndent;
 
-			// help header
-			string help = HelpPrefix != null ? HelpPrefix : "";
-			help += "\nCommand line options are:\n\n";
+			string firstIndentText = firstIndent < 0 ? "" : new String(' ', firstIndent);
+			string secondIndentText = secondIndent < 1 ? "" : new String(' ', secondIndent);
+			List<string> lines = new List<string>();
 
-			// get the max length of options
-			int len = 0;
-			foreach (IOption option in _options)
+			StringReader strReader = new StringReader(str);
+			String text;
+			while ((text = strReader.ReadLine()) != null)
 			{
-				foreach (string key in option.Keys)
-				{
-					int nlen = key.Length;
-					if (option.IsNeedsValue)
-						nlen += option.Prompt.Length + 1;
-					len = Math.Max(len, nlen);
-				}
-			}
 
-			// add each option to help
-			bool req = false;
-			foreach (IOption option in _options)
-			{
-				string[] keys = option.Keys;
+				string[] words = text.Split(' ');
+				StringBuilder currentLine = new StringBuilder(firstIndentText);
 
-				for (int i = 0; i < keys.Length; i++)
+				foreach (var currentWord in words)
 				{
-					string line = indent + keys[i];
-					if (option.IsNeedsValue)
-						line += " " + option.Prompt;
-					if (i == 0)
+
+					if ((currentLine.Length > maxLength) ||
+					    ((currentLine.Length + currentWord.Length) > maxLength))
 					{
-						while (line.Length < len + spc + ind)
-							line += " ";
-						if (option.IsRequired)
-						{
-							line += "(*) ";
-							req = true;
-						}
-						line += option.Description;
+						lines.Add(currentLine.ToString());
+						currentLine = new StringBuilder(secondIndentText);
 					}
 
-					help += line + "\n";
+					if (currentLine.Length > 0)
+						currentLine.AppendFormat(" {0}", currentWord);
+					else
+						currentLine.Append(currentWord);
 				}
-
-				help += "\n";
+		
+				if (currentLine.Length > 0)
+					lines.Add(currentLine.ToString());
 			}
-			if (req)
-				help += "(*) Required.\n";
 
-			return help;
+			return string.Join(Environment.NewLine, lines);
+		}
+
+		public String GetHelpMessage()
+		{
+			StringBuilder help = new StringBuilder();
+			StringBuilder line;
+
+			// show usage
+			help.AppendLine();
+			line = new StringBuilder(String.Format("USAGE: {0}", Name));
+			if (_options.Count > 0)
+			{
+				foreach (IOption option in _options)
+				{
+					string key = option.Keys[0];
+					line.Append(" ");
+					if (!option.IsRequired)
+						line.Append("[");
+					line.Append(key);
+					if (option.IsNeedsValue)
+						line.AppendFormat(" {0}", (option.Prompt != null && option.Prompt.Length > 0 ? option.Prompt : DEFAULT_PROMPT));
+					if (!option.IsRequired)
+						line.Append("]");
+				}
+			}
+			if (_commands.Count > 0)
+			{
+				line.Append(" <command> [<args>]");
+			}
+			else if (CommandArguments != null && CommandArguments.Length > 0)
+				line.AppendFormat(" {0}", CommandArguments);
+			help.AppendLine(WrapString(line.ToString()));
+
+			// show description
+			if (Description != null && Description.Length > 0)
+			{
+				help.AppendLine(); 
+				help.AppendLine("DESCRIPTION");
+				help.AppendLine();
+				help.AppendLine(WrapString(Description));
+			}
+
+			// show options
+			if (_options.Count > 0)
+			{
+				help.AppendLine(); 
+				help.AppendLine("OPTIONS");
+				foreach (IOption option in _options)
+				{
+					help.AppendLine();
+					string[] keys = option.Keys;
+					if (option.IsNeedsValue)
+						keys[0] = String.Format("{0} {1}", keys[0], (option.Prompt != null && option.Prompt.Length > 0 ? option.Prompt : DEFAULT_PROMPT));
+					help.AppendLine(WrapString(String.Join(", ", keys), -1, 2));
+					help.AppendLine(WrapString(option.Description, -1, 4));
+				}
+			}
+
+			// show commands
+			if (_commands.Count > 0)
+			{
+				help.AppendLine(); 
+				help.AppendLine("COMMANDS");
+				foreach (Command command in _commands)
+				{
+					help.AppendLine();
+					help.AppendLine(WrapString(String.Join(", ", command.Keys), -1, 2));
+					help.AppendLine(WrapString(command.Description, -1, 4));
+				}
+			}
+
+			return help.ToString();
 		}
 
 		#endregion
@@ -418,14 +582,66 @@ namespace skdm
 		#endregion
 
 		#region Command
-		private class Command
+
+		public class Command
 		{
-			public ParseCommand Parse { get; set; }
-			public string Name { get; set; }
-			public string Description { get; set; }
-			public string Help { get; set; }
-			public Queue<string> args;
+			public RunCommand Run { get; protected set; }
+
+			public String Description { get; set; }
+
+			public String [] Keys { get { return _keys.ToArray(); } }
+
+			protected List<String> _keys = new List<String>();
+
+			public CommandLineParser Parser { get; protected set; }
+
+			public Command(String[] keys, string description, RunCommand run, CommandLineParser parser)
+			{
+				Run = run;
+				Parser = parser;
+				Description = description;
+				SetKeys(keys);
+			}
+
+			protected void SetKeys(String[] keys)
+			{
+				foreach (String cur in keys)
+				{
+					if (Regex.IsMatch(cur, "\\s"))
+						throw new ExceptionOption(String.Format("Key '{0}' contains spaces.", cur));
+					if (!IsKeyMatch(cur))
+						_keys.Add(cur);
+				}
+				if (_keys.Count < 1)
+					throw new ExceptionOption(String.Format("No keys set for '{0}'", Description));
+			}
+
+			public Boolean IsKeyMatch(String key)
+			{
+				foreach (String cur in _keys)
+				{
+					if (cur.ToLower() == key.ToLower())
+						return true;
+				}
+				return false;
+			}
+
+			public Boolean IsKeyMatch(String[] keys)
+			{
+				foreach (String cur in keys)
+				{
+					if (IsKeyMatch(cur))
+						return true;
+				}
+				return false;
+			}
+
+			public Boolean IsKeyMatch(IOption option)
+			{
+				return IsKeyMatch(option.Keys);
+			}
 		}
+
 		#endregion
 
 		#region IOption Interface
@@ -452,7 +668,7 @@ namespace skdm
 
 			Boolean IsKeyMatch(IOption option);
 
-			Boolean Parse(Queue<string> args);
+			Boolean Parse(string key, Queue<string> args);
 
 			void Reset();
 		}
@@ -465,11 +681,11 @@ namespace skdm
 		{
 			public OptionValue(String[] keys, String description = null, String prompt = DEFAULT_PROMPT, T defaultValue = default(T), Boolean isRequired = false)
 			{
-				SetKeys(keys);
 				DefaultValue = defaultValue;
 				Description = description;
 				Prompt = prompt;
 				IsRequired = isRequired;
+				SetKeys(keys);
 				Reset();
 			}
 
@@ -494,7 +710,6 @@ namespace skdm
 				if (_keys.Count < 1)
 					throw new ExceptionOption(String.Format("No keys set for '{0}'", Description));
 			}
-
 			#region IOption
 
 			public String [] Keys { get { return _keys.ToArray(); } }
@@ -539,13 +754,10 @@ namespace skdm
 				return IsKeyMatch(option.Keys);
 			}
 
-			virtual public Boolean Parse(Queue<string> args)
+			virtual public Boolean Parse(string key, Queue<string> args)
 			{
-				if (args == null || args.Count < 2 || !IsKeyMatch(args.Peek()))
+				if (args == null || args.Count < 1 || !IsKeyMatch(key))
 					return false;
-
-				// remove the key
-				args.Dequeue();
 
 				if (IsMatched)
 					throw new ExceptionParse(String.Format("Option '{0}' already set.", String.Join(", ", _keys)));
@@ -582,13 +794,10 @@ namespace skdm
 
 			override public Boolean IsNeedsValue { get { return false; } }
 
-			override public Boolean Parse(Queue<string> args)
+			override public Boolean Parse(string key, Queue<string> args)
 			{
-				if (args == null || args.Count < 1 || !IsKeyMatch(args.Peek()))
+				if (!IsKeyMatch(key))
 					return false;
-
-				// remove the key
-				args.Dequeue();
 
 				if (IsMatched)
 					throw new ExceptionParse(String.Format("Option '{0}' already set.", String.Join(", ", _keys)));
@@ -618,13 +827,10 @@ namespace skdm
 
 			override public Boolean IsNeedsValue { get { return false; } }
 
-			override public Boolean Parse(Queue<string> args)
+			override public Boolean Parse(string key, Queue<string> args)
 			{
-				if (args == null || args.Count < 1 || !IsKeyMatch(args.Peek()))
+				if (!IsKeyMatch(key))
 					return false;
-
-				// remove the key
-				args.Dequeue();
 
 				IsMatched = true;
 				Value++;
@@ -652,13 +858,10 @@ namespace skdm
 
 			#region IOption
 
-			override public Boolean Parse(Queue<string> args)
+			override public Boolean Parse(string key, Queue<string> args)
 			{
-				if (args == null || args.Count < 2 || !IsKeyMatch(args.Peek()))
+				if (args == null || args.Count < 1 || !IsKeyMatch(key))
 					return false;
-
-				// remove the key
-				args.Dequeue();
 
 				if (!IsMatched)
 					Value.Clear();
