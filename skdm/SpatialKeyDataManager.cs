@@ -29,6 +29,8 @@ namespace skdm
 		// 60 min * 60 sec * 1000 msec = 3600000 msec
 		private const int HTTP_TIMEOUT_LONG = 3600000;
 
+		private const string LOG_SEPARATOR = "----------------------------------------";
+
 		#region parameters
 
 		/// <summary>Logging delegate</summary>
@@ -115,27 +117,36 @@ namespace skdm
 			if (IsLoginTokenValid())
 				return _accessToken;
 
-			_accessToken = null;
-
-			Log("START LOGIN: " + OrganizationURL);
-
-			// add the query string
-			NameValueCollection bodyParam = new NameValueCollection();
-			bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
-			bodyParam["assertion"] = GetOAuthToken();
-
-			using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
+			try
 			{
-				if (response.StatusCode == HttpStatusCode.OK)
+				Log(LOG_SEPARATOR);
+				Log("START LOGIN: " + OrganizationURL);
+
+				_accessToken = null;
+
+
+				// add the query string
+				NameValueCollection bodyParam = new NameValueCollection();
+				bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
+				bodyParam["assertion"] = GetOAuthToken();
+
+				using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
 				{
-					Dictionary<string,object> json = HttpResponseToJSON(response);
-					_accessToken = json["access_token"] as String;
-					return _accessToken;
+					if (response.StatusCode == HttpStatusCode.OK)
+					{
+						Dictionary<string,object> json = HttpResponseToJSON(response);
+						_accessToken = json["access_token"] as String;
+						return _accessToken;
+					}
+					else
+					{
+						return null;
+					}
 				}
-				else
-				{
-					return null;
-				}
+			}
+			finally
+			{
+				Log(LOG_SEPARATOR);
 			}
 		}
 
@@ -144,15 +155,23 @@ namespace skdm
 			if (_accessToken == null || _accessToken.Length == 0)
 				return false;
 
-			Log("VALIDATE TOKEN: " + _accessToken);
-
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-
-			using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query))
+			try
 			{
-				HttpResponseToJSON(response);
-				return response.StatusCode == HttpStatusCode.OK;
+				Log(LOG_SEPARATOR);
+				Log("VALIDATE TOKEN: " + _accessToken);
+
+				NameValueCollection query = new NameValueCollection();
+				query["token"] = _accessToken;
+
+				using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query))
+				{
+					HttpResponseToJSON(response);
+					return response.StatusCode == HttpStatusCode.OK;
+				}
+			}
+			finally
+			{
+				Log(LOG_SEPARATOR);
 			}
 		}
 
@@ -161,15 +180,23 @@ namespace skdm
 			if (_accessToken == null || _accessToken.Length == 0)
 				return;
 
-			Log("LOGOUT TOKEN: " + _accessToken);
-
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-
-			using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query, "DELETE"))
+			try
 			{
-				HttpResponseToJSON(response);
-				_accessToken = null;
+				Log(LOG_SEPARATOR);
+				Log("LOGOUT TOKEN: " + _accessToken);
+
+				NameValueCollection query = new NameValueCollection();
+				query["token"] = _accessToken;
+
+				using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query, "DELETE"))
+				{
+					HttpResponseToJSON(response);
+					_accessToken = null;
+				}
+			}
+			finally
+			{
+				Log(LOG_SEPARATOR);
 			}
 		}
 
@@ -178,50 +205,81 @@ namespace skdm
 			if (Login() == null)
 				return null;
 
-			// add the query string
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-			using (HttpWebResponse response = HttpUploadFile(BuildUrl("upload.json"), path, "file", "application/octet-stream", query, null))
+			try
 			{
-				if (response.StatusCode == HttpStatusCode.OK)
+				Log(LOG_SEPARATOR);
+				Log("UPLOAD: " + path);
+
+				// add the query string
+				NameValueCollection query = new NameValueCollection();
+				query["token"] = _accessToken;
+				using (HttpWebResponse response = HttpUploadFile(BuildUrl("upload.json"), path, "file", "application/octet-stream", query, null))
 				{
-					Dictionary<string,object> json = HttpResponseToJSON(response);
-					string uploadId = (json["upload"] as Dictionary<string,object>)["uploadId"] as String;
-					return uploadId;
+					if (response.StatusCode == HttpStatusCode.OK)
+					{
+						Dictionary<string,object> json = HttpResponseToJSON(response);
+						string uploadId = (json["upload"] as Dictionary<string,object>)["uploadId"] as String;
+						return uploadId;
+					}
+					else
+					{
+						return null;
+					}
 				}
-				else
-				{
-					return null;
-				}
+			}
+			finally
+			{
+				Log(LOG_SEPARATOR);
 			}
 		}
 
-		public string GetUploadStatus(string uploadId)
+		public Dictionary<string,object> GetUploadStatus(string uploadId)
 		{
 			if (Login() == null)
 				return null;
 
-			Log("UPLOAD STATUS: " + uploadId);
-
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-
-			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query))
+			try
 			{
-				Dictionary<string,object> json = HttpResponseToJSON(response);
-				return json["status"] as String;
+				Log(LOG_SEPARATOR);
+				Log("UPLOAD STATUS: " + uploadId);
+
+				NameValueCollection query = new NameValueCollection();
+				query["token"] = _accessToken;
+
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query))
+				{
+					return HttpResponseToJSON(response);
+				}
+			}
+			finally
+			{
+				Log(LOG_SEPARATOR);
 			}
 		}
 
-		public void WaitUploadComplete(string uploadId)
+		public Dictionary<string,object> WaitUploadComplete(string uploadId)
 		{
-			DateTime start = DateTime.Now;
-			while (IsUploadStatusWorking(GetUploadStatus(uploadId)))
+			try
 			{
-				if (DateTime.Now.Subtract(start).TotalMilliseconds > HTTP_TIMEOUT_MED)
-					throw new Exception("Timed out waiting for upload to complete");
+				Log(LOG_SEPARATOR);
+				Log("WAIT UPLOAD COMPLETE: "+uploadId);
 
-				System.Threading.Thread.Sleep(10000);
+				DateTime start = DateTime.Now;
+				Dictionary<string,object> json = GetUploadStatus(uploadId);
+
+				while (IsUploadStatusWorking(json))
+				{
+					if (DateTime.Now.Subtract(start).TotalMilliseconds > HTTP_TIMEOUT_MED)
+						throw new Exception("Timed out waiting for upload to complete");
+
+					System.Threading.Thread.Sleep(10000);
+					json = GetUploadStatus(uploadId);
+				}
+				return json;
+			}
+			finally
+			{
+				Log(LOG_SEPARATOR);
 			}
 		}
 
@@ -232,9 +290,18 @@ namespace skdm
 			"IMPORT_COMPLETE_WARNING"
 		};
 
-		private bool IsUploadStatusWorking(string status)
+		private bool IsUploadStatusWorking(Dictionary<string,object> json)
 		{
-			return !(status.IndexOf("ERROR_") == 0 || UPLOAD_IDLE_STATUSES.IndexOf(status) >= 0);
+			string status = null;
+			try
+			{
+				status = (json == null ? null : json["status"] as string);
+			}
+			catch (Exception)
+			{
+				status = null;
+			}
+			return !(status == null || status.IndexOf("ERROR_") == 0 || UPLOAD_IDLE_STATUSES.IndexOf(status) >= 0);
 		}
 
 		public string GetSampleImportConfiguration(string uploadId, string method)
@@ -242,25 +309,33 @@ namespace skdm
 			if (Login() == null)
 				return null;
 
-			Log("GET SAMPLE IMPORT CONFIG: " + uploadId);
-
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-
-			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}/construct/{1}.xml", uploadId, method)), query))
+			try
 			{
-				StreamReader reader = new StreamReader(response.GetResponseStream());
-				string result = reader.ReadToEnd();
-				if (response.StatusCode == HttpStatusCode.OK)
-				{
-					return result;
-				}
-				else
-				{
-					Log(result);
-					return null;
-				}
+				Log(LOG_SEPARATOR);
+				Log("GET SAMPLE IMPORT CONFIG: " + uploadId);
 
+				NameValueCollection query = new NameValueCollection();
+				query["token"] = _accessToken;
+
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}/construct/{1}.xml", uploadId, method)), query))
+				{
+					StreamReader reader = new StreamReader(response.GetResponseStream());
+					string result = reader.ReadToEnd();
+					if (response.StatusCode == HttpStatusCode.OK)
+					{
+						return result;
+					}
+					else
+					{
+						Log(result);
+						return null;
+					}
+
+				}
+			}
+			finally
+			{
+				Log(LOG_SEPARATOR);
 			}
 		}
 
@@ -269,14 +344,24 @@ namespace skdm
 			if (Login() == null)
 				return false;
 
-			// add the query string
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-
-			using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, query))
+			try
 			{
-				HttpResponseToJSON(response);
-				return response.StatusCode == HttpStatusCode.OK;
+				Log(LOG_SEPARATOR);
+				Log(String.Format("IMPORT {0} '{1}'", uploadId, pathConfig));
+
+				// add the query string
+				NameValueCollection query = new NameValueCollection();
+				query["token"] = _accessToken;
+
+				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, query))
+				{
+					HttpResponseToJSON(response);
+					return response.StatusCode == HttpStatusCode.OK;
+				}
+			}
+			finally
+			{
+				Log(LOG_SEPARATOR);
 			}
 		}
 
@@ -294,16 +379,25 @@ namespace skdm
 		{
 			if (Login() == null)
 				return false;
-
-			// add the query string
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-			query["method"] = method;
-
-			using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
+			try
 			{
-				HttpResponseToJSON(response);
-				return response.StatusCode == HttpStatusCode.OK;
+				Log(LOG_SEPARATOR);
+				Log(String.Format("{0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig));
+
+				// add the query string
+				NameValueCollection query = new NameValueCollection();
+				query["token"] = _accessToken;
+				query["method"] = method;
+
+				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
+				{
+					HttpResponseToJSON(response);
+					return response.StatusCode == HttpStatusCode.OK;
+				}
+			}
+			finally
+			{
+				Log(LOG_SEPARATOR);
 			}
 		}
 
@@ -316,14 +410,22 @@ namespace skdm
 			if (Login() == null)
 				return;
 
-			Log("UPLOAD STATUS: " + uploadId);
-
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-
-			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
+			try
 			{
-				HttpResponseToJSON(response);
+				Log(LOG_SEPARATOR);
+				Log("CANCEL UPLOAD: " + uploadId);
+
+				NameValueCollection query = new NameValueCollection();
+				query["token"] = _accessToken;
+
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
+				{
+					HttpResponseToJSON(response);
+				}
+			}
+			finally
+			{
+				Log(LOG_SEPARATOR);
 			}
 		}
 

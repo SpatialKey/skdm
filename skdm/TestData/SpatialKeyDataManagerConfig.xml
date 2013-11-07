@@ -14,21 +14,29 @@
 	<actions>
 		<action name="csv_example">
 			<!-- Can override organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey  -->
-			<type>import</type>
+			<!---actionType can be import, overwrite, or append -->
+			<actionType>overwrite</actionType>
+			<!--- dataType can be CSV or Shapefile -->
+			<dataType>CSV</dataType>
+			<!---path to to the data to upload -->
 			<pathData>sacramento.csv</pathData>
+			<!--- configuration file for the data -->
 			<pathXML>sacramento.xml</pathXML>
-			<!-- id needed for type = overwrite or append
-			<datasetId>xxx</datasetId>
-			-->
+			<!-- datasetId will be filled in on overwrite or append if not set -->
+			<datasetId></datasetId>
 		</action>
 		<action name="shape_example">
 			<!-- Can override organizationURL, userAPIKey, organizationAPIKey, organizationSecretKey  -->
-			<type>import</type>
+			<!---action type can be import, overwrite, or append -->
+			<actionType>overwrite</actionType>
+			<!--- dataType can be CSV or Shapefile -->
+			<dataType>Shapefile</dataType>
+			<!---path to to the data to upload -->
 			<pathData>110thCongressionalDistrictShapefile.zip</pathData>
+			<!--- configuration file for the data -->
 			<pathXML>110thCongressionalDistrictShapefile.xml</pathXML>
-			<!-- id needed for type = overwrite or append
-			<datasetId>xxx</datasetId>
-			-->
+			<!-- datasetId will be filled in on overwrite or append if not set -->
+			<datasetId></datasetId>
 		</action>
 	</actions>
 </config>
