@@ -304,7 +304,7 @@ namespace skdm
 			return !(status == null || status.IndexOf("ERROR_") == 0 || UPLOAD_IDLE_STATUSES.IndexOf(status) >= 0);
 		}
 
-		public bool IsUploadStatusError(Dictionary<string,object> json)
+		public static bool IsUploadStatusError(Dictionary<string,object> json)
 		{
 			string status = null;
 			try

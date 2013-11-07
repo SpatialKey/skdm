@@ -429,6 +429,15 @@ namespace skdm
 				if (command != null)
 				{
 					isRunCommand = true;
+
+					// if command has a parser, have it parse what remains in the queue
+					if (command.Parser != null)
+					{
+						command.Parser.Parse(queue.ToArray());
+						queue = new Queue<string>(command.Parser.RemainingArgs);
+					}
+
+					// try running the command
 					if (!command.Run(current, queue))
 					{
 						if (command.Parser != null)
