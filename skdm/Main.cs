@@ -139,11 +139,11 @@ See http://support.spatialkey.com/dmapi for more information";
 
 					if (command.ToLower() == "suggest")
 					{
-						String dataType = GetInnerText(actionNode, "dataType");
+						String dataType = GetInnerText(actionNode, "dataType").ToLower();
 						String method;
-						if (dataType.ToLower() == "csv")
+						if (dataType == "csv")
 							method = "ImportCSV";
-						else if (dataType.ToLower() == "shape" || dataType.ToLower() == "shapefile")
+						else if (dataType == "shape" || dataType == "shapefile")
 							method = "ImportShapefile";
 						else
 						{
@@ -176,17 +176,42 @@ See http://support.spatialkey.com/dmapi for more information";
 						String actionType = GetInnerText(actionNode, "actionType").ToLower();
 						if (actionType == "import" || actionType == "overwrite" || actionType == "append")
 						{
+							Dictionary<string,object> uploadStausJson;
 							String datasetId = GetInnerText(actionNode, "datasetId");
-							string uploadId = null;
+							string uploadId = skapi.Upload(pathData);
+							if (uploadId == null)
+							{
+								// TODO  neeed better error
+								Log("ERROR Upload Failed");
+								continue;
+							}
+							// TODO should we wait for upload to complete and show error if there was one?
+							// uploadStausJson = skapi.WaitUploadComplete(uploadId);
 
 							if (actionType == "import" || datasetId == null || datasetId.Length == 0)
 							{
-								uploadId = skapi.Upload(pathData);
 								if (skapi.Import(uploadId, pathXML))
 								{
-									Dictionary<string,object> json = skapi.WaitUploadComplete(uploadId);
-									Console.WriteLine("test");
+									// TODO may need to get the datasetId to fill in the xml
+									uploadStausJson = skapi.WaitUploadComplete(uploadId);
+
+									Console.WriteLine("TODO");
 								}
+							}
+
+							if (datasetId != null && datasetId.Length > 0)
+							{
+								if (actionType == "append")
+									skapi.Append(uploadId, datasetId, pathXML);
+								if (actionType == "overwrite")
+									skapi.Overwrite(uploadId, datasetId, pathXML);
+								// TODO should we wait for append/overwrite to complete?
+								uploadStausJson = skapi.WaitUploadComplete(uploadId);
+								Console.WriteLine("TODO");
+							}
+							else
+							{
+								// TODO failed to get datasetId
 							}
 
 						}
