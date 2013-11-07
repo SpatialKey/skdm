@@ -304,6 +304,38 @@ namespace skdm
 			return !(status == null || status.IndexOf("ERROR_") == 0 || UPLOAD_IDLE_STATUSES.IndexOf(status) >= 0);
 		}
 
+		public bool IsUploadStatusError(Dictionary<string,object> json)
+		{
+			string status = null;
+			try
+			{
+				status = (json == null ? null : json["status"] as string);
+			}
+			catch (Exception)
+			{
+				status = null;
+			}
+			return (status == null || status.IndexOf("ERROR_") == 0);
+		}
+
+		public string GetDatasetID(Dictionary<string,object> json)
+		{
+			try
+			{
+				List<object> createdResources = json["createdResources"] as List<object>;
+				foreach (Dictionary<string, object> item in createdResources)
+				{
+					if (item.ContainsKey("id")) 
+						return item["id"] as String;
+				}
+				return null;
+			}
+			catch(Exception)
+			{
+				return null;
+			}
+		}
+
 		public string GetSampleImportConfiguration(string uploadId, string method)
 		{
 			if (Login() == null)

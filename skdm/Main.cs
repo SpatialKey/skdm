@@ -185,21 +185,31 @@ See http://support.spatialkey.com/dmapi for more information";
 								Log("ERROR Upload Failed");
 								continue;
 							}
-							// TODO should we wait for upload to complete and show error if there was one?
-							// uploadStausJson = skapi.WaitUploadComplete(uploadId);
+							uploadStausJson = skapi.WaitUploadComplete(uploadId);
+							if (skapi.IsUploadStatusError(uploadStausJson))
+							{
+								// TODO show uploadStatusJson error
+								Log("ERROR uploading");
+								continue;
+							}
 
 							if (actionType == "import" || datasetId == null || datasetId.Length == 0)
 							{
 								if (skapi.Import(uploadId, pathXML))
 								{
-									// TODO may need to get the datasetId to fill in the xml
+									// must wait on the import status to get the datasetid
 									uploadStausJson = skapi.WaitUploadComplete(uploadId);
-
-									Console.WriteLine("TODO");
+									datasetId = skapi.GetDatasetID(uploadStausJson);
+									if (datasetId != null)
+									{
+										if (actionNode.SelectSingleNode("datasetId") == null)
+											actionNode.AppendChild(doc.CreateElement("datasetId"));
+										actionNode.SelectSingleNode("datasetId").InnerText = datasetId;
+										isUpdateDoc = true;
+									}
 								}
 							}
-
-							if (datasetId != null && datasetId.Length > 0)
+							else
 							{
 								if (actionType == "append")
 									skapi.Append(uploadId, datasetId, pathXML);
@@ -209,9 +219,13 @@ See http://support.spatialkey.com/dmapi for more information";
 								uploadStausJson = skapi.WaitUploadComplete(uploadId);
 								Console.WriteLine("TODO");
 							}
-							else
+
+							// stop if there is an error
+							if (skapi.IsUploadStatusError(uploadStausJson) || datasetId == null || datasetId.Length == 0)
 							{
-								// TODO failed to get datasetId
+								// TODO show uploadStatusJson error
+								Log("ERROR importing");
+								continue;
 							}
 
 						}
