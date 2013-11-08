@@ -24,6 +24,7 @@ See http://support.spatialkey.com/dmapi for more information";
 		private const string COMMAND_UPLOAD = "upload";
 		private const string COMMAND_SUGGEST = "suggest";
 		private const string COMMAND_LIST = "list";
+		private const string COMMAND_DELETE = "delete";
 		private const string ACTION_SUGGEST = COMMAND_SUGGEST;
 		private const string ACTION_IMPORT = "import";
 		private const string ACTION_OVERWRITE = "overwrite";
@@ -64,6 +65,7 @@ See http://support.spatialkey.com/dmapi for more information";
 
 				clp.AddCommand(new string[] { COMMAND_SUGGEST }, "Get suggested config for data", "COMMAND_FILE [[ACTION1] ... [ACTIONN]]", RunUploadCommand);
 				clp.AddCommand(new string[] { COMMAND_LIST }, "List available datasets", "COMMAND_FILE", RunListCommand);
+				clp.AddCommand(new string[] { COMMAND_DELETE }, "Delete datasets by id", "COMMAND_FILE ID [[ID] ... [ID]]", RunDeleteCommand);
 
 				clp.Parse(args);
 			}
@@ -141,6 +143,37 @@ See http://support.spatialkey.com/dmapi for more information";
 				text.AppendLine("---");
 			}
 			ShowMessage(MessageLevel.Result, text.ToString());
+
+			skapi.Logout();
+
+			return true;
+		}
+
+		private static Boolean RunDeleteCommand(string command, Queue<string> args)
+		{
+			if (args.Count < 2)
+				return false;
+
+			string configFile = args.Dequeue();
+			List<string> ids = new List<string>(args);
+			args.Clear();
+
+			XmlDocument doc = new XmlDocument();
+			doc.Load(configFile);
+
+			// Default authentication info
+			String organizationURL = GetInnerText(doc, "/config/organizationURL");
+			String userAPIKey = GetInnerText(doc, "/config/userAPIKey");
+			String organizationAPIKey = GetInnerText(doc, "/config/organizationAPIKey");
+			String organizationSecretKey = GetInnerText(doc, "/config/organizationSecretKey"); 
+
+			SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage);
+			skapi.Init(organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey);
+
+			foreach (string id in ids)
+			{
+				skapi.DeleteDataset(id);
+			}
 
 			skapi.Logout();
 

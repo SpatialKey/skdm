@@ -20,7 +20,7 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <Externalconsole>True</Externalconsole>
-    <Commandlineparameters>list SpatialKeyDataManagerConfig.xml </Commandlineparameters>
+    <Commandlineparameters>delete SpatialKeyDataManagerConfig.xml 8a808c484233a1aa0142340bd7690434</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>none</DebugType>

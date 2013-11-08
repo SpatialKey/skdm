@@ -136,6 +136,7 @@ namespace skdm
 				}
 				else
 				{
+					ShowMessage(MessageLevel.Error, GetResponseString(response));
 					return null;
 				}
 			}
@@ -195,6 +196,7 @@ namespace skdm
 				}
 				else
 				{
+					ShowMessage(MessageLevel.Error, GetResponseString(response));
 					return null;
 				}
 			}
@@ -299,8 +301,7 @@ namespace skdm
 
 			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}/construct/{1}.xml", uploadId, method)), query))
 			{
-				StreamReader reader = new StreamReader(response.GetResponseStream());
-				string result = reader.ReadToEnd();
+				string result = GetResponseString(response);
 				if (response.StatusCode == HttpStatusCode.OK)
 				{
 					return result;
@@ -327,8 +328,13 @@ namespace skdm
 
 			using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, query))
 			{
-				HttpResponseToJSON(response);
-				return response.StatusCode == HttpStatusCode.OK;
+				if (response.StatusCode == HttpStatusCode.OK)
+					return true;
+				else
+				{
+					ShowMessage(MessageLevel.Error, GetResponseString(response));
+					return false;
+				}
 			}
 		}
 
@@ -355,8 +361,13 @@ namespace skdm
 
 			using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
 			{
-				HttpResponseToJSON(response);
-				return response.StatusCode == HttpStatusCode.OK;
+				if (response.StatusCode == HttpStatusCode.OK)
+					return true;
+				else
+				{
+					ShowMessage(MessageLevel.Error, GetResponseString(response));
+					return false;
+				}
 			}
 		}
 
@@ -372,7 +383,10 @@ namespace skdm
 
 			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
 			{
-				HttpResponseToJSON(response);
+				if (response.StatusCode != HttpStatusCode.OK)
+				{
+					ShowMessage(MessageLevel.Error, GetResponseString(response));
+				}
 			}
 		}
 
@@ -408,19 +422,39 @@ namespace skdm
 					return retList;
 				}
 				else
+				{
+						ShowMessage(MessageLevel.Error, GetResponseString(response));
 					return null;
+				}
 			}
 		}
+
+		public void DeleteDataset(string datasetId)
+		{
+			if (Login() == null)
+				return;
+
+			ShowMessage(MessageLevel.Status, "DELETE DATASET: " + datasetId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("dataset/{0}.json", datasetId)), query, "DELETE"))
+			{
+				if (response.StatusCode != HttpStatusCode.OK)
+					ShowMessage(MessageLevel.Error, GetResponseString(response));
+			}
+		}
+
+		#endregion
+
+		#region helpers
 
 		private static DateTime FromUnixTime(long unixTime)
 		{
 			var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
 			return epoch.AddMilliseconds(unixTime);
 		}
-
-		#endregion
-
-		#region helpers
 
 		private string BuildUrl(string command, NameValueCollection query = null)
 		{
@@ -444,17 +478,27 @@ namespace skdm
 
 		private Dictionary<string, object> HttpResponseToJSON(HttpWebResponse response)
 		{
-			Dictionary<string, object> json;
+			string result = GetResponseString(response);
+			if (!result.StartsWith("{") && !result.EndsWith("}"))
+				result = "{\"value\": " + result + "}";
+			ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
+			Dictionary<string, object> json = MiniJson.Deserialize(result) as Dictionary<string, object>;
+			return json;
+		}
+
+		private string GetResponseString(HttpWebResponse response)
+		{
 			using (response)
 			{
 				StreamReader reader = new StreamReader(response.GetResponseStream());
 				string result = reader.ReadToEnd().Trim();
-				if (!result.StartsWith("{") && !result.EndsWith("}"))
-					result = "{\"value\": " + result + "}";
-				ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
-				json = MiniJson.Deserialize(result) as Dictionary<string, object>;
+				return result;
 			}
-			return json;
+		}
+
+		private void ShowJSON(MessageLevel level, Dictionary<string,object> json)
+		{
+			ShowMessage(level, MiniJson.Serialize(json));
 		}
 
 		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
