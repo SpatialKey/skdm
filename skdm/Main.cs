@@ -8,6 +8,7 @@ using System.Xml;
 using System.Net;
 using System.IO;
 using System.Collections.Generic;
+using System.Text;
 
 namespace skdm
 {
@@ -22,6 +23,7 @@ See http://support.spatialkey.com/dmapi for more information";
 		private const string COMMAND_OAUTH = "oauth";
 		private const string COMMAND_UPLOAD = "upload";
 		private const string COMMAND_SUGGEST = "suggest";
+		private const string COMMAND_LIST = "list";
 		private const string ACTION_SUGGEST = COMMAND_SUGGEST;
 		private const string ACTION_IMPORT = "import";
 		private const string ACTION_OVERWRITE = "overwrite";
@@ -61,6 +63,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				cmd.Parser.AddOptionBoolean(new string[] { PARAM_WAIT }, "Wait for overwrite and append actions to complete.");
 
 				clp.AddCommand(new string[] { COMMAND_SUGGEST }, "Get suggested config for data", "COMMAND_FILE [[ACTION1] ... [ACTIONN]]", RunUploadCommand);
+				clp.AddCommand(new string[] { COMMAND_LIST }, "List available datasets", "COMMAND_FILE", RunListCommand);
 
 				clp.Parse(args);
 			}
@@ -104,6 +107,42 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			//Log(String.Format("oAuth for{0}  Org API Key:    {1}{0}  Org Secret Key: {2}{0}  User API Key:   {3}{0}-----", Environment.NewLine, orgAPIKey, orgSecretKey, userAPIKey));
 			ShowMessage(MessageLevel.Result, OAuth.GetOAuthToken(userAPIKey, orgAPIKey, orgSecretKey, ttl));
+
+			return true;
+		}
+
+		private static Boolean RunListCommand(string command, Queue<string> args)
+		{
+			if (args.Count < 1)
+				return false;
+
+			string configFile = args.Dequeue();
+			XmlDocument doc = new XmlDocument();
+			doc.Load(configFile);
+
+			// Default authentication info
+			String organizationURL = GetInnerText(doc, "/config/organizationURL");
+			String userAPIKey = GetInnerText(doc, "/config/userAPIKey");
+			String organizationAPIKey = GetInnerText(doc, "/config/organizationAPIKey");
+			String organizationSecretKey = GetInnerText(doc, "/config/organizationSecretKey"); 
+
+			SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage);
+			skapi.Init(organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey);
+			List<Dictionary<string, string>> list = skapi.ListDatasets();
+			StringBuilder text = new StringBuilder();
+			foreach (Dictionary<string, string> item in list)
+			{
+				text.AppendLine("---");
+				foreach (string key in item.Keys)
+				{
+					text.AppendFormat("{0,16}: {1}", key, item[key]);
+					text.AppendLine();
+				}
+				text.AppendLine("---");
+			}
+			ShowMessage(MessageLevel.Result, text.ToString());
+
+			skapi.Logout();
 
 			return true;
 		}

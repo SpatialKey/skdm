@@ -360,10 +360,6 @@ namespace skdm
 			}
 		}
 
-		public void GetImportStatus()
-		{
-		}
-
 		public void CancelUpload(string uploadId)
 		{
 			if (Login() == null)
@@ -378,6 +374,48 @@ namespace skdm
 			{
 				HttpResponseToJSON(response);
 			}
+		}
+
+		public List<Dictionary<string, string>> ListDatasets()
+		{
+			if (Login() == null)
+				return null;
+			
+			ShowMessage(MessageLevel.Status, "LIST DATASETS");
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			using (HttpWebResponse response = HttpGet(BuildUrl("dataset.json"), query))
+			{
+				if (response.StatusCode == HttpStatusCode.OK)
+				{
+					Dictionary<string, object> json = HttpResponseToJSON(response);
+					List<object> items = json["value"] as List<object>;
+					List<Dictionary<string, string>> retList = new List<Dictionary<string, string>>();
+					foreach (Dictionary<string, object> item in items)
+					{
+						Dictionary<string, string> cur = new Dictionary<string, string>();
+						cur["ID"] = item["id"].ToString();
+						cur["Label"] = item["label"].ToString();
+						//cur["Description"] = item["description"].ToString();
+						cur["Created"] = FromUnixTime(Convert.ToInt64(item["created"].ToString())).ToString();
+						cur["Modified"] = FromUnixTime(Convert.ToInt64(item["modified"].ToString())).ToString();
+						cur["Geometry Type"] = item["geometryType"].ToString();
+						cur["Total Rows"] = item["totalRows"].ToString();
+						retList.Add(cur);
+					}
+					return retList;
+				}
+				else
+					return null;
+			}
+		}
+
+		private static DateTime FromUnixTime(long unixTime)
+		{
+			var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+			return epoch.AddMilliseconds(unixTime);
 		}
 
 		#endregion
@@ -410,7 +448,9 @@ namespace skdm
 			using (response)
 			{
 				StreamReader reader = new StreamReader(response.GetResponseStream());
-				string result = reader.ReadToEnd();
+				string result = reader.ReadToEnd().Trim();
+				if (!result.StartsWith("{") && !result.EndsWith("}"))
+					result = "{\"value\": " + result + "}";
 				ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
 				json = MiniJson.Deserialize(result) as Dictionary<string, object>;
 			}
