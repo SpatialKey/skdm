@@ -14,16 +14,24 @@ You can optionally connect to the location of the files and view the help comman
 4. Run "skdm.exe" to see the help command (optional)
 
 # Options
-## /help, -help, /h, -h, /?, -?
+## /help
+> /help, -help, /h, -h, /?, -?
+
 Show help message
 
-## /config CONFIG_XML, -config, /c, -c
+## /config
+> /config CONFIG_XML, -config, /c, -c
+
 Data Manager Config XML file. (Default SpatialKeyDataManagerConfig.xml)
 
-# /version, -version
+# /version
+> /version, -version
+
 Get application version
 
-# /trace LEVEL, -trace
+# /trace
+> /trace LEVEL, -trace
+
 Trace debug verbosity
  - The default of '0' shows errors and results only
  - '1' shows general status messages
@@ -32,28 +40,34 @@ Trace debug verbosity
 # Commands
 ## help
 > help <command>
+
 Show help for specific command.  Try '/help' for general help.
 
 ## oauth
 > oauth [/ttl TTL] [ORG_API_KEY ORG_SECRET_KEY USER_API_KEY]
+
 Get oAuth token for keys in XML configuration or by passing in values.  The organizationAPIKey, organizationSecretKey, or userAPIKey defined in the data manager config XML file can be overwritten by sending all three on the command line.
 - /ttl TTL - sets the time to live for the token.  The default is 60 seconds.
 
 ## upload
 > upload [/no-wait] [[ACTION1] ... [ACTIONN]]
+
 Upload dataset data.  By default this waits until the import, append, or overwrite completes.  All actions are performed unless one or more specific actions are listed. 
 - /no-wait - Doesn't wait for import, append, or overwrite to complete.  If this is defined, the datasetId created on imports will not be updated in the data manager config XML.
 
 ## suggest
 > suggest [[ACTION1] ... [ACTIONN]]
+
 Get suggested config for data.  This will create an xml configuration for each action run.  All actions defined have their xml suggested unless specific actions are listed.   If the xml file defined by `<pathXML>` does not exist, the configuration will be written into that file name.  If the file does exist, the xml configuration will be written into a new file.
 
 ## list
 > list
+
 List available datasets
 
 ## delete
 > delete ID [[ID] ... [ID]]
+
 Delete datasets by id.  One or more ids can be specified.
 
 ###Command Line Tool files:
