@@ -62,5 +62,7 @@
     <None Include="TestData\sacramento.xml" />
     <None Include="TestData\sacramento.csv" />
     <None Include="TestData\110thCongressionalDistrictShapefile.xml" />
+    <None Include="TestData\SalesData.xml" />
+    <None Include="TestData\SalesData.csv" />
   </ItemGroup>
 </Project>

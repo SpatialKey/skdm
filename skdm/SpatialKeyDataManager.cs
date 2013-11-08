@@ -121,23 +121,27 @@ namespace skdm
 			_accessToken = null;
 
 
+			string oauth = GetOAuthToken();
 			// add the query string
 			NameValueCollection bodyParam = new NameValueCollection();
 			bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
-			bodyParam["assertion"] = GetOAuthToken();
+			bodyParam["assertion"] = oauth;
 
 			using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
 			{
 				if (response.StatusCode == HttpStatusCode.OK)
 				{
+					string result = GetResponseString(response);
 					try
 					{
-						Dictionary<string,object> json = HttpResponseToJSON(response);
+
+						Dictionary<string,object> json = MiniJson.Deserialize(result) as Dictionary<string,object>;
 						_accessToken = json["access_token"] as String;
 						return _accessToken;
 					}
 					catch (Exception)
 					{
+						ShowMessage(MessageLevel.Error, String.Format("Unable to login to '{0}' using oAuth token '{1}'", OrganizationURL, oauth));
 						return null;
 					}
 				}
@@ -475,7 +479,7 @@ namespace skdm
 		private static DateTime FromUnixTime(long unixTime)
 		{
 			var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
-			return epoch.AddMilliseconds(unixTime);
+			return epoch.AddMilliseconds(unixTime).ToLocalTime();
 		}
 
 		private string BuildUrl(string command, NameValueCollection query = null)
@@ -501,8 +505,6 @@ namespace skdm
 		private Dictionary<string, object> HttpResponseToJSON(HttpWebResponse response)
 		{
 			string result = GetResponseString(response);
-			if (!result.StartsWith("{") && !result.EndsWith("}"))
-				result = "{\"value\": " + result + "}";
 			ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
 			Dictionary<string, object> json = MiniJson.Deserialize(result) as Dictionary<string, object>;
 			if (json == null)

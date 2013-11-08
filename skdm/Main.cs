@@ -20,7 +20,7 @@ See http://support.spatialkey.com/dmapi for more information";
 		private const string PARAM_VERSION = "version";
 		private const string PARAM_TRACE = "trace";
 		private const string PARAM_TTL = "ttl";
-		private const string PARAM_WAIT = "wait";
+		private const string PARAM_NO_WAIT = "no-wait";
 		private const string COMMAND_OAUTH = "oauth";
 		private const string COMMAND_UPLOAD = "upload";
 		private const string COMMAND_SUGGEST = "suggest";
@@ -41,6 +41,9 @@ See http://support.spatialkey.com/dmapi for more information";
 		private const int ERROR_NO_COMMANDS = 2;
 		private const int ERROR_RUN_XML = 3;
 		private const int ERROR_RUN_OAUTH = 4;
+		private const int TTL_MIN = 10;
+		private const int TTL_MAX = 3600;
+
 		private static int errorCode = ERROR_SUCCESS;
 		private static CommandLineParser clp;
 		private static CommandLineParser.OptionValue<int> optTrace;
@@ -58,17 +61,17 @@ See http://support.spatialkey.com/dmapi for more information";
 				clp.MyMessenger = ShowMessage;
 				clp.AddOptionHelp();
 				clp.AddCommandHelp();
-				clp.AddOptionValue<string>(new string[] { PARAM_CONFIG, "c" }, "Application configuration XML file. Default (SpatialKeyDataManagerConfig.xml)", "CONFIG_XML", "SpatialKeyDataManagerConfig.xml");
+				clp.AddOptionValue<string>(new string[] { PARAM_CONFIG, "c" }, "Application configuration XML file. (Default SpatialKeyDataManagerConfig.xml)", "CONFIG_XML", "SpatialKeyDataManagerConfig.xml");
 				clp.AddOptionBoolean(new string[] { PARAM_VERSION }, "Get application version");
-				optTrace = clp.AddOptionValue<int>(new string[] { PARAM_TRACE }, "Trace debug verbosity: 1 for status, 2 for debug (default 0)", "LEVEL", 0);
+				optTrace = clp.AddOptionValue<int>(new string[] { PARAM_TRACE }, "Trace debug verbosity: 1 for status, 2 for debug (Default 0)", "LEVEL", 0);
 
 				CommandLineParser.Command cmd;
 
 				cmd = clp.AddCommand(new string[] { COMMAND_OAUTH }, "Get oAuth token for keys in XML configuration or by passing in values", "[ORG_API_KEY ORG_SECRET_KEY USER_API_KEY]", RunOAuthCommand);
-				cmd.Parser.AddOptionValue<int>(new string[] { PARAM_TTL }, "oAuth token time to live in seconds (Default 60)", "TTL", 60);
+				cmd.Parser.AddOptionValue<int>(new string[] { PARAM_TTL }, String.Format("oAuth token time to live in seconds. Min {0}, Max {1} (Default 60)", TTL_MIN, TTL_MAX), "TTL", 60);
 
 				cmd = clp.AddCommand(new string[] { COMMAND_UPLOAD }, "Upload dataset data", "[[ACTION1] ... [ACTIONN]]", RunUploadCommand);
-				cmd.Parser.AddOptionBoolean(new string[] { PARAM_WAIT }, "Wait for overwrite and append actions to complete.");
+				cmd.Parser.AddOptionBoolean(new string[] { PARAM_NO_WAIT }, "Don't wait for import, overwrite, and append actions to complete.");
 
 				clp.AddCommand(new string[] { COMMAND_SUGGEST }, "Get suggested config for data", "[[ACTION1] ... [ACTIONN]]", RunUploadCommand);
 				clp.AddCommand(new string[] { COMMAND_LIST }, "List available datasets", "", RunListCommand);
@@ -143,6 +146,11 @@ See http://support.spatialkey.com/dmapi for more information";
 			string userAPIKey = defaultUserAPIKey;
 			int ttl = clp.FindCommand(COMMAND_OAUTH).Parser.FindOptionValue<int>(PARAM_TTL).Value;
 
+			if (ttl < TTL_MIN)
+				ttl = TTL_MIN;
+			else if (ttl > TTL_MAX)
+				ttl = 3600;
+
 			if (args.Count >= 3)
 			{
 				orgAPIKey = args.Dequeue();
@@ -150,12 +158,15 @@ See http://support.spatialkey.com/dmapi for more information";
 				userAPIKey = args.Dequeue();
 			}
 
-			StringBuilder text = new StringBuilder("oAuth Token For");
-			text.AppendFormat("{0,24}:{1}", "Organization API Key", orgAPIKey);
+			StringBuilder text = new StringBuilder();
+			text.AppendLine("oAuth Token For");
+			text.AppendFormat("{0,24}: {1}", "Organization API Key", orgAPIKey);
 			text.AppendLine();
-			text.AppendFormat("{0,24}:{1}", "Organization Secret Key", orgSecretKey);
+			text.AppendFormat("{0,24}: {1}", "Organization Secret Key", orgSecretKey);
 			text.AppendLine();
-			text.AppendFormat("{0,24}:{1}", "User API Key", userAPIKey);
+			text.AppendFormat("{0,24}: {1}", "User API Key", userAPIKey);
+			text.AppendLine();
+			text.AppendFormat("{0,24}: {1}", "TTL (seconds)", ttl);
 			text.AppendLine();
 			text.AppendLine("-----");
 
@@ -211,7 +222,14 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			foreach (string id in ids)
 			{
-				skapi.DeleteDataset(id);
+				try
+				{
+					skapi.DeleteDataset(id);
+				}
+				catch (Exception ex)
+				{
+					ShowMessage(MessageLevel.Error, String.Format("Unalbel to delete id {0}; {1}", id, ex.Message));
+				}
 			}
 
 			skapi.Logout();
@@ -228,7 +246,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			List<string> actions = new List<string>(args);
 			args.Clear();
 
-			bool isWaitUpdate = false;
+			bool isWaitUpdate = true;
 
 			if (command.ToLower() == "suggest")
 			{
@@ -237,7 +255,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			else
 			{
 				ShowMessage(MessageLevel.Status, String.Format("Running XML '{0}'", configFile));
-				isWaitUpdate = clp.FindCommand(COMMAND_UPLOAD).Parser.FindOptionBoolean(PARAM_WAIT).Value;
+				isWaitUpdate = !clp.FindCommand(COMMAND_UPLOAD).Parser.FindOptionBoolean(PARAM_NO_WAIT).Value;
 			}
 
 			bool isRanAction = false;
@@ -319,15 +337,16 @@ See http://support.spatialkey.com/dmapi for more information";
 						ShowMessage(MessageLevel.Error, "ERROR uploading");
 						continue;
 					}
+					ShowMessage(MessageLevel.Result, String.Format("Uploaded '{0}'", pathData));
 
 					// perform the specified dataset action
 					switch (actionType)
 					{
 					case ACTION_SUGGEST:
-						DoUploadSuggest(skapi, pathXML, pathData, dataType, uploadId);
+						DoUploadSuggest(skapi, pathData, pathXML, dataType, uploadId);
 						break;
 					case ACTION_IMPORT:
-						datasetId = DoUploadImport(skapi, pathXML, uploadId);
+						datasetId = DoUploadImport(skapi, pathData, pathXML, uploadId, isWaitUpdate);
 						if (datasetId != null)
 						{
 							if (actionNode.SelectSingleNode("datasetId") == null)
@@ -337,10 +356,10 @@ See http://support.spatialkey.com/dmapi for more information";
 						}
 						break;
 					case ACTION_OVERWRITE:
-						DoUploadOverwrite(skapi, pathXML, uploadId, datasetId, isWaitUpdate);
+						DoUploadOverwrite(skapi, pathData, pathXML, uploadId, datasetId, isWaitUpdate);
 						break;
 					case ACTION_APPEND:
-						DoUploadAppend(skapi, pathXML, uploadId, datasetId, isWaitUpdate);
+						DoUploadAppend(skapi, pathData, pathXML, uploadId, datasetId, isWaitUpdate);
 						break;
 					}
 
@@ -365,7 +384,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			return true;
 		}
 
-		private static void DoUploadSuggest(SpatialKeyDataManager skapi, string pathXML, string pathData, string dataType, string uploadId)
+		private static void DoUploadSuggest(SpatialKeyDataManager skapi, string pathData, string pathXML, string dataType, string uploadId)
 		{
 			String method;
 			if (dataType == "csv")
@@ -394,22 +413,35 @@ See http://support.spatialkey.com/dmapi for more information";
 			skapi.CancelUpload(uploadId);
 		}
 
-		private static string DoUploadImport(SpatialKeyDataManager skapi, string pathXML, string uploadId)
+		private static string DoUploadImport(SpatialKeyDataManager skapi, string pathData, string pathXML, string uploadId, bool isWaitUpdate)
 		{
 			String datasetId = null;
 
 			if (skapi.Import(uploadId, pathXML))
 			{
-				// must wait on the import status to get the datasetid
-				Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
-				datasetId = skapi.GetDatasetID(uploadStausJson);
-
+				if (isWaitUpdate)
+				{
+					Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
+					datasetId = skapi.GetDatasetID(uploadStausJson);
+					if (SpatialKeyDataManager.IsUploadStatusError(uploadStausJson) || datasetId == null)
+					{
+						// TODO show uploadStatusJson error
+						ShowMessage(MessageLevel.Error, "ERROR Running Import");
+					}
+					else
+					{
+						datasetId = skapi.GetDatasetID(uploadStausJson);
+						ShowMessage(MessageLevel.Result, String.Format("Imported '{0}'", pathData));
+					}
+				}
+				else
+					ShowMessage(MessageLevel.Result, String.Format("Not waiting for import of '{0}' to complete", pathData));
 			}
 
 			return datasetId;
 		}
 
-		private static void DoUploadAppend(SpatialKeyDataManager skapi, string pathXML, string uploadId, string datasetId, bool isWaitUpdate)
+		private static void DoUploadAppend(SpatialKeyDataManager skapi, string pathData, string pathXML, string uploadId, string datasetId, bool isWaitUpdate)
 		{
 			skapi.Append(uploadId, datasetId, pathXML);
 			if (isWaitUpdate)
@@ -420,10 +452,16 @@ See http://support.spatialkey.com/dmapi for more information";
 					// TODO show uploadStatusJson error
 					ShowMessage(MessageLevel.Error, "ERROR Running Append");
 				}
+				else
+				{
+					ShowMessage(MessageLevel.Result, String.Format("Appended '{0}'", pathData));
+				}
 			}
+			else
+				ShowMessage(MessageLevel.Result, String.Format("Not waiting for append of '{0}' to complete", pathData));
 		}
 
-		private static void DoUploadOverwrite(SpatialKeyDataManager skapi, string pathXML, string uploadId, string datasetId, bool isWaitUpdate)
+		private static void DoUploadOverwrite(SpatialKeyDataManager skapi, string pathData, string pathXML, string uploadId, string datasetId, bool isWaitUpdate)
 		{
 			skapi.Overwrite(uploadId, datasetId, pathXML);
 			if (isWaitUpdate)
@@ -434,7 +472,13 @@ See http://support.spatialkey.com/dmapi for more information";
 					// TODO show uploadStatusJson error
 					ShowMessage(MessageLevel.Error, "ERROR Running Overwrite");
 				}
+				else
+				{
+					ShowMessage(MessageLevel.Result, String.Format("Overwrote with '{0}'", pathData));
+				}
 			}
+			else
+				ShowMessage(MessageLevel.Result, String.Format("Not waiting for overwrite of '{0}' to complete", pathData));
 		}
 
 		private static String GetInnerText(XmlNode node, String path, String defaultValue = "")

@@ -19,9 +19,9 @@
 			<!--- dataType can be CSV or Shapefile -->
 			<dataType>CSV</dataType>
 			<!---path to to the data to upload -->
-			<pathData>sacramento.csv</pathData>
+			<pathData>SalesData.csv</pathData>
 			<!--- configuration file for the data -->
-			<pathXML>sacramento.xml</pathXML>
+			<pathXML>SalesData.xml</pathXML>
 			<!-- datasetId will be filled in on overwrite or append if not set -->
 			<datasetId></datasetId>
 		</action>

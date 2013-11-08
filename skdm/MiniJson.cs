@@ -88,6 +88,10 @@ namespace skdm
 				return null;
 			}
 
+			json = json.Trim();
+			if (!json.StartsWith("{") && !json.EndsWith("}"))
+				json = "{\"value\": " + json + "}";
+
 			return Parser.Parse(json);
 		}
 

@@ -13,16 +13,33 @@ You can optionally connect to the location of the files and view the help comman
 3. Open command-line prompt and go to directory above (optional)
 4. Run "skdm.exe" to see the help command (optional)
 
+# Options
+ - /help - Show the general help message
+ - /config CONFIG_XML - 
+ - /version
+ - /trace LEVEL
+ 
+# Commands
+## help
+## oauth
+## suggest
+## upload
+## list
+## delete
 
 ###Command Line Tool files:
 - skdm.exe (executable file to trigger import or update task)
 - SpatialKeyDataManagerConfig.xml (XML descriptor for executable file)
-- ICSharpCode.SharpZipLib.dll (code that .exe file uses)
 
 ###Sample Data files:
 - 110thCongressionalDistrictShapefile.zip (sample Shapefile)
+- 110thCongressionalDistrictShapefile.xml (sample Shapefile configuration)
 - SalesData.csv (Sample CSV file)
-- SalesData.xml (XML descriptor for CSV file import) – for tips on generating an XML descriptor file for your CSV, check out this [article](http://support.spatialkey.com/dmapi-generate-xml)
+- SalesData.xml (XML descriptor for CSV file import)
+
+You can create the suggested xml configuration files by running "skdm.exe suggest".
+
+For tips on generating an XML descriptor file for your CSV, check out this [article](http://support.spatialkey.com/dmapi-generate-xml)
 
 # Setting up the Data Manager Config XML file
 The Data Manager Config XML file is split into the following sections:

@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<datasetImport>
+	<permissions>
+		<addAllUsers>true</addAllUsers>
+	</permissions>
+	<dataset>
+		<latlon />
+		<datasetColumn>
+			<name>account_created</name>
+			<label>account created</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>price</name>
+			<label>price</label>
+			<type>Integer</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>name</name>
+			<label>name</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>product_name</name>
+			<label>product name</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>state</name>
+			<label>state</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>transaction_date</name>
+			<label>transaction date</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>longitude</name>
+			<label>longitude</label>
+			<type>Longitude</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>latitude</name>
+			<label>latitude</label>
+			<type>Latitude</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>payment_type</name>
+			<label>payment type</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>last_login</name>
+			<label>last login</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>country</name>
+			<label>country</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>city</name>
+			<label>city</label>
+			<type>String</type>
+		</datasetColumn>
+		<type>CSV</type>
+		<name>TEST SalesData</name>
+		<preparedWith>Spatialkey API</preparedWith>
+		<preparedDate>2013-11-08T16:41:57.203-05:00</preparedDate>
+		<expirationDate>2013-11-18T16:41:57.202-05:00</expirationDate>
+	</dataset>
+</datasetImport>
