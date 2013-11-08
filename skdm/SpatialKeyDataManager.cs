@@ -11,6 +11,7 @@ using System.IO;
 using System.Text;
 using System.Collections.Specialized;
 using System.Collections.Generic;
+using System.Diagnostics;
 
 // Using http://www.icsharpcode.net/opensource/sharpziplib/
 namespace skdm
@@ -34,7 +35,7 @@ namespace skdm
 		#region parameters
 
 		/// <summary>Logging delegate</summary>
-		public delegate void Logger(string message);
+		public delegate void Logger(TraceLevel level, string message);
 
 		/// <summary>
 		/// Name of the SpatialKey organization url"/>
@@ -99,10 +100,10 @@ namespace skdm
 		/// <param name='message'>
 		/// Message to log
 		/// </param>
-		private void Log(string message)
+		private void Log(TraceLevel level, string message)
 		{
 			if (MyLogger != null)
-				MyLogger(message);
+				MyLogger(level, message);
 		}
 
 		#region API calls
@@ -119,8 +120,8 @@ namespace skdm
 
 			try
 			{
-				Log(LOG_SEPARATOR);
-				Log("START LOGIN: " + OrganizationURL);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
+				Log(TraceLevel.Info, "START LOGIN: " + OrganizationURL);
 
 				_accessToken = null;
 
@@ -146,7 +147,7 @@ namespace skdm
 			}
 			finally
 			{
-				Log(LOG_SEPARATOR);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
 			}
 		}
 
@@ -157,8 +158,8 @@ namespace skdm
 
 			try
 			{
-				Log(LOG_SEPARATOR);
-				Log("VALIDATE TOKEN: " + _accessToken);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
+				Log(TraceLevel.Info, "VALIDATE TOKEN: " + _accessToken);
 
 				NameValueCollection query = new NameValueCollection();
 				query["token"] = _accessToken;
@@ -171,7 +172,7 @@ namespace skdm
 			}
 			finally
 			{
-				Log(LOG_SEPARATOR);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
 			}
 		}
 
@@ -182,8 +183,8 @@ namespace skdm
 
 			try
 			{
-				Log(LOG_SEPARATOR);
-				Log("LOGOUT TOKEN: " + _accessToken);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
+				Log(TraceLevel.Info, "LOGOUT TOKEN: " + _accessToken);
 
 				NameValueCollection query = new NameValueCollection();
 				query["token"] = _accessToken;
@@ -196,7 +197,7 @@ namespace skdm
 			}
 			finally
 			{
-				Log(LOG_SEPARATOR);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
 			}
 		}
 
@@ -207,8 +208,8 @@ namespace skdm
 
 			try
 			{
-				Log(LOG_SEPARATOR);
-				Log("UPLOAD: " + path);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
+				Log(TraceLevel.Info, "UPLOAD: " + path);
 
 				// add the query string
 				NameValueCollection query = new NameValueCollection();
@@ -229,7 +230,7 @@ namespace skdm
 			}
 			finally
 			{
-				Log(LOG_SEPARATOR);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
 			}
 		}
 
@@ -240,8 +241,8 @@ namespace skdm
 
 			try
 			{
-				Log(LOG_SEPARATOR);
-				Log("UPLOAD STATUS: " + uploadId);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
+				Log(TraceLevel.Info, "UPLOAD STATUS: " + uploadId);
 
 				NameValueCollection query = new NameValueCollection();
 				query["token"] = _accessToken;
@@ -253,7 +254,7 @@ namespace skdm
 			}
 			finally
 			{
-				Log(LOG_SEPARATOR);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
 			}
 		}
 
@@ -261,8 +262,8 @@ namespace skdm
 		{
 			try
 			{
-				Log(LOG_SEPARATOR);
-				Log("WAIT UPLOAD COMPLETE: "+uploadId);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
+				Log(TraceLevel.Info, "WAIT UPLOAD COMPLETE: "+uploadId);
 
 				DateTime start = DateTime.Now;
 				Dictionary<string,object> json = GetUploadStatus(uploadId);
@@ -279,7 +280,7 @@ namespace skdm
 			}
 			finally
 			{
-				Log(LOG_SEPARATOR);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
 			}
 		}
 
@@ -343,8 +344,8 @@ namespace skdm
 
 			try
 			{
-				Log(LOG_SEPARATOR);
-				Log("GET SAMPLE IMPORT CONFIG: " + uploadId);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
+				Log(TraceLevel.Info, "GET SAMPLE IMPORT CONFIG: " + uploadId);
 
 				NameValueCollection query = new NameValueCollection();
 				query["token"] = _accessToken;
@@ -359,7 +360,7 @@ namespace skdm
 					}
 					else
 					{
-						Log(result);
+						Log(TraceLevel.Error, result);
 						return null;
 					}
 
@@ -367,7 +368,7 @@ namespace skdm
 			}
 			finally
 			{
-				Log(LOG_SEPARATOR);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
 			}
 		}
 
@@ -378,8 +379,8 @@ namespace skdm
 
 			try
 			{
-				Log(LOG_SEPARATOR);
-				Log(String.Format("IMPORT {0} '{1}'", uploadId, pathConfig));
+				Log(TraceLevel.Info, LOG_SEPARATOR);
+				Log(TraceLevel.Info, String.Format("IMPORT {0} '{1}'", uploadId, pathConfig));
 
 				// add the query string
 				NameValueCollection query = new NameValueCollection();
@@ -393,7 +394,7 @@ namespace skdm
 			}
 			finally
 			{
-				Log(LOG_SEPARATOR);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
 			}
 		}
 
@@ -413,8 +414,8 @@ namespace skdm
 				return false;
 			try
 			{
-				Log(LOG_SEPARATOR);
-				Log(String.Format("{0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig));
+				Log(TraceLevel.Info, LOG_SEPARATOR);
+				Log(TraceLevel.Info, String.Format("{0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig));
 
 				// add the query string
 				NameValueCollection query = new NameValueCollection();
@@ -429,7 +430,7 @@ namespace skdm
 			}
 			finally
 			{
-				Log(LOG_SEPARATOR);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
 			}
 		}
 
@@ -444,8 +445,8 @@ namespace skdm
 
 			try
 			{
-				Log(LOG_SEPARATOR);
-				Log("CANCEL UPLOAD: " + uploadId);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
+				Log(TraceLevel.Info, "CANCEL UPLOAD: " + uploadId);
 
 				NameValueCollection query = new NameValueCollection();
 				query["token"] = _accessToken;
@@ -457,7 +458,7 @@ namespace skdm
 			}
 			finally
 			{
-				Log(LOG_SEPARATOR);
+				Log(TraceLevel.Info, LOG_SEPARATOR);
 			}
 		}
 
@@ -492,7 +493,7 @@ namespace skdm
 			{
 				StreamReader reader = new StreamReader(response.GetResponseStream());
 				string result = reader.ReadToEnd();
-				Log("RESULT: " + result);
+				Log(TraceLevel.Verbose, "RESULT: " + result);
 				json = MiniJson.Deserialize(result) as Dictionary<string, object>;
 			}
 			return json;
@@ -501,7 +502,7 @@ namespace skdm
 		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
 		{
 			url = url + ToQueryString(queryParam);
-			Log(String.Format("HTTP GET: {0}", url));
+			Log(TraceLevel.Verbose, String.Format("HTTP GET: {0}", url));
 
 			HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
 			request.Method = method;
@@ -515,7 +516,7 @@ namespace skdm
 				var response = we.Response as HttpWebResponse;
 				if (response == null)
 					throw;
-				Log(String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				Log(TraceLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
 				return response;
 			}
 
@@ -532,7 +533,7 @@ namespace skdm
 			// get the query string and trim off the starting "?"
 			string body = ToQueryString(bodyParam).Remove(0, 1);
 
-			Log(String.Format("HTTP POST URL: {0} PARAM: {1}", url, body));
+			Log(TraceLevel.Verbose, String.Format("HTTP POST URL: {0} PARAM: {1}", url, body));
 
 			// Encode the parameters as form data:
 			byte[] formData = UTF8Encoding.UTF8.GetBytes(body);
@@ -553,7 +554,7 @@ namespace skdm
 				var response = we.Response as HttpWebResponse;
 				if (response == null)
 					throw;
-				Log(String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				Log(TraceLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
 				return response;
 			}
 		}
@@ -566,7 +567,7 @@ namespace skdm
 			request.Timeout = timeout;
 			request.ContentType = "application/xml";
 
-			Log(String.Format("HTTP POST URL: {0} XML: {1}", url, pathXML));
+			Log(TraceLevel.Verbose, String.Format("HTTP POST URL: {0} XML: {1}", url, pathXML));
 
 			// Send the xml:
 			using (Stream rs = request.GetRequestStream())
@@ -590,7 +591,7 @@ namespace skdm
 				var response = we.Response as HttpWebResponse;
 				if (response == null)
 					throw;
-				Log(String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				Log(TraceLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
 				return response;
 			}
 		}
@@ -598,7 +599,7 @@ namespace skdm
 		private HttpWebResponse HttpUploadFile(string url, string file, string paramName, string contentType, NameValueCollection queryParam, NameValueCollection bodyParam, string method = "POST", int timeout = HTTP_TIMEOUT_LONG)
 		{
 			url = url + ToQueryString(queryParam);
-			Log(string.Format("HTTP UPLOAD {0} to {1}", file, url));
+			Log(TraceLevel.Verbose, string.Format("HTTP UPLOAD {0} to {1}", file, url));
 			string boundary = String.Format("-----------{0:N}", Guid.NewGuid());
 			byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
 
@@ -609,7 +610,7 @@ namespace skdm
 			request.Timeout = timeout;
 			//request.CookieContainer = new CookieContainer();
 
-			Log("Content-Type: " + request.ContentType);
+			Log(TraceLevel.Verbose, "Content-Type: " + request.ContentType);
 			long bytes = 0;
 			using (Stream rs = request.GetRequestStream())
 			{
@@ -641,7 +642,7 @@ namespace skdm
 					bytes += WriteUploadBytes(rs, buffer, bytesRead, false);
 				}
 				fileStream.Close();
-				Log("FILE INSERTED HERE");
+				Log(TraceLevel.Verbose, "FILE INSERTED HERE");
 
 				byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
 				bytes += WriteUploadBytes(rs, trailer);
@@ -656,7 +657,7 @@ namespace skdm
 				var response = we.Response as HttpWebResponse;
 				if (response == null)
 					throw;
-				Log(String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				Log(TraceLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
 				return response;
 			}
 		}
@@ -668,7 +669,7 @@ namespace skdm
 
 			rs.Write(bytes, 0, length);
 			if (isLog)
-				Log(Encoding.UTF8.GetString(bytes));
+				Log(TraceLevel.Verbose, Encoding.UTF8.GetString(bytes));
 
 			return length;
 		}
