@@ -61,7 +61,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				clp.MyMessenger = ShowMessage;
 				clp.AddOptionHelp();
 				clp.AddCommandHelp();
-				clp.AddOptionValue<string>(new string[] { PARAM_CONFIG, "c" }, "Application configuration XML file. (Default SpatialKeyDataManagerConfig.xml)", "CONFIG_XML", "SpatialKeyDataManagerConfig.xml");
+				clp.AddOptionValue<string>(new string[] { PARAM_CONFIG, "c" }, "Data Manager Config XML file. (Default SpatialKeyDataManagerConfig.xml)", "CONFIG_XML", "SpatialKeyDataManagerConfig.xml");
 				clp.AddOptionBoolean(new string[] { PARAM_VERSION }, "Get application version");
 				optTrace = clp.AddOptionValue<int>(new string[] { PARAM_TRACE }, "Trace debug verbosity: 1 for status, 2 for debug (Default 0)", "LEVEL", 0);
 

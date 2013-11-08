@@ -84,7 +84,7 @@ namespace skdm
 
 		public void AddCommandHelp()
 		{
-			AddCommand(new string[] { "help" }, "Show help for specific command.  Try '/help' for general help.", "[<command>]", RunHelpCommand);
+			AddCommand(new string[] { "help" }, "Show help for specific command.  Try '/help' for general help.", "<command>", RunHelpCommand);
 		}
 
 		private Boolean RunHelpCommand(string command, Queue<string> args)
