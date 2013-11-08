@@ -8,7 +8,6 @@ using System.Xml;
 using System.Net;
 using System.IO;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 namespace skdm
 {
@@ -17,7 +16,7 @@ namespace skdm
 		private static string HELP_DESCRIPTION = @"Command line tool to work with the data API or create oAuth tokens.
 See http://support.spatialkey.com/dmapi for more information";
 		private const string PARAM_VERSION = "version";
-		private const string PARAM_DEBUG = "debug";
+		private const string PARAM_TRACE = "trace";
 		private const string PARAM_TTL = "ttl";
 		private const string PARAM_WAIT = "wait";
 		private const string COMMAND_OAUTH = "oauth";
@@ -40,17 +39,18 @@ See http://support.spatialkey.com/dmapi for more information";
 		private const int ERROR_RUN_OAUTH = 4;
 		private static int errorCode = ERROR_SUCCESS;
 		private static CommandLineParser clp;
-		private static CommandLineParser.OptionBoolean optDebug;
+		private static CommandLineParser.OptionValue<int> optTrace;
 
 		public static void Main(string[] args)
 		{
 			try
 			{
 				clp = new CommandLineParser("skdm", HELP_DESCRIPTION);
+				clp.MyMessenger = ShowMessage;
 				clp.AddOptionHelp();
 				clp.AddCommandHelp();
 				clp.AddOptionBoolean(new string[] { PARAM_VERSION }, "Get application version");
-				optDebug = clp.AddOptionBoolean(new string[] { PARAM_DEBUG }, "Trace debug output");
+				optTrace = clp.AddOptionValue<int>(new string[] { PARAM_TRACE }, "Trace debug verbosity: 1 for status, 2 for debug (default 0)", "LEVEL", 0);
 
 				CommandLineParser.Command cmd;
 
@@ -66,27 +66,27 @@ See http://support.spatialkey.com/dmapi for more information";
 			}
 			catch (Exception ex)
 			{
-				Console.Write(clp.GetHelpMessage());
-				Console.WriteLine();
-				Console.WriteLine("Error: " + ex.Message);
+				ShowMessage(MessageLevel.Help, clp.GetHelpMessage());
+				ShowMessage(MessageLevel.Help, "");
+				ShowMessage(MessageLevel.Error, "Error: " + ex.Message);
 				Environment.Exit(ERROR_COMMAND_LINE);
 			}
 
 			if (clp.HelpOption.IsMatched)
 			{
-				Console.Write(clp.GetHelpMessage());
+				ShowMessage(MessageLevel.Help, clp.GetHelpMessage());
 				Environment.Exit(ERROR_SUCCESS);
 			}
 			if (clp.FindOptionBoolean(PARAM_VERSION).IsMatched)
 			{
-				Console.WriteLine("skdm version 2.0");
+				ShowMessage(MessageLevel.Result, "skdm version 2.0");
 				Environment.Exit(ERROR_SUCCESS);
 			}
 
 			if (!clp.RunCommands())
 			{
 				errorCode = ERROR_NO_COMMANDS;
-				Console.WriteLine(clp.GetHelpMessage());
+				ShowMessage(MessageLevel.Help, clp.GetHelpMessage());
 			}
 
 			Environment.Exit(errorCode);
@@ -103,7 +103,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			int ttl = clp.FindCommand(COMMAND_OAUTH).Parser.FindOptionValue<int>(PARAM_TTL).Value;
 
 			//Log(String.Format("oAuth for{0}  Org API Key:    {1}{0}  Org Secret Key: {2}{0}  User API Key:   {3}{0}-----", Environment.NewLine, orgAPIKey, orgSecretKey, userAPIKey));
-			Console.WriteLine(OAuth.GetOAuthToken(userAPIKey, orgAPIKey, orgSecretKey, ttl));
+			ShowMessage(MessageLevel.Result, OAuth.GetOAuthToken(userAPIKey, orgAPIKey, orgSecretKey, ttl));
 
 			return true;
 		}
@@ -121,11 +121,11 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			if (command.ToLower() == "suggest")
 			{
-				Log(TraceLevel.Info, String.Format("Suggest XML '{0}'", configFile));
+				ShowMessage(MessageLevel.Status, String.Format("Suggest XML '{0}'", configFile));
 			}
 			else
 			{
-				Log(TraceLevel.Info, String.Format("Running XML '{0}'", configFile));
+				ShowMessage(MessageLevel.Status, String.Format("Running XML '{0}'", configFile));
 				isWaitUpdate = clp.FindCommand(COMMAND_UPLOAD).Parser.FindOptionBoolean(PARAM_WAIT).Value;
 			}
 
@@ -138,7 +138,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			XmlNodeList actionNodes = doc.SelectNodes("/config/actions/action");
 			if (actionNodes == null || actionNodes.Count < 1)
 			{
-				Log(TraceLevel.Error, String.Format("ERROR: No actions defined in '{0}'", configFile));
+				ShowMessage(MessageLevel.Error, String.Format("ERROR: No actions defined in '{0}'", configFile));
 				return false;
 			}
 
@@ -148,7 +148,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			String defaultOrganizationAPIKey = GetInnerText(doc, "/config/organizationAPIKey");
 			String defaultOrganizationSecretKey = GetInnerText(doc, "/config/organizationSecretKey"); 
 
-			SpatialKeyDataManager skapi = new SpatialKeyDataManager(Log);
+			SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage);
 
 			foreach (XmlNode actionNode in actionNodes)
 			{
@@ -160,7 +160,7 @@ See http://support.spatialkey.com/dmapi for more information";
 
 					isRanAction = true;
 
-					Log(TraceLevel.Info, String.Format("Running Action: {0}", actionName));
+					ShowMessage(MessageLevel.Status, String.Format("Running Action: {0}", actionName));
 
 					// Action override authentication info
 					String organizationURL = GetInnerText(doc, "organizationURL", defaultOrganizationURL);
@@ -187,7 +187,7 @@ See http://support.spatialkey.com/dmapi for more information";
 						actionType = GetInnerText(actionNode, "actionType").ToLower();
 						if (!VALID_ACTIONS.Contains(actionType))
 						{
-							Log(TraceLevel.Error, String.Format("ERROR invalid actionType: {0}", actionType));
+							ShowMessage(MessageLevel.Error, String.Format("ERROR invalid actionType: {0}", actionType));
 							continue;
 						}
 						if (datasetId == null || datasetId.Length == 0)
@@ -201,14 +201,14 @@ See http://support.spatialkey.com/dmapi for more information";
 					if (uploadId == null)
 					{
 						// TODO  neeed better error
-						Log(TraceLevel.Error, "ERROR Upload Failed");
+						ShowMessage(MessageLevel.Error, "ERROR Upload Failed");
 						continue;
 					}
 					Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
 					if (SpatialKeyDataManager.IsUploadStatusError(uploadStausJson))
 					{
 						// TODO show uploadStatusJson error
-						Log(TraceLevel.Error, "ERROR uploading");
+						ShowMessage(MessageLevel.Error, "ERROR uploading");
 						continue;
 					}
 
@@ -236,11 +236,11 @@ See http://support.spatialkey.com/dmapi for more information";
 						break;
 					}
 
-					Log(TraceLevel.Info, String.Format("Finished Action: {0}", actionName));
+					ShowMessage(MessageLevel.Status, String.Format("Finished Action: {0}", actionName));
 				}
 				catch (Exception ex)
 				{
-					Log(TraceLevel.Error, String.Format("Error: {0}", ex.ToString()));
+					ShowMessage(MessageLevel.Error, String.Format("Error: {0}", ex.ToString()));
 					errorCode = ERROR_RUN_XML;
 				}
 			}
@@ -251,7 +251,7 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			if (!isRanAction)
 			{
-				Log(TraceLevel.Warning, String.Format("WARNING no upload actions run from {0}.  Check config file and specified actions '{1}'.", configFile, (actions.Count > 0 ? String.Join(", ", actions) : "ALL")));
+				ShowMessage(MessageLevel.Warning, String.Format("WARNING no upload actions run from {0}.  Check config file and specified actions '{1}'.", configFile, (actions.Count > 0 ? String.Join(", ", actions) : "ALL")));
 			}
 
 			return true;
@@ -266,7 +266,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				method = "ImportShapefile";
 			else
 			{
-				Log(TraceLevel.Error, String.Format("ERROR Unknown dataType '{1}", dataType));
+				ShowMessage(MessageLevel.Error, String.Format("ERROR Unknown dataType '{1}", dataType));
 				return;
 			}
 
@@ -281,7 +281,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				{
 					outfile.Write(xml);
 				}
-				Log(TraceLevel.Info, String.Format("Wrote Sample XML to '{0}'", pathXML));
+				ShowMessage(MessageLevel.Result, String.Format("Wrote Suggested XML to '{0}'", pathXML));
 			}
 			skapi.CancelUpload(uploadId);
 		}
@@ -310,7 +310,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				if (SpatialKeyDataManager.IsUploadStatusError(uploadStausJson))
 				{
 					// TODO show uploadStatusJson error
-					Log(TraceLevel.Error, "ERROR Running Append");
+					ShowMessage(MessageLevel.Error, "ERROR Running Append");
 				}
 			}
 		}
@@ -324,7 +324,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				if (SpatialKeyDataManager.IsUploadStatusError(uploadStausJson))
 				{
 					// TODO show uploadStatusJson error
-					Log(TraceLevel.Error, "ERROR Running Overwrite");
+					ShowMessage(MessageLevel.Error, "ERROR Running Overwrite");
 				}
 			}
 		}
@@ -338,14 +338,9 @@ See http://support.spatialkey.com/dmapi for more information";
 			return value != null ? value.InnerText : defaultValue;
 		}
 
-		private static readonly List<TraceLevel> TRACE_LEVEL_DEBUG = new List<TraceLevel> {
-			TraceLevel.Verbose,
-			TraceLevel.Warning
-		};
-
-		public static void Log(TraceLevel level, string message)
+		public static void ShowMessage(MessageLevel level, string message)
 		{
-			if (!optDebug.IsMatched && TRACE_LEVEL_DEBUG.Contains(level))
+			if (optTrace.Value < (int)level)
 				return;
 			Console.WriteLine(message);
 		}

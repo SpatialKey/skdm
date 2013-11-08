@@ -11,7 +11,6 @@ using System.IO;
 using System.Text;
 using System.Collections.Specialized;
 using System.Collections.Generic;
-using System.Diagnostics;
 
 // Using http://www.icsharpcode.net/opensource/sharpziplib/
 namespace skdm
@@ -29,13 +28,12 @@ namespace skdm
 		private const int HTTP_TIMEOUT_MED = 900000;
 		// 60 min * 60 sec * 1000 msec = 3600000 msec
 		private const int HTTP_TIMEOUT_LONG = 3600000;
-
 		private const string LOG_SEPARATOR = "----------------------------------------";
 
 		#region parameters
 
 		/// <summary>Logging delegate</summary>
-		public delegate void Logger(TraceLevel level, string message);
+		public delegate void Messager(MessageLevel level, string message);
 
 		/// <summary>
 		/// Name of the SpatialKey organization url"/>
@@ -60,7 +58,7 @@ namespace skdm
 		/// <summary>
 		/// Gets or sets the logger.  Used by  for <see cref="Log(message)"/>
 		/// </summary>
-		public Logger MyLogger { get; set; }
+		public Messager MyMessenger { get; set; }
 
 		#endregion
 
@@ -70,9 +68,9 @@ namespace skdm
 
 		#endregion
 
-		public SpatialKeyDataManager(Logger logger = null)
+		public SpatialKeyDataManager(Messager messenger = null)
 		{
-			this.MyLogger = logger;
+			this.MyMessenger = messenger;
 		}
 
 		public void Init(string organizationURL, string organizationAPIKey, string organizationSecretKey, string userAPIKey)
@@ -100,10 +98,10 @@ namespace skdm
 		/// <param name='message'>
 		/// Message to log
 		/// </param>
-		private void Log(TraceLevel level, string message)
+		private void ShowMessage(MessageLevel level, string message)
 		{
-			if (MyLogger != null)
-				MyLogger(level, message);
+			if (MyMessenger != null)
+				MyMessenger(level, message);
 		}
 
 		#region API calls
@@ -118,36 +116,28 @@ namespace skdm
 			if (IsLoginTokenValid())
 				return _accessToken;
 
-			try
+			ShowMessage(MessageLevel.Status, "START LOGIN: " + OrganizationURL);
+
+			_accessToken = null;
+
+
+			// add the query string
+			NameValueCollection bodyParam = new NameValueCollection();
+			bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
+			bodyParam["assertion"] = GetOAuthToken();
+
+			using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
 			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
-				Log(TraceLevel.Info, "START LOGIN: " + OrganizationURL);
-
-				_accessToken = null;
-
-
-				// add the query string
-				NameValueCollection bodyParam = new NameValueCollection();
-				bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
-				bodyParam["assertion"] = GetOAuthToken();
-
-				using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
+				if (response.StatusCode == HttpStatusCode.OK)
 				{
-					if (response.StatusCode == HttpStatusCode.OK)
-					{
-						Dictionary<string,object> json = HttpResponseToJSON(response);
-						_accessToken = json["access_token"] as String;
-						return _accessToken;
-					}
-					else
-					{
-						return null;
-					}
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					_accessToken = json["access_token"] as String;
+					return _accessToken;
 				}
-			}
-			finally
-			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
+				else
+				{
+					return null;
+				}
 			}
 		}
 
@@ -156,23 +146,15 @@ namespace skdm
 			if (_accessToken == null || _accessToken.Length == 0)
 				return false;
 
-			try
-			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
-				Log(TraceLevel.Info, "VALIDATE TOKEN: " + _accessToken);
+			ShowMessage(MessageLevel.Status, "VALIDATE TOKEN: " + _accessToken);
 
-				NameValueCollection query = new NameValueCollection();
-				query["token"] = _accessToken;
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
 
-				using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query))
-				{
-					HttpResponseToJSON(response);
-					return response.StatusCode == HttpStatusCode.OK;
-				}
-			}
-			finally
+			using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query))
 			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
+				HttpResponseToJSON(response);
+				return response.StatusCode == HttpStatusCode.OK;
 			}
 		}
 
@@ -181,23 +163,15 @@ namespace skdm
 			if (_accessToken == null || _accessToken.Length == 0)
 				return;
 
-			try
-			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
-				Log(TraceLevel.Info, "LOGOUT TOKEN: " + _accessToken);
+			ShowMessage(MessageLevel.Status, "LOGOUT TOKEN: " + _accessToken);
 
-				NameValueCollection query = new NameValueCollection();
-				query["token"] = _accessToken;
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
 
-				using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query, "DELETE"))
-				{
-					HttpResponseToJSON(response);
-					_accessToken = null;
-				}
-			}
-			finally
+			using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query, "DELETE"))
 			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
+				HttpResponseToJSON(response);
+				_accessToken = null;
 			}
 		}
 
@@ -206,31 +180,23 @@ namespace skdm
 			if (Login() == null)
 				return null;
 
-			try
-			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
-				Log(TraceLevel.Info, "UPLOAD: " + path);
+			ShowMessage(MessageLevel.Status, "UPLOAD: " + path);
 
-				// add the query string
-				NameValueCollection query = new NameValueCollection();
-				query["token"] = _accessToken;
-				using (HttpWebResponse response = HttpUploadFile(BuildUrl("upload.json"), path, "file", "application/octet-stream", query, null))
-				{
-					if (response.StatusCode == HttpStatusCode.OK)
-					{
-						Dictionary<string,object> json = HttpResponseToJSON(response);
-						string uploadId = (json["upload"] as Dictionary<string,object>)["uploadId"] as String;
-						return uploadId;
-					}
-					else
-					{
-						return null;
-					}
-				}
-			}
-			finally
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+			using (HttpWebResponse response = HttpUploadFile(BuildUrl("upload.json"), path, "file", "application/octet-stream", query, null))
 			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
+				if (response.StatusCode == HttpStatusCode.OK)
+				{
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					string uploadId = (json["upload"] as Dictionary<string,object>)["uploadId"] as String;
+					return uploadId;
+				}
+				else
+				{
+					return null;
+				}
 			}
 		}
 
@@ -239,49 +205,33 @@ namespace skdm
 			if (Login() == null)
 				return null;
 
-			try
-			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
-				Log(TraceLevel.Info, "UPLOAD STATUS: " + uploadId);
+			ShowMessage(MessageLevel.Status, "UPLOAD STATUS: " + uploadId);
 
-				NameValueCollection query = new NameValueCollection();
-				query["token"] = _accessToken;
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
 
-				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query))
-				{
-					return HttpResponseToJSON(response);
-				}
-			}
-			finally
+			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query))
 			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
+				return HttpResponseToJSON(response);
 			}
 		}
 
 		public Dictionary<string,object> WaitUploadComplete(string uploadId)
 		{
-			try
+			ShowMessage(MessageLevel.Status, "WAIT UPLOAD COMPLETE: " + uploadId);
+
+			DateTime start = DateTime.Now;
+			Dictionary<string,object> json = GetUploadStatus(uploadId);
+
+			while (IsUploadStatusWorking(json))
 			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
-				Log(TraceLevel.Info, "WAIT UPLOAD COMPLETE: "+uploadId);
+				if (DateTime.Now.Subtract(start).TotalMilliseconds > HTTP_TIMEOUT_MED)
+					throw new Exception("Timed out waiting for upload to complete");
 
-				DateTime start = DateTime.Now;
-				Dictionary<string,object> json = GetUploadStatus(uploadId);
-
-				while (IsUploadStatusWorking(json))
-				{
-					if (DateTime.Now.Subtract(start).TotalMilliseconds > HTTP_TIMEOUT_MED)
-						throw new Exception("Timed out waiting for upload to complete");
-
-					System.Threading.Thread.Sleep(10000);
-					json = GetUploadStatus(uploadId);
-				}
-				return json;
+				System.Threading.Thread.Sleep(10000);
+				json = GetUploadStatus(uploadId);
 			}
-			finally
-			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
-			}
+			return json;
 		}
 
 		private static readonly List<string> UPLOAD_IDLE_STATUSES = new List<string> {
@@ -326,12 +276,12 @@ namespace skdm
 				List<object> createdResources = json["createdResources"] as List<object>;
 				foreach (Dictionary<string, object> item in createdResources)
 				{
-					if (item.ContainsKey("id")) 
+					if (item.ContainsKey("id"))
 						return item["id"] as String;
 				}
 				return null;
 			}
-			catch(Exception)
+			catch (Exception)
 			{
 				return null;
 			}
@@ -342,33 +292,25 @@ namespace skdm
 			if (Login() == null)
 				return null;
 
-			try
+			ShowMessage(MessageLevel.Status, "GET SAMPLE IMPORT CONFIG: " + uploadId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}/construct/{1}.xml", uploadId, method)), query))
 			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
-				Log(TraceLevel.Info, "GET SAMPLE IMPORT CONFIG: " + uploadId);
-
-				NameValueCollection query = new NameValueCollection();
-				query["token"] = _accessToken;
-
-				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}/construct/{1}.xml", uploadId, method)), query))
+				StreamReader reader = new StreamReader(response.GetResponseStream());
+				string result = reader.ReadToEnd();
+				if (response.StatusCode == HttpStatusCode.OK)
 				{
-					StreamReader reader = new StreamReader(response.GetResponseStream());
-					string result = reader.ReadToEnd();
-					if (response.StatusCode == HttpStatusCode.OK)
-					{
-						return result;
-					}
-					else
-					{
-						Log(TraceLevel.Error, result);
-						return null;
-					}
-
+					return result;
 				}
-			}
-			finally
-			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
+				else
+				{
+					ShowMessage(MessageLevel.Error, result);
+					return null;
+				}
+
 			}
 		}
 
@@ -377,24 +319,16 @@ namespace skdm
 			if (Login() == null)
 				return false;
 
-			try
-			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
-				Log(TraceLevel.Info, String.Format("IMPORT {0} '{1}'", uploadId, pathConfig));
+			ShowMessage(MessageLevel.Status, String.Format("IMPORT {0} '{1}'", uploadId, pathConfig));
 
-				// add the query string
-				NameValueCollection query = new NameValueCollection();
-				query["token"] = _accessToken;
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
 
-				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, query))
-				{
-					HttpResponseToJSON(response);
-					return response.StatusCode == HttpStatusCode.OK;
-				}
-			}
-			finally
+			using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, query))
 			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
+				HttpResponseToJSON(response);
+				return response.StatusCode == HttpStatusCode.OK;
 			}
 		}
 
@@ -412,25 +346,17 @@ namespace skdm
 		{
 			if (Login() == null)
 				return false;
-			try
-			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
-				Log(TraceLevel.Info, String.Format("{0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig));
+			ShowMessage(MessageLevel.Status, String.Format("{0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig));
 
-				// add the query string
-				NameValueCollection query = new NameValueCollection();
-				query["token"] = _accessToken;
-				query["method"] = method;
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+			query["method"] = method;
 
-				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
-				{
-					HttpResponseToJSON(response);
-					return response.StatusCode == HttpStatusCode.OK;
-				}
-			}
-			finally
+			using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
 			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
+				HttpResponseToJSON(response);
+				return response.StatusCode == HttpStatusCode.OK;
 			}
 		}
 
@@ -443,22 +369,14 @@ namespace skdm
 			if (Login() == null)
 				return;
 
-			try
-			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
-				Log(TraceLevel.Info, "CANCEL UPLOAD: " + uploadId);
+			ShowMessage(MessageLevel.Status, "CANCEL UPLOAD: " + uploadId);
 
-				NameValueCollection query = new NameValueCollection();
-				query["token"] = _accessToken;
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
 
-				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
-				{
-					HttpResponseToJSON(response);
-				}
-			}
-			finally
+			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
 			{
-				Log(TraceLevel.Info, LOG_SEPARATOR);
+				HttpResponseToJSON(response);
 			}
 		}
 
@@ -493,7 +411,7 @@ namespace skdm
 			{
 				StreamReader reader = new StreamReader(response.GetResponseStream());
 				string result = reader.ReadToEnd();
-				Log(TraceLevel.Verbose, "RESULT: " + result);
+				ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
 				json = MiniJson.Deserialize(result) as Dictionary<string, object>;
 			}
 			return json;
@@ -502,7 +420,8 @@ namespace skdm
 		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
 		{
 			url = url + ToQueryString(queryParam);
-			Log(TraceLevel.Verbose, String.Format("HTTP GET: {0}", url));
+			ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+			ShowMessage(MessageLevel.Verbose, String.Format("HTTP GET: {0}", url));
 
 			HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
 			request.Method = method;
@@ -516,7 +435,7 @@ namespace skdm
 				var response = we.Response as HttpWebResponse;
 				if (response == null)
 					throw;
-				Log(TraceLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				ShowMessage(MessageLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
 				return response;
 			}
 
@@ -533,7 +452,8 @@ namespace skdm
 			// get the query string and trim off the starting "?"
 			string body = ToQueryString(bodyParam).Remove(0, 1);
 
-			Log(TraceLevel.Verbose, String.Format("HTTP POST URL: {0} PARAM: {1}", url, body));
+			ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+			ShowMessage(MessageLevel.Verbose, String.Format("HTTP POST URL: {0} PARAM: {1}", url, body));
 
 			// Encode the parameters as form data:
 			byte[] formData = UTF8Encoding.UTF8.GetBytes(body);
@@ -554,7 +474,7 @@ namespace skdm
 				var response = we.Response as HttpWebResponse;
 				if (response == null)
 					throw;
-				Log(TraceLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				ShowMessage(MessageLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
 				return response;
 			}
 		}
@@ -567,7 +487,8 @@ namespace skdm
 			request.Timeout = timeout;
 			request.ContentType = "application/xml";
 
-			Log(TraceLevel.Verbose, String.Format("HTTP POST URL: {0} XML: {1}", url, pathXML));
+			ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+			ShowMessage(MessageLevel.Verbose, String.Format("HTTP POST URL: {0} XML: {1}", url, pathXML));
 
 			// Send the xml:
 			using (Stream rs = request.GetRequestStream())
@@ -591,7 +512,7 @@ namespace skdm
 				var response = we.Response as HttpWebResponse;
 				if (response == null)
 					throw;
-				Log(TraceLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				ShowMessage(MessageLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
 				return response;
 			}
 		}
@@ -599,7 +520,8 @@ namespace skdm
 		private HttpWebResponse HttpUploadFile(string url, string file, string paramName, string contentType, NameValueCollection queryParam, NameValueCollection bodyParam, string method = "POST", int timeout = HTTP_TIMEOUT_LONG)
 		{
 			url = url + ToQueryString(queryParam);
-			Log(TraceLevel.Verbose, string.Format("HTTP UPLOAD {0} to {1}", file, url));
+			ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+			ShowMessage(MessageLevel.Verbose, string.Format("HTTP UPLOAD {0} to {1}", file, url));
 			string boundary = String.Format("-----------{0:N}", Guid.NewGuid());
 			byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
 
@@ -610,7 +532,7 @@ namespace skdm
 			request.Timeout = timeout;
 			//request.CookieContainer = new CookieContainer();
 
-			Log(TraceLevel.Verbose, "Content-Type: " + request.ContentType);
+			ShowMessage(MessageLevel.Verbose, "Content-Type: " + request.ContentType);
 			long bytes = 0;
 			using (Stream rs = request.GetRequestStream())
 			{
@@ -642,7 +564,7 @@ namespace skdm
 					bytes += WriteUploadBytes(rs, buffer, bytesRead, false);
 				}
 				fileStream.Close();
-				Log(TraceLevel.Verbose, "FILE INSERTED HERE");
+				ShowMessage(MessageLevel.Verbose, "FILE INSERTED HERE");
 
 				byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
 				bytes += WriteUploadBytes(rs, trailer);
@@ -657,7 +579,7 @@ namespace skdm
 				var response = we.Response as HttpWebResponse;
 				if (response == null)
 					throw;
-				Log(TraceLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
+				ShowMessage(MessageLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
 				return response;
 			}
 		}
@@ -669,7 +591,7 @@ namespace skdm
 
 			rs.Write(bytes, 0, length);
 			if (isLog)
-				Log(TraceLevel.Verbose, Encoding.UTF8.GetString(bytes));
+				ShowMessage(MessageLevel.Verbose, Encoding.UTF8.GetString(bytes));
 
 			return length;
 		}

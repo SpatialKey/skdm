@@ -13,6 +13,7 @@ namespace skdm
 		public const String DEFAULT_HELP_DESCRIPTION = "Show help message";
 
 		public delegate Boolean RunCommand(string command, Queue<string> args);
+		public delegate void Messager(MessageLevel level, string message);
 
 		private List<IOption> _options = new List<IOption>();
 		private List<Command> _commands = new List<Command>();
@@ -31,6 +32,8 @@ namespace skdm
 
 		public IOption[] Options { get { return _options.ToArray(); } }
 
+		public Messager MyMessenger { get; set; }
+
 		#endregion
 
 		#region Constructor
@@ -40,6 +43,14 @@ namespace skdm
 			Name = name;
 			Description = description;
 			CommandArguments = commandArguments;
+		}
+
+		private void ShowMessage(MessageLevel level, string message)
+		{
+			if (MyMessenger != null)
+				MyMessenger(level, message);
+			else
+				ShowMessage(MessageLevel.Help, message);
 		}
 
 		#endregion
@@ -56,6 +67,7 @@ namespace skdm
 				// TODO dangerous to add options after creation
 			}
 			parser.CommandArguments = commandArguments;
+			parser.MyMessenger = MyMessenger; // TODO should update all commands when setting MyMessenger
 
 			// make sure command options not in options
 			foreach (IOption option in parser.Options)
@@ -82,9 +94,9 @@ namespace skdm
 				string key = args.Dequeue();
 				Command cmd = FindCommand(key);
 				if (cmd != null && cmd.Parser != null)
-					Console.WriteLine(cmd.Parser.GetHelpMessage());
+					ShowMessage(MessageLevel.Help, cmd.Parser.GetHelpMessage());
 				else
-					Console.WriteLine(String.Format("No help available for command '{0}'", key));
+					ShowMessage(MessageLevel.Help, String.Format("No help available for command '{0}'", key));
 			}
 			else
 			{
@@ -441,9 +453,9 @@ namespace skdm
 					if (!command.Run(current, queue))
 					{
 						if (command.Parser != null)
-							Console.WriteLine(command.Parser.GetHelpMessage());
+							ShowMessage(MessageLevel.Help, command.Parser.GetHelpMessage());
 						else
-							Console.WriteLine(String.Format("Failed to run command {0} with arguments '{1}'", current, string.Join(" ", queue)));
+							ShowMessage(MessageLevel.Help, String.Format("Failed to run command {0} with arguments '{1}'", current, string.Join(" ", queue)));
 					}
 				}
 				else

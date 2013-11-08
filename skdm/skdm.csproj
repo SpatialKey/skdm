@@ -48,6 +48,7 @@
     <Compile Include="OAuth.cs" />
     <Compile Include="CommandLineParser.cs" />
     <Compile Include="MiniJson.cs" />
+    <Compile Include="MessageLevel.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
