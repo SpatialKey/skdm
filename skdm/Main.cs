@@ -16,6 +16,7 @@ namespace skdm
 	{
 		private static string HELP_DESCRIPTION = @"Command line tool to work with the data API or create oAuth tokens.
 See http://support.spatialkey.com/dmapi for more information";
+		private const string PARAM_CONFIG = "config";
 		private const string PARAM_VERSION = "version";
 		private const string PARAM_TRACE = "trace";
 		private const string PARAM_TTL = "ttl";
@@ -43,6 +44,11 @@ See http://support.spatialkey.com/dmapi for more information";
 		private static int errorCode = ERROR_SUCCESS;
 		private static CommandLineParser clp;
 		private static CommandLineParser.OptionValue<int> optTrace;
+		private static String configFile;
+		private static String defaultOrganizationURL;
+		private static String defaultUserAPIKey;
+		private static String defaultOrganizationAPIKey;
+		private static String defaultOrganizationSecretKey;
 
 		public static void Main(string[] args)
 		{
@@ -52,20 +58,21 @@ See http://support.spatialkey.com/dmapi for more information";
 				clp.MyMessenger = ShowMessage;
 				clp.AddOptionHelp();
 				clp.AddCommandHelp();
+				clp.AddOptionValue<string>(new string[] { PARAM_CONFIG, "c" }, "Application configuration XML file. Default (SpatialKeyDataManagerConfig.xml)", "CONFIG_XML", "SpatialKeyDataManagerConfig.xml");
 				clp.AddOptionBoolean(new string[] { PARAM_VERSION }, "Get application version");
 				optTrace = clp.AddOptionValue<int>(new string[] { PARAM_TRACE }, "Trace debug verbosity: 1 for status, 2 for debug (default 0)", "LEVEL", 0);
 
 				CommandLineParser.Command cmd;
 
-				cmd = clp.AddCommand(new string[] { COMMAND_OAUTH }, "Get oAuth token for given keys", "ORG_API_KEY ORG_SECRET_KEY USER_API_KEY", RunOAuthCommand);
+				cmd = clp.AddCommand(new string[] { COMMAND_OAUTH }, "Get oAuth token for keys in XML configuration or by passing in values", "[ORG_API_KEY ORG_SECRET_KEY USER_API_KEY]", RunOAuthCommand);
 				cmd.Parser.AddOptionValue<int>(new string[] { PARAM_TTL }, "oAuth token time to live in seconds (Default 60)", "TTL", 60);
 
-				cmd = clp.AddCommand(new string[] { COMMAND_UPLOAD }, "Upload dataset data", "COMMAND_FILE [[ACTION1] ... [ACTIONN]]", RunUploadCommand);
+				cmd = clp.AddCommand(new string[] { COMMAND_UPLOAD }, "Upload dataset data", "[[ACTION1] ... [ACTIONN]]", RunUploadCommand);
 				cmd.Parser.AddOptionBoolean(new string[] { PARAM_WAIT }, "Wait for overwrite and append actions to complete.");
 
-				clp.AddCommand(new string[] { COMMAND_SUGGEST }, "Get suggested config for data", "COMMAND_FILE [[ACTION1] ... [ACTIONN]]", RunUploadCommand);
-				clp.AddCommand(new string[] { COMMAND_LIST }, "List available datasets", "COMMAND_FILE", RunListCommand);
-				clp.AddCommand(new string[] { COMMAND_DELETE }, "Delete datasets by id", "COMMAND_FILE ID [[ID] ... [ID]]", RunDeleteCommand);
+				clp.AddCommand(new string[] { COMMAND_SUGGEST }, "Get suggested config for data", "[[ACTION1] ... [ACTIONN]]", RunUploadCommand);
+				clp.AddCommand(new string[] { COMMAND_LIST }, "List available datasets", "", RunListCommand);
+				clp.AddCommand(new string[] { COMMAND_DELETE }, "Delete datasets by id", "ID [[ID] ... [ID]]", RunDeleteCommand);
 
 				clp.Parse(args);
 			}
@@ -97,17 +104,62 @@ See http://support.spatialkey.com/dmapi for more information";
 			Environment.Exit(errorCode);
 		}
 
+		private static XmlDocument LoadConfig()
+		{
+			configFile = clp.FindOptionValue<string>(PARAM_CONFIG).Value;
+			try
+			{
+				if (configFile == null || configFile.Length == 0 || !File.Exists(configFile))
+				{
+					ShowMessage(MessageLevel.Error, String.Format("ERROR XML configuration file '{0}' does not exist", configFile));
+					return null;
+				}
+
+				XmlDocument doc = new XmlDocument();
+				doc.Load(configFile);
+
+				defaultOrganizationURL = GetInnerText(doc, "/config/organizationURL");
+				defaultUserAPIKey = GetInnerText(doc, "/config/userAPIKey");
+				defaultOrganizationAPIKey = GetInnerText(doc, "/config/organizationAPIKey");
+				defaultOrganizationSecretKey = GetInnerText(doc, "/config/organizationSecretKey"); 
+
+				return doc;
+			}
+			catch (Exception ex)
+			{
+				ShowMessage(MessageLevel.Error, String.Format("ERROR loading XML configuration file '{0}': {1}", configFile, ex.Message));
+				return null;
+			}
+		}
+
 		private static Boolean RunOAuthCommand(string command, Queue<string> args)
 		{
-			if (args.Count < 3)
+			XmlDocument doc = LoadConfig();
+			if (doc == null)
 				return false;
 
-			string orgAPIKey = args.Dequeue();
-			string orgSecretKey = args.Dequeue();
-			string userAPIKey = args.Dequeue();
+			string orgAPIKey = defaultOrganizationAPIKey;
+			string orgSecretKey = defaultOrganizationSecretKey;
+			string userAPIKey = defaultUserAPIKey;
 			int ttl = clp.FindCommand(COMMAND_OAUTH).Parser.FindOptionValue<int>(PARAM_TTL).Value;
 
-			//Log(String.Format("oAuth for{0}  Org API Key:    {1}{0}  Org Secret Key: {2}{0}  User API Key:   {3}{0}-----", Environment.NewLine, orgAPIKey, orgSecretKey, userAPIKey));
+			if (args.Count >= 3)
+			{
+				orgAPIKey = args.Dequeue();
+				orgSecretKey = args.Dequeue();
+				userAPIKey = args.Dequeue();
+			}
+
+			StringBuilder text = new StringBuilder("oAuth Token For");
+			text.AppendFormat("{0,24}:{1}", "Organization API Key", orgAPIKey);
+			text.AppendLine();
+			text.AppendFormat("{0,24}:{1}", "Organization Secret Key", orgSecretKey);
+			text.AppendLine();
+			text.AppendFormat("{0,24}:{1}", "User API Key", userAPIKey);
+			text.AppendLine();
+			text.AppendLine("-----");
+
+			ShowMessage(MessageLevel.Status, text.ToString());
 			ShowMessage(MessageLevel.Result, OAuth.GetOAuthToken(userAPIKey, orgAPIKey, orgSecretKey, ttl));
 
 			return true;
@@ -115,22 +167,18 @@ See http://support.spatialkey.com/dmapi for more information";
 
 		private static Boolean RunListCommand(string command, Queue<string> args)
 		{
-			if (args.Count < 1)
+			XmlDocument doc = LoadConfig();
+			if (doc == null)
 				return false;
 
-			string configFile = args.Dequeue();
-			XmlDocument doc = new XmlDocument();
-			doc.Load(configFile);
-
-			// Default authentication info
-			String organizationURL = GetInnerText(doc, "/config/organizationURL");
-			String userAPIKey = GetInnerText(doc, "/config/userAPIKey");
-			String organizationAPIKey = GetInnerText(doc, "/config/organizationAPIKey");
-			String organizationSecretKey = GetInnerText(doc, "/config/organizationSecretKey"); 
-
 			SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage);
-			skapi.Init(organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey);
+			skapi.Init(defaultOrganizationURL, defaultOrganizationAPIKey, defaultOrganizationSecretKey, defaultUserAPIKey);
 			List<Dictionary<string, string>> list = skapi.ListDatasets();
+			if (list == null || list.Count < 1)
+			{
+				ShowMessage(MessageLevel.Result, "Dataset List Empty");
+				return true;
+			}
 			StringBuilder text = new StringBuilder();
 			foreach (Dictionary<string, string> item in list)
 			{
@@ -151,24 +199,15 @@ See http://support.spatialkey.com/dmapi for more information";
 
 		private static Boolean RunDeleteCommand(string command, Queue<string> args)
 		{
-			if (args.Count < 2)
+			XmlDocument doc = LoadConfig();
+			if (doc == null || args.Count < 1)
 				return false;
 
-			string configFile = args.Dequeue();
 			List<string> ids = new List<string>(args);
 			args.Clear();
 
-			XmlDocument doc = new XmlDocument();
-			doc.Load(configFile);
-
-			// Default authentication info
-			String organizationURL = GetInnerText(doc, "/config/organizationURL");
-			String userAPIKey = GetInnerText(doc, "/config/userAPIKey");
-			String organizationAPIKey = GetInnerText(doc, "/config/organizationAPIKey");
-			String organizationSecretKey = GetInnerText(doc, "/config/organizationSecretKey"); 
-
 			SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage);
-			skapi.Init(organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey);
+			skapi.Init(defaultOrganizationURL, defaultOrganizationAPIKey, defaultOrganizationSecretKey, defaultUserAPIKey);
 
 			foreach (string id in ids)
 			{
@@ -182,10 +221,10 @@ See http://support.spatialkey.com/dmapi for more information";
 
 		private static Boolean RunUploadCommand(string command, Queue<string> args)
 		{
-			if (args.Count < 1)
+			XmlDocument doc = LoadConfig();
+			if (doc == null)
 				return false;
 
-			string configFile = args.Dequeue();
 			List<string> actions = new List<string>(args);
 			args.Clear();
 
@@ -203,9 +242,6 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			bool isRanAction = false;
 			bool isUpdateDoc = false;
-
-			XmlDocument doc = new XmlDocument();
-			doc.Load(configFile);
 
 			XmlNodeList actionNodes = doc.SelectNodes("/config/actions/action");
 			if (actionNodes == null || actionNodes.Count < 1)

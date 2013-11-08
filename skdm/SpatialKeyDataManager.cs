@@ -130,9 +130,16 @@ namespace skdm
 			{
 				if (response.StatusCode == HttpStatusCode.OK)
 				{
-					Dictionary<string,object> json = HttpResponseToJSON(response);
-					_accessToken = json["access_token"] as String;
-					return _accessToken;
+					try
+					{
+						Dictionary<string,object> json = HttpResponseToJSON(response);
+						_accessToken = json["access_token"] as String;
+						return _accessToken;
+					}
+					catch (Exception)
+					{
+						return null;
+					}
 				}
 				else
 				{
@@ -154,8 +161,8 @@ namespace skdm
 
 			using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query))
 			{
-				HttpResponseToJSON(response);
-				return response.StatusCode == HttpStatusCode.OK;
+				Dictionary<string,object> json = HttpResponseToJSON(response);
+				return json != null && response.StatusCode == HttpStatusCode.OK;
 			}
 		}
 
@@ -190,9 +197,16 @@ namespace skdm
 			{
 				if (response.StatusCode == HttpStatusCode.OK)
 				{
-					Dictionary<string,object> json = HttpResponseToJSON(response);
-					string uploadId = (json["upload"] as Dictionary<string,object>)["uploadId"] as String;
-					return uploadId;
+					try
+					{
+						Dictionary<string,object> json = HttpResponseToJSON(response);
+						string uploadId = (json["upload"] as Dictionary<string,object>)["uploadId"] as String;
+						return uploadId;
+					}
+					catch (Exception ex)
+					{
+						return null;
+					}
 				}
 				else
 				{
@@ -404,26 +418,34 @@ namespace skdm
 			{
 				if (response.StatusCode == HttpStatusCode.OK)
 				{
-					Dictionary<string, object> json = HttpResponseToJSON(response);
-					List<object> items = json["value"] as List<object>;
-					List<Dictionary<string, string>> retList = new List<Dictionary<string, string>>();
-					foreach (Dictionary<string, object> item in items)
+					try
 					{
-						Dictionary<string, string> cur = new Dictionary<string, string>();
-						cur["ID"] = item["id"].ToString();
-						cur["Label"] = item["label"].ToString();
-						//cur["Description"] = item["description"].ToString();
-						cur["Created"] = FromUnixTime(Convert.ToInt64(item["created"].ToString())).ToString();
-						cur["Modified"] = FromUnixTime(Convert.ToInt64(item["modified"].ToString())).ToString();
-						cur["Geometry Type"] = item["geometryType"].ToString();
-						cur["Total Rows"] = item["totalRows"].ToString();
-						retList.Add(cur);
+						Dictionary<string, object> json = HttpResponseToJSON(response);
+						List<object> items = json["value"] as List<object>;
+						List<Dictionary<string, string>> retList = new List<Dictionary<string, string>>();
+						foreach (Dictionary<string, object> item in items)
+						{
+							Dictionary<string, string> cur = new Dictionary<string, string>();
+							cur["ID"] = item["id"].ToString();
+							cur["Label"] = item["label"].ToString();
+							//cur["Description"] = item["description"].ToString();
+							cur["Created"] = FromUnixTime(Convert.ToInt64(item["created"].ToString())).ToString();
+							cur["Modified"] = FromUnixTime(Convert.ToInt64(item["modified"].ToString())).ToString();
+							cur["Geometry Type"] = item["geometryType"].ToString();
+							cur["Total Rows"] = item["totalRows"].ToString();
+							retList.Add(cur);
+						}
+						return retList;
 					}
-					return retList;
+					catch (Exception ex)
+					{
+						ShowMessage(MessageLevel.Error, String.Format("Error Processing Dataset List {0}", ex.Message));
+						return null;
+					}
 				}
 				else
 				{
-						ShowMessage(MessageLevel.Error, GetResponseString(response));
+					ShowMessage(MessageLevel.Error, GetResponseString(response));
 					return null;
 				}
 			}
@@ -483,6 +505,8 @@ namespace skdm
 				result = "{\"value\": " + result + "}";
 			ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
 			Dictionary<string, object> json = MiniJson.Deserialize(result) as Dictionary<string, object>;
+			if (json == null)
+				ShowMessage(MessageLevel.Error, result);
 			return json;
 		}
 
