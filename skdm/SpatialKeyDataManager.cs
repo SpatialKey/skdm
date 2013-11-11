@@ -21,6 +21,9 @@ namespace skdm
 	/// <see cref="http://support.spatialkey.com/dmapi"/>
 	public class SpatialKeyDataManager
 	{
+
+		#region constants
+
 		public const string API_VERSION = "v2";
 		// 1 min * 60 sec * 1000 msec = 60000 msec
 		private const int HTTP_TIMEOUT_SHORT = 60000;
@@ -29,6 +32,9 @@ namespace skdm
 		// 60 min * 60 sec * 1000 msec = 3600000 msec
 		private const int HTTP_TIMEOUT_LONG = 3600000;
 		private const string LOG_SEPARATOR = "----------------------------------------";
+		private const int TOKEN_TIMEOUT = 1800;
+
+		#endregion
 
 		#region parameters
 
@@ -73,6 +79,10 @@ namespace skdm
 			this.MyMessenger = messenger;
 		}
 
+		/// <summary>
+		/// Init the manager.  If the organizationURL, organizationAPIKey, organizationSecretKey or userAPIKey
+		/// have changed the application will logout.
+		/// </summary>
 		public void Init(string organizationURL, string organizationAPIKey, string organizationSecretKey, string userAPIKey)
 		{
 			// if the setup is the same, bail
@@ -93,11 +103,8 @@ namespace skdm
 		}
 
 		/// <summary>
-		/// Log the specified message if the <see cref="logger"/> is set
+		/// Log the specified message if the <see cref="MyMessenger"/> is set
 		/// </summary>
-		/// <param name='message'>
-		/// Message to log
-		/// </param>
 		private void ShowMessage(MessageLevel level, string message)
 		{
 			if (MyMessenger != null)
@@ -106,53 +113,44 @@ namespace skdm
 
 		#region API calls
 
-		public string GetOAuthToken()
-		{
-			return OAuth.GetOAuthToken(UserAPIKey, OrganizationAPIKey, OrganizationSecretKey, 1800);
-		}
-
+		/// <summary>
+		/// If don't have a valid login token, login to the API and get one.
+		/// </summary>
 		public string Login()
 		{
 			if (IsLoginTokenValid())
 				return _accessToken;
 
 			ShowMessage(MessageLevel.Status, "START LOGIN: " + OrganizationURL);
-
 			_accessToken = null;
 
-
-			string oauth = GetOAuthToken();
+			string oauth = OAuth.GetOAuthToken(UserAPIKey, OrganizationAPIKey, OrganizationSecretKey, TOKEN_TIMEOUT);
 			// add the query string
 			NameValueCollection bodyParam = new NameValueCollection();
 			bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
 			bodyParam["assertion"] = oauth;
 
-			using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
+			try
 			{
-				if (response.StatusCode == HttpStatusCode.OK)
+				using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
 				{
-					string result = GetResponseString(response);
-					try
-					{
-
-						Dictionary<string,object> json = MiniJson.Deserialize(result) as Dictionary<string,object>;
-						_accessToken = json["access_token"] as String;
-						return _accessToken;
-					}
-					catch (Exception)
-					{
-						ShowMessage(MessageLevel.Error, String.Format("Unable to login to '{0}' using oAuth token '{1}'", OrganizationURL, oauth));
-						return null;
-					}
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					_accessToken = JsonGetPath<string>(json, "access_token");
+					if (_accessToken == null)
+						throw new Exception(String.Format("JSON does not contian 'access_token': {0}", MiniJson.Serialize(json)));
+					return _accessToken;
 				}
-				else
-				{
-					ShowMessage(MessageLevel.Error, GetResponseString(response));
-					return null;
-				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Unable to login to '{0}' using oAuth token '{1}'", OrganizationURL, oauth), ex);
+				return null;
 			}
 		}
 
+		/// <summary>
+		/// Return true if the _accessToken is valid
+		/// </summary>
 		public bool IsLoginTokenValid()
 		{
 			if (_accessToken == null || _accessToken.Length == 0)
@@ -163,13 +161,24 @@ namespace skdm
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
 
-			using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query))
+			try
 			{
-				Dictionary<string,object> json = HttpResponseToJSON(response);
-				return json != null && response.StatusCode == HttpStatusCode.OK;
+				using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query))
+				{
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					return json != null; // TODO check what valid json should contain as this throws an error for invalid response or json already
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to validate token '{0}'", _accessToken), ex);
+				return false;
 			}
 		}
 
+		/// <summary>
+		/// Logout and clear the _accessToken
+		/// </summary>
 		public void Logout()
 		{
 			if (_accessToken == null || _accessToken.Length == 0)
@@ -180,13 +189,26 @@ namespace skdm
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
 
-			using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query, "DELETE"))
+			try
 			{
-				HttpResponseToJSON(response);
+				using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query, "DELETE"))
+				{
+					HttpResponseToJSON(response);
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to logout with token '{0}'", _accessToken), ex);
+			}
+			finally
+			{
 				_accessToken = null;
 			}
 		}
 
+		/// <summary>
+		/// Upload the given file and return the uploadId
+		/// </summary>
 		public string Upload(string path)
 		{
 			if (Login() == null)
@@ -197,29 +219,28 @@ namespace skdm
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
-			using (HttpWebResponse response = HttpUploadFile(BuildUrl("upload.json"), path, "file", "application/octet-stream", query, null))
+
+			try
 			{
-				if (response.StatusCode == HttpStatusCode.OK)
+				using (HttpWebResponse response = HttpUploadFile(BuildUrl("upload.json"), path, "file", "application/octet-stream", query, null))
 				{
-					try
-					{
-						Dictionary<string,object> json = HttpResponseToJSON(response);
-						string uploadId = (json["upload"] as Dictionary<string,object>)["uploadId"] as String;
-						return uploadId;
-					}
-					catch (Exception ex)
-					{
-						return null;
-					}
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					string uploadId = JsonGetPath<string>(json, "upload/uploadId");
+					if (uploadId == null)
+						throw new Exception(String.Format("JSON does not contian '{0}': {1}", "upload/uploadId", MiniJson.Serialize(json)));
+					return uploadId;
 				}
-				else
-				{
-					ShowMessage(MessageLevel.Error, GetResponseString(response));
-					return null;
-				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to upload '{0}'", path), ex);
+				return null;
 			}
 		}
 
+		/// <summary>
+		/// Return the json status for the given uploadId
+		/// </summary>
 		public Dictionary<string,object> GetUploadStatus(string uploadId)
 		{
 			if (Login() == null)
@@ -230,12 +251,50 @@ namespace skdm
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
 
-			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query))
+			try
 			{
-				return HttpResponseToJSON(response);
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query))
+				{
+					return HttpResponseToJSON(response);
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to get upload status for '{0}'", uploadId), ex);
+				return null;
 			}
 		}
 
+		/// <summary>
+		/// Get information about a dataset
+		/// </summary>
+		public Dictionary<string,object> GetDatasetInfo(string datasetId)
+		{
+			if (Login() == null || datasetId == null || datasetId.Length < 1)
+				return null;
+
+			ShowMessage(MessageLevel.Status, "Dataset Info: " + datasetId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("dataset/{0}.json", datasetId)), query))
+				{
+					return HttpResponseToJSON(response);
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to get dataset information for '{0}'", datasetId), ex);
+				return null;
+			}
+		}
+
+		/// <summary>
+		/// Waits the upload complete and returns the final status json
+		/// </summary>
 		public Dictionary<string,object> WaitUploadComplete(string uploadId)
 		{
 			ShowMessage(MessageLevel.Status, "WAIT UPLOAD COMPLETE: " + uploadId);
@@ -246,7 +305,7 @@ namespace skdm
 			while (IsUploadStatusWorking(json))
 			{
 				if (DateTime.Now.Subtract(start).TotalMilliseconds > HTTP_TIMEOUT_MED)
-					throw new Exception("Timed out waiting for upload to complete");
+					throw new Exception(String.Format("Timed out waiting for upload '{0}' to complete", uploadId));
 
 				System.Threading.Thread.Sleep(10000);
 				json = GetUploadStatus(uploadId);
@@ -254,59 +313,9 @@ namespace skdm
 			return json;
 		}
 
-		private static readonly List<string> UPLOAD_IDLE_STATUSES = new List<string> {
-			"UPLOAD_IDLE",
-			"UPLOAD_CANCELED",
-			"IMPORT_COMPLETE_CLEAN",
-			"IMPORT_COMPLETE_WARNING"
-		};
-
-		private bool IsUploadStatusWorking(Dictionary<string,object> json)
-		{
-			string status = null;
-			try
-			{
-				status = (json == null ? null : json["status"] as string);
-			}
-			catch (Exception)
-			{
-				status = null;
-			}
-			return !(status == null || status.IndexOf("ERROR_") == 0 || UPLOAD_IDLE_STATUSES.IndexOf(status) >= 0);
-		}
-
-		public static bool IsUploadStatusError(Dictionary<string,object> json)
-		{
-			string status = null;
-			try
-			{
-				status = (json == null ? null : json["status"] as string);
-			}
-			catch (Exception)
-			{
-				status = null;
-			}
-			return (status == null || status.IndexOf("ERROR_") == 0);
-		}
-
-		public string GetDatasetID(Dictionary<string,object> json)
-		{
-			try
-			{
-				List<object> createdResources = json["createdResources"] as List<object>;
-				foreach (Dictionary<string, object> item in createdResources)
-				{
-					if (item.ContainsKey("id"))
-						return item["id"] as String;
-				}
-				return null;
-			}
-			catch (Exception)
-			{
-				return null;
-			}
-		}
-
+		/// <summary>
+		/// Gets the sample import configuration.
+		/// </summary>
 		public string GetSampleImportConfiguration(string uploadId, string method)
 		{
 			if (Login() == null)
@@ -317,55 +326,68 @@ namespace skdm
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
 
-			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}/construct/{1}.xml", uploadId, method)), query))
+			try
 			{
-				string result = GetResponseString(response);
-				if (response.StatusCode == HttpStatusCode.OK)
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}/construct/{1}.xml", uploadId, method)), query))
 				{
-					return result;
+					return GetResponseString(response);
 				}
-				else
-				{
-					ShowMessage(MessageLevel.Error, result);
-					return null;
-				}
-
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to get sample import config '{0}'", uploadId), ex);
+				return null;
 			}
 		}
 
+		/// <summary>
+		/// Import the uploadId as a new dataset with the given config
+		/// </summary>
 		public bool Import(string uploadId, string pathConfig)
 		{
 			if (Login() == null)
 				return false;
 
-			ShowMessage(MessageLevel.Status, String.Format("IMPORT {0} '{1}'", uploadId, pathConfig));
+			ShowMessage(MessageLevel.Status, String.Format("IMPORT {0} with config'{1}'", uploadId, pathConfig));
 
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
 
-			using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, query))
+			try
 			{
-				if (response.StatusCode == HttpStatusCode.OK)
-					return true;
-				else
+				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, query))
 				{
-					ShowMessage(MessageLevel.Error, GetResponseString(response));
-					return false;
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					return true; 
 				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to import {0} with config '{1}'", uploadId, pathConfig), ex);
+				return false;
 			}
 		}
 
+		/// <summary>
+		/// Append the uploadId to the datasetId
+		/// </summary>
 		public bool Append(string uploadId, string datasetId, string pathConfig)
 		{
 			return AppendOrOverwrite(uploadId, datasetId, pathConfig, "Append");
 		}
 
+		/// <summary>
+		/// Overwrite the datasetId with datasetId
+		/// </summary>
 		public bool Overwrite(string uploadId, string datasetId, string pathConfig)
 		{
 			return AppendOrOverwrite(uploadId, datasetId, pathConfig, "Overwrite");
 		}
 
+		/// <summary>
+		/// Append or overwrite datasetId with uploadId
+		/// </summary>
 		private bool AppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
 		{
 			if (Login() == null)
@@ -377,18 +399,24 @@ namespace skdm
 			query["token"] = _accessToken;
 			query["method"] = method;
 
-			using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
+			try
 			{
-				if (response.StatusCode == HttpStatusCode.OK)
-					return true;
-				else
+				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
 				{
-					ShowMessage(MessageLevel.Error, GetResponseString(response));
-					return false;
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					return true;
 				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed {0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig), ex);
+				return false;
 			}
 		}
 
+		/// <summary>
+		/// Cancel the given uploadId
+		/// </summary>
 		public void CancelUpload(string uploadId)
 		{
 			if (Login() == null)
@@ -399,15 +427,22 @@ namespace skdm
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
 
-			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
+			try
 			{
-				if (response.StatusCode != HttpStatusCode.OK)
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
 				{
-					ShowMessage(MessageLevel.Error, GetResponseString(response));
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
 				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to cancel upload {0}" + uploadId), ex);
 			}
 		}
 
+		/// <summary>
+		/// Get a list of all the datasets the authenticated user has access to
+		/// </summary>
 		public List<Dictionary<string, string>> ListDatasets()
 		{
 			if (Login() == null)
@@ -418,43 +453,51 @@ namespace skdm
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
 
-			using (HttpWebResponse response = HttpGet(BuildUrl("dataset.json"), query))
+			try
 			{
-				if (response.StatusCode == HttpStatusCode.OK)
+				using (HttpWebResponse response = HttpGet(BuildUrl("dataset.json"), query))
 				{
-					try
+					Dictionary<string, object> json = HttpResponseToJSON(response);
+					List<object> items = JsonGetPath<List<object>>(json, "value");
+					if (items == null)
+						throw new Exception(String.Format("Dataset List JSON did not contain value array: {0}", json == null ? "null" : MiniJson.Serialize(json)));
+
+					List<Dictionary<string, string>> retList = new List<Dictionary<string, string>>();
+					foreach (Dictionary<string, object> item in items)
 					{
-						Dictionary<string, object> json = HttpResponseToJSON(response);
-						List<object> items = json["value"] as List<object>;
-						List<Dictionary<string, string>> retList = new List<Dictionary<string, string>>();
-						foreach (Dictionary<string, object> item in items)
+						if (!item.ContainsKey("id") || 
+						    !item.ContainsKey("label") || 
+						    !item.ContainsKey("created") || 
+						    !item.ContainsKey("modified") || 
+						    !item.ContainsKey("geometryType") || 
+						    !item.ContainsKey("totalRows"))
 						{
-							Dictionary<string, string> cur = new Dictionary<string, string>();
-							cur["ID"] = item["id"].ToString();
-							cur["Label"] = item["label"].ToString();
-							//cur["Description"] = item["description"].ToString();
-							cur["Created"] = FromUnixTime(Convert.ToInt64(item["created"].ToString())).ToString();
-							cur["Modified"] = FromUnixTime(Convert.ToInt64(item["modified"].ToString())).ToString();
-							cur["Geometry Type"] = item["geometryType"].ToString();
-							cur["Total Rows"] = item["totalRows"].ToString();
-							retList.Add(cur);
+							ShowJSON(MessageLevel.Error, "List dataset found item with incorrect data", json);
+							continue;
 						}
-						return retList;
+						Dictionary<string, string> cur = new Dictionary<string, string>();
+						cur["ID"] = item["id"].ToString();
+						cur["Label"] = item["label"].ToString();
+						//cur["Description"] = item["description"].ToString();
+						cur["Created"] = FromUnixTime(Convert.ToInt64(item["created"].ToString())).ToString();
+						cur["Modified"] = FromUnixTime(Convert.ToInt64(item["modified"].ToString())).ToString();
+						cur["Geometry Type"] = item["geometryType"].ToString();
+						cur["Total Rows"] = item["totalRows"].ToString();
+						retList.Add(cur);
 					}
-					catch (Exception ex)
-					{
-						ShowMessage(MessageLevel.Error, String.Format("Error Processing Dataset List {0}", ex.Message));
-						return null;
-					}
+					return retList;
 				}
-				else
-				{
-					ShowMessage(MessageLevel.Error, GetResponseString(response));
-					return null;
-				}
+			}
+			catch (Exception ex)
+			{
+				ShowException("Error Processing Dataset List", ex);
+				return null;
 			}
 		}
 
+		/// <summary>
+		/// Deletes the datasetId
+		/// </summary>
 		public void DeleteDataset(string datasetId)
 		{
 			if (Login() == null)
@@ -465,16 +508,123 @@ namespace skdm
 			NameValueCollection query = new NameValueCollection();
 			query["token"] = _accessToken;
 
-			using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("dataset/{0}.json", datasetId)), query, "DELETE"))
+			try
 			{
-				if (response.StatusCode != HttpStatusCode.OK)
-					ShowMessage(MessageLevel.Error, GetResponseString(response));
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("dataset/{0}.json", datasetId)), query, "DELETE"))
+				{
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException("Failed to delete dataset " + datasetId, ex);
+				return;
 			}
 		}
 
 		#endregion
 
-		#region helpers
+		#region JSON helpers
+
+		/// <summary>
+		/// Return true if the upload json status is currently in progress.  False if done or error.
+		/// </summary>
+		public bool IsUploadStatusWorking(Dictionary<string,object> json)
+		{
+			// TODO should this throw error?
+			string status = JsonGetPath<string>(json, "status");
+			if (status == null)
+				ShowMessage(MessageLevel.Error, String.Format("Upload status JSON not valid: {0}", json == null ? "null" : MiniJson.Serialize(json)));
+			return !(status == null || status.IndexOf("ERROR_") == 0 || UPLOAD_IDLE_STATUSES.IndexOf(status) >= 0);
+		}
+
+		private static readonly List<string> UPLOAD_IDLE_STATUSES = new List<string> {
+			"UPLOAD_IDLE",
+			"UPLOAD_CANCELED",
+			"IMPORT_COMPLETE_CLEAN",
+			"IMPORT_COMPLETE_WARNING"
+		};
+
+		/// <summary>
+		/// Return true if the upload json status is an error
+		/// </summary>
+		public bool IsUploadStatusError(Dictionary<string,object> json)
+		{
+			// TODO should this throw error?
+			string status = JsonGetPath<string>(json, "status");
+			if (status == null)
+				ShowMessage(MessageLevel.Error, String.Format("Upload status JSON not valid: {0}", json == null ? "null" : MiniJson.Serialize(json)));
+			return (status == null || status.IndexOf("ERROR_") == 0);
+		}
+
+		/// <summary>
+		/// Finds the datasetId for the first createdResources that has an id in the given JSON
+		/// </summary>
+		public string GetDatasetID(Dictionary<string,object> json)
+		{
+			// TODO should this throw error?
+			List<object> createdResources = JsonGetPath<List<object>>(json, "createdResources");
+			if (createdResources == null)
+			{
+				ShowMessage(MessageLevel.Error, String.Format("Upload status JSON did not contain 'createdResources': {0}", json == null ? "null" : MiniJson.Serialize(json)));
+				return null;
+			}
+			foreach (Dictionary<string, object> item in createdResources)
+			{
+				string id = JsonGetPath<string>(item, "id");
+				if (id != null)
+					return id;
+			}
+			return null;
+		}
+
+		/// <summary>
+		/// Get json value at given path.  Null if it doesn't exist or can't be converted to type
+		/// </summary>
+		private static T JsonGetPath<T>(Dictionary<string,object> json, string path)
+		{
+			return JsonGetPath<T>(json, path != null ? path.Split('/') : null);
+		}
+
+		private static T JsonGetPath<T>(Dictionary<string,object> json, string[] path)
+		{
+			if (json == null || path == null || path.Length < 1)
+				return default(T);
+
+			Queue<string> queue = new Queue<string>(path);
+			string key = queue.Dequeue();
+			if (!json.ContainsKey(key))
+				return default(T);
+
+			if (queue.Count < 1)
+				return (T)Convert.ChangeType(json[key], typeof(T));
+			else
+				return JsonGetPath<T>(json[key] as Dictionary<string,object>, queue.ToArray());
+		}
+
+		/// <summary>
+		/// Get json value at given path.  Null if it doesn't exist or can't be converted to type
+		/// </summary>
+		private void ShowJSON(MessageLevel level, string message, Dictionary<string,object> json)
+		{
+			ShowMessage(level, String.Format("{0}: {1}", message, json != null ? MiniJson.Serialize(json) : "null"));
+		}
+
+		/// <summary>
+		/// Convert http response to json or throw error if fail
+		/// </summary>
+		private Dictionary<string, object> HttpResponseToJSON(HttpWebResponse response)
+		{
+			string result = GetResponseString(response);
+			Dictionary<string, object> json = MiniJson.Deserialize(result) as Dictionary<string, object>;
+			if (json == null)
+				throw new Exception(String.Format("Unable to parse JSON: {0}", result));
+			return json;
+		}
+
+		#endregion
+
+		#region HTTP/Web helpers
 
 		private static DateTime FromUnixTime(long unixTime)
 		{
@@ -502,29 +652,31 @@ namespace skdm
 			return "?" + string.Join("&", list);
 		}
 
-		private Dictionary<string, object> HttpResponseToJSON(HttpWebResponse response)
-		{
-			string result = GetResponseString(response);
-			ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
-			Dictionary<string, object> json = MiniJson.Deserialize(result) as Dictionary<string, object>;
-			if (json == null)
-				ShowMessage(MessageLevel.Error, result);
-			return json;
-		}
-
 		private string GetResponseString(HttpWebResponse response)
 		{
 			using (response)
 			{
 				StreamReader reader = new StreamReader(response.GetResponseStream());
 				string result = reader.ReadToEnd().Trim();
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+				ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
 				return result;
 			}
 		}
 
-		private void ShowJSON(MessageLevel level, Dictionary<string,object> json)
+		private void ShowException(string message, Exception ex)
 		{
-			ShowMessage(level, MiniJson.Serialize(json));
+			if (ex is WebException)
+			{
+				WebException we = ex as WebException;
+				HttpWebResponse response = we != null ? we.Response as HttpWebResponse : null;
+				if (response == null)
+					ShowMessage(MessageLevel.Error, String.Format("{0}: {1}", message, ex.Message));
+				else
+					ShowMessage(MessageLevel.Error, String.Format("{0}: StatusCode:  {1}; {2}", message, response.StatusCode, GetResponseString(response)));
+			}
+			else
+				ShowMessage(MessageLevel.Error, String.Format("{0}: {1}", message, ex.Message));
 		}
 
 		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
@@ -536,19 +688,7 @@ namespace skdm
 			HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
 			request.Method = method;
 			request.Timeout = timeout;
-			try
-			{
-				return request.GetResponse() as HttpWebResponse;
-			}
-			catch (WebException we)
-			{
-				var response = we.Response as HttpWebResponse;
-				if (response == null)
-					throw;
-				ShowMessage(MessageLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
-				return response;
-			}
-
+			return request.GetResponse() as HttpWebResponse;
 		}
 
 		private HttpWebResponse HttpPost(string url, NameValueCollection queryParam = null, NameValueCollection bodyParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_SHORT)
@@ -575,18 +715,7 @@ namespace skdm
 				post.Write(formData, 0, formData.Length);  
 			}
 
-			try
-			{
-				return request.GetResponse() as HttpWebResponse;
-			}
-			catch (WebException we)
-			{
-				var response = we.Response as HttpWebResponse;
-				if (response == null)
-					throw;
-				ShowMessage(MessageLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
-				return response;
-			}
+			return request.GetResponse() as HttpWebResponse;
 		}
 
 		private HttpWebResponse HttpPostXml(string url, string pathXML, NameValueCollection queryParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_MED)
@@ -613,18 +742,7 @@ namespace skdm
 				fileStream.Close();
 			}
 
-			try
-			{
-				return request.GetResponse() as HttpWebResponse;
-			}
-			catch (WebException we)
-			{
-				var response = we.Response as HttpWebResponse;
-				if (response == null)
-					throw;
-				ShowMessage(MessageLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
-				return response;
-			}
+			return request.GetResponse() as HttpWebResponse;
 		}
 
 		private HttpWebResponse HttpUploadFile(string url, string file, string paramName, string contentType, NameValueCollection queryParam, NameValueCollection bodyParam, string method = "POST", int timeout = HTTP_TIMEOUT_LONG)
@@ -680,18 +798,7 @@ namespace skdm
 				bytes += WriteUploadBytes(rs, trailer);
 			}
 
-			try
-			{
-				return request.GetResponse() as HttpWebResponse;
-			}
-			catch (WebException we)
-			{
-				var response = we.Response as HttpWebResponse;
-				if (response == null)
-					throw;
-				ShowMessage(MessageLevel.Verbose, String.Format("STATUS CODE ERROR: {0}", response.StatusCode.ToString()));
-				return response;
-			}
+			return request.GetResponse() as HttpWebResponse;
 		}
 
 		private int WriteUploadBytes(Stream rs, byte[] bytes, int length = -1, bool isLog = true)
@@ -704,31 +811,6 @@ namespace skdm
 				ShowMessage(MessageLevel.Verbose, Encoding.UTF8.GetString(bytes));
 
 			return length;
-		}
-
-		/// <summary>
-		/// Custom <see cref="System.Net.WebClient"/> that allows setting of cookies
-		/// </summary>
-		/// <see cref="http://www.codeproject.com/Articles/72232/C-File-Upload-with-form-fields-cookies-and-headers"/>
-		private class CustomWebClient : WebClient
-		{
-			private CookieContainer _cookies;
-			private int _timeout;
-
-			public CustomWebClient(CookieContainer cookies = null, int timeout = HTTP_TIMEOUT_LONG)
-			{
-				_cookies = cookies;
-				_timeout = timeout;
-			}
-
-			protected override WebRequest GetWebRequest(Uri address)
-			{
-				HttpWebRequest request = (HttpWebRequest)base.GetWebRequest(address);
-				if (_cookies != null)
-					request.CookieContainer = _cookies;
-				request.Timeout = _timeout;
-				return request;
-			}
 		}
 
 		/// <summary>
@@ -751,6 +833,10 @@ namespace skdm
 			}
 			return string.Join(", ", d);
 		}
+
+		#endregion
+
+		#region Helpers
 
 		/// <summary>
 		/// Gets a temporary file path with a given extension

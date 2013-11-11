@@ -43,7 +43,6 @@ See http://support.spatialkey.com/dmapi for more information";
 		private const int ERROR_RUN_OAUTH = 4;
 		private const int TTL_MIN = 10;
 		private const int TTL_MAX = 3600;
-
 		private static int errorCode = ERROR_SUCCESS;
 		private static CommandLineParser clp;
 		private static CommandLineParser.OptionValue<int> optTrace;
@@ -199,7 +198,6 @@ See http://support.spatialkey.com/dmapi for more information";
 					text.AppendFormat("{0,16}: {1}", key, item[key]);
 					text.AppendLine();
 				}
-				text.AppendLine("---");
 			}
 			ShowMessage(MessageLevel.Result, text.ToString());
 
@@ -226,9 +224,8 @@ See http://support.spatialkey.com/dmapi for more information";
 				{
 					skapi.DeleteDataset(id);
 				}
-				catch (Exception ex)
+				catch (Exception)
 				{
-					ShowMessage(MessageLevel.Error, String.Format("Unalbel to delete id {0}; {1}", id, ex.Message));
 				}
 			}
 
@@ -316,25 +313,24 @@ See http://support.spatialkey.com/dmapi for more information";
 							ShowMessage(MessageLevel.Error, String.Format("ERROR invalid actionType: {0}", actionType));
 							continue;
 						}
-						if (datasetId == null || datasetId.Length == 0)
-							actionType = ACTION_IMPORT;
+						if (actionType == ACTION_APPEND || actionType == ACTION_OVERWRITE)
+						{
+							if (datasetId == null || datasetId.Length == 0)
+								actionType = ACTION_IMPORT;
+						}
 					}
-
-					// TODO if action is ACTION_SUGGEST only need the first 500 lines
 
 					// Upload the data and wait for upload to finish
 					string uploadId = skapi.Upload(pathData);
 					if (uploadId == null)
 					{
-						// TODO  neeed better error
-						ShowMessage(MessageLevel.Error, "ERROR Upload Failed");
+						// error logged in API
 						continue;
 					}
 					Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
-					if (SpatialKeyDataManager.IsUploadStatusError(uploadStausJson))
+					if (skapi.IsUploadStatusError(uploadStausJson))
 					{
-						// TODO show uploadStatusJson error
-						ShowMessage(MessageLevel.Error, "ERROR uploading");
+						ShowMessage(MessageLevel.Error, String.Format("Error uploading: {0}", MiniJson.Serialize(uploadStausJson)));
 						continue;
 					}
 					ShowMessage(MessageLevel.Result, String.Format("Uploaded '{0}'", pathData));
@@ -374,7 +370,10 @@ See http://support.spatialkey.com/dmapi for more information";
 			skapi.Logout();
 
 			if (isUpdateDoc)
+			{
+				ShowMessage(MessageLevel.Result, String.Format("Updating {0}", configFile));
 				doc.Save(configFile);
+			}
 
 			if (!isRanAction)
 			{
@@ -423,10 +422,9 @@ See http://support.spatialkey.com/dmapi for more information";
 				{
 					Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
 					datasetId = skapi.GetDatasetID(uploadStausJson);
-					if (SpatialKeyDataManager.IsUploadStatusError(uploadStausJson) || datasetId == null)
+					if (skapi.IsUploadStatusError(uploadStausJson) || datasetId == null)
 					{
-						// TODO show uploadStatusJson error
-						ShowMessage(MessageLevel.Error, "ERROR Running Import");
+						ShowMessage(MessageLevel.Error, String.Format("Error Running Import: {0}", MiniJson.Serialize(uploadStausJson)));
 					}
 					else
 					{
@@ -447,10 +445,9 @@ See http://support.spatialkey.com/dmapi for more information";
 			if (isWaitUpdate)
 			{
 				Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
-				if (SpatialKeyDataManager.IsUploadStatusError(uploadStausJson))
+				if (skapi.IsUploadStatusError(uploadStausJson))
 				{
-					// TODO show uploadStatusJson error
-					ShowMessage(MessageLevel.Error, "ERROR Running Append");
+					ShowMessage(MessageLevel.Error, String.Format("Error Running Append: {0}", MiniJson.Serialize(uploadStausJson)));
 				}
 				else
 				{
@@ -467,10 +464,9 @@ See http://support.spatialkey.com/dmapi for more information";
 			if (isWaitUpdate)
 			{
 				Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
-				if (SpatialKeyDataManager.IsUploadStatusError(uploadStausJson))
+				if (skapi.IsUploadStatusError(uploadStausJson))
 				{
-					// TODO show uploadStatusJson error
-					ShowMessage(MessageLevel.Error, "ERROR Running Overwrite");
+					ShowMessage(MessageLevel.Error, String.Format("Error Running Overwrite: {0}", MiniJson.Serialize(uploadStausJson)));
 				}
 				else
 				{
