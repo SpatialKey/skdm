@@ -399,7 +399,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				}
 
 				bool isUseTmp = false;
-				string tmp = SpatialKeyDataManager.GetTempFile("csv", Path.GetFileNameWithoutExtension(path) + "_");
+				string tmp = SpatialKeyDataManager.GetTempFile("csv", Path.GetFileNameWithoutExtension(path));
 				using (StreamReader reader = new StreamReader(path))
 				using (StreamWriter writer = new StreamWriter(tmp))
 				{
@@ -444,7 +444,8 @@ See http://support.spatialkey.com/dmapi for more information";
 			{
 				if (File.Exists(pathXML))
 				{
-					pathXML = SpatialKeyDataManager.GetTempFile("xml", Path.GetFileNameWithoutExtension(pathXML) + "_", Path.GetPathRoot(pathXML));
+					//pathXML = SpatialKeyDataManager.GetTempFile("xml", Path.GetFileNameWithoutExtension(pathXML), Path.GetPathRoot(pathXML));
+					pathXML = SpatialKeyDataManager.GetTempFile("xml", Path.GetFileNameWithoutExtension(pathXML), Path.GetDirectoryName(pathXML));
 				}
 				using (StreamWriter outfile = new StreamWriter(pathXML))
 				{
