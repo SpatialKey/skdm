@@ -20,7 +20,7 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <Externalconsole>True</Externalconsole>
-    <Commandlineparameters>upload</Commandlineparameters>
+    <Commandlineparameters>suggest insurance_sample</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>none</DebugType>
@@ -30,7 +30,8 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <Externalconsole>True</Externalconsole>
-    <Commandlineparameters>/help</Commandlineparameters>
+    <Commandlineparameters>suggest csv_example
+</Commandlineparameters>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />

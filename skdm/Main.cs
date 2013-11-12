@@ -294,7 +294,7 @@ See http://support.spatialkey.com/dmapi for more information";
 					skapi.Init(organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey);
 
 					// common data
-					String pathData = GetInnerText(actionNode, "pathData");
+					String[] pathDataArray = GetInnerTextList(actionNode, "pathData");
 					String pathXML = GetInnerText(actionNode, "pathXML");
 					String datasetId = GetInnerText(actionNode, "datasetId");
 					String dataType = GetInnerText(actionNode, "dataType").ToLower();
@@ -320,8 +320,12 @@ See http://support.spatialkey.com/dmapi for more information";
 						}
 					}
 
+					// suggest actions should limit upload lengths
+					if (actionType == ACTION_SUGGEST)
+						pathDataArray = CreateSuggestShortFiles(pathDataArray);
+
 					// Upload the data and wait for upload to finish
-					string uploadId = skapi.Upload(pathData);
+					string uploadId = skapi.Upload(pathDataArray);
 					if (uploadId == null)
 					{
 						// error logged in API
@@ -333,16 +337,16 @@ See http://support.spatialkey.com/dmapi for more information";
 						ShowMessage(MessageLevel.Error, String.Format("Error uploading: {0}", MiniJson.Serialize(uploadStausJson)));
 						continue;
 					}
-					ShowMessage(MessageLevel.Result, String.Format("Uploaded '{0}'", pathData));
+					ShowMessage(MessageLevel.Result, String.Format("Uploaded '{0}'", String.Join(", ", pathDataArray)));
 
 					// perform the specified dataset action
 					switch (actionType)
 					{
 					case ACTION_SUGGEST:
-						DoUploadSuggest(skapi, pathData, pathXML, dataType, uploadId);
+						DoUploadSuggest(skapi, pathDataArray, pathXML, dataType, uploadId);
 						break;
 					case ACTION_IMPORT:
-						datasetId = DoUploadImport(skapi, pathData, pathXML, uploadId, isWaitUpdate);
+						datasetId = DoUploadImport(skapi, pathDataArray, pathXML, uploadId, isWaitUpdate);
 						if (datasetId != null)
 						{
 							if (actionNode.SelectSingleNode("datasetId") == null)
@@ -352,10 +356,10 @@ See http://support.spatialkey.com/dmapi for more information";
 						}
 						break;
 					case ACTION_OVERWRITE:
-						DoUploadOverwrite(skapi, pathData, pathXML, uploadId, datasetId, isWaitUpdate);
+						DoUploadOverwrite(skapi, pathDataArray, pathXML, uploadId, datasetId, isWaitUpdate);
 						break;
 					case ACTION_APPEND:
-						DoUploadAppend(skapi, pathData, pathXML, uploadId, datasetId, isWaitUpdate);
+						DoUploadAppend(skapi, pathDataArray, pathXML, uploadId, datasetId, isWaitUpdate);
 						break;
 					}
 
@@ -383,13 +387,52 @@ See http://support.spatialkey.com/dmapi for more information";
 			return true;
 		}
 
-		private static void DoUploadSuggest(SpatialKeyDataManager skapi, string pathData, string pathXML, string dataType, string uploadId)
+		private static string[] CreateSuggestShortFiles(string[] pathDataArray)
+		{
+			List<string> list = new List<string>();
+			foreach (string path in pathDataArray)
+			{
+				if (Path.GetExtension(path).ToLower() != ".csv")
+				{
+					list.Add(path);
+					continue;
+				}
+
+				bool isUseTmp = false;
+				string tmp = SpatialKeyDataManager.GetTempFile("csv", Path.GetFileNameWithoutExtension(path) + "_");
+				using (StreamReader reader = new StreamReader(path))
+				using (StreamWriter writer = new StreamWriter(tmp))
+				{
+					int numLines = 0;
+					string line;
+					while ((line = reader.ReadLine()) != null)
+					{
+						numLines++;
+						if (numLines >= 500)
+						{
+							isUseTmp = true;
+							break;
+						}
+						writer.WriteLine(line);
+					}
+				}
+				if (isUseTmp)
+					list.Add(tmp);
+				else
+					list.Add(path);
+			}
+			return list.ToArray();
+		}
+
+		private static void DoUploadSuggest(SpatialKeyDataManager skapi, string[] pathDataArray, string pathXML, string dataType, string uploadId)
 		{
 			String method;
 			if (dataType == "csv")
 				method = "ImportCSV";
 			else if (dataType == "shape" || dataType == "shapefile")
 				method = "ImportShapefile";
+			else if (dataType == "insurance")
+				method = "ImportInsurance";
 			else
 			{
 				ShowMessage(MessageLevel.Error, String.Format("ERROR Unknown dataType '{1}", dataType));
@@ -401,7 +444,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			{
 				if (File.Exists(pathXML))
 				{
-					pathXML = SpatialKeyDataManager.GetTempFile("xml", Path.GetFileNameWithoutExtension(pathData) + "_", Path.GetPathRoot(pathXML));
+					pathXML = SpatialKeyDataManager.GetTempFile("xml", Path.GetFileNameWithoutExtension(pathXML) + "_", Path.GetPathRoot(pathXML));
 				}
 				using (StreamWriter outfile = new StreamWriter(pathXML))
 				{
@@ -412,7 +455,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			skapi.CancelUpload(uploadId);
 		}
 
-		private static string DoUploadImport(SpatialKeyDataManager skapi, string pathData, string pathXML, string uploadId, bool isWaitUpdate)
+		private static string DoUploadImport(SpatialKeyDataManager skapi, string[] pathDataArray, string pathXML, string uploadId, bool isWaitUpdate)
 		{
 			String datasetId = null;
 
@@ -429,17 +472,17 @@ See http://support.spatialkey.com/dmapi for more information";
 					else
 					{
 						datasetId = skapi.GetDatasetID(uploadStausJson);
-						ShowMessage(MessageLevel.Result, String.Format("Imported '{0}'", pathData));
+						ShowMessage(MessageLevel.Result, String.Format("Imported '{0}'", String.Join(", ", pathDataArray)));
 					}
 				}
 				else
-					ShowMessage(MessageLevel.Result, String.Format("Not waiting for import of '{0}' to complete", pathData));
+					ShowMessage(MessageLevel.Result, String.Format("Not waiting for import of '{0}' to complete", String.Join(", ", pathDataArray)));
 			}
 
 			return datasetId;
 		}
 
-		private static void DoUploadAppend(SpatialKeyDataManager skapi, string pathData, string pathXML, string uploadId, string datasetId, bool isWaitUpdate)
+		private static void DoUploadAppend(SpatialKeyDataManager skapi, string[] pathDataArray, string pathXML, string uploadId, string datasetId, bool isWaitUpdate)
 		{
 			skapi.Append(uploadId, datasetId, pathXML);
 			if (isWaitUpdate)
@@ -451,14 +494,14 @@ See http://support.spatialkey.com/dmapi for more information";
 				}
 				else
 				{
-					ShowMessage(MessageLevel.Result, String.Format("Appended '{0}'", pathData));
+					ShowMessage(MessageLevel.Result, String.Format("Appended '{0}'", String.Join(", ", pathDataArray)));
 				}
 			}
 			else
-				ShowMessage(MessageLevel.Result, String.Format("Not waiting for append of '{0}' to complete", pathData));
+				ShowMessage(MessageLevel.Result, String.Format("Not waiting for append of '{0}' to complete", String.Join(", ", pathDataArray)));
 		}
 
-		private static void DoUploadOverwrite(SpatialKeyDataManager skapi, string pathData, string pathXML, string uploadId, string datasetId, bool isWaitUpdate)
+		private static void DoUploadOverwrite(SpatialKeyDataManager skapi, string[] pathDataArray, string pathXML, string uploadId, string datasetId, bool isWaitUpdate)
 		{
 			skapi.Overwrite(uploadId, datasetId, pathXML);
 			if (isWaitUpdate)
@@ -470,11 +513,11 @@ See http://support.spatialkey.com/dmapi for more information";
 				}
 				else
 				{
-					ShowMessage(MessageLevel.Result, String.Format("Overwrote with '{0}'", pathData));
+					ShowMessage(MessageLevel.Result, String.Format("Overwrote with '{0}'", String.Join(", ", pathDataArray)));
 				}
 			}
 			else
-				ShowMessage(MessageLevel.Result, String.Format("Not waiting for overwrite of '{0}' to complete", pathData));
+				ShowMessage(MessageLevel.Result, String.Format("Not waiting for overwrite of '{0}' to complete", String.Join(", ", pathDataArray)));
 		}
 
 		private static String GetInnerText(XmlNode node, String path, String defaultValue = "")
@@ -484,6 +527,20 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			XmlNode value = node.SelectSingleNode(path);
 			return value != null ? value.InnerText : defaultValue;
+		}
+
+		private static String[] GetInnerTextList(XmlNode node, String path)
+		{
+			List<string> retList = new List<string>();
+			XmlNodeList valueList = node.SelectNodes(path);
+			if (valueList != null)
+			{
+				foreach (XmlNode value in valueList)
+				{
+					retList.Add(value.InnerText);
+				}
+			}
+			return retList.ToArray();
 		}
 
 		public static void ShowMessage(MessageLevel level, string message)

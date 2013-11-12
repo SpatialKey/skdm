@@ -209,12 +209,12 @@ namespace skdm
 		/// <summary>
 		/// Upload the given file and return the uploadId
 		/// </summary>
-		public string Upload(string path)
+		public string Upload(string[] paths)
 		{
 			if (Login() == null)
 				return null;
 
-			ShowMessage(MessageLevel.Status, "UPLOAD: " + path);
+			ShowMessage(MessageLevel.Status, "UPLOAD: " + paths);
 
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
@@ -222,7 +222,7 @@ namespace skdm
 
 			try
 			{
-				using (HttpWebResponse response = HttpUploadFile(BuildUrl("upload.json"), path, "file", "application/octet-stream", query, null))
+				using (HttpWebResponse response = HttpUploadFiles(BuildUrl("upload.json"), paths, "file", "application/octet-stream", query, null))
 				{
 					Dictionary<string,object> json = HttpResponseToJSON(response);
 					string uploadId = JsonGetPath<string>(json, "upload/uploadId");
@@ -233,7 +233,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Failed to upload '{0}'", path), ex);
+				ShowException(String.Format("Failed to upload '{0}'", paths), ex);
 				return null;
 			}
 		}
@@ -465,11 +465,11 @@ namespace skdm
 					List<Dictionary<string, string>> retList = new List<Dictionary<string, string>>();
 					foreach (Dictionary<string, object> item in items)
 					{
-						if (!item.ContainsKey("id") || 
-						    !item.ContainsKey("label") || 
-						    !item.ContainsKey("created") || 
-						    !item.ContainsKey("modified") || 
-						    !item.ContainsKey("geometryType") || 
+						if (!item.ContainsKey("id") ||
+						    !item.ContainsKey("label") ||
+						    !item.ContainsKey("created") ||
+						    !item.ContainsKey("modified") ||
+						    !item.ContainsKey("geometryType") ||
 						    !item.ContainsKey("totalRows"))
 						{
 							ShowJSON(MessageLevel.Error, "List dataset found item with incorrect data", json);
@@ -745,11 +745,11 @@ namespace skdm
 			return request.GetResponse() as HttpWebResponse;
 		}
 
-		private HttpWebResponse HttpUploadFile(string url, string file, string paramName, string contentType, NameValueCollection queryParam, NameValueCollection bodyParam, string method = "POST", int timeout = HTTP_TIMEOUT_LONG)
+		private HttpWebResponse HttpUploadFiles(string url, string[] files, string paramName, string contentType, NameValueCollection queryParam, NameValueCollection bodyParam, string method = "POST", int timeout = HTTP_TIMEOUT_LONG)
 		{
 			url = url + ToQueryString(queryParam);
 			ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
-			ShowMessage(MessageLevel.Verbose, string.Format("HTTP UPLOAD {0} to {1}", file, url));
+			ShowMessage(MessageLevel.Verbose, string.Format("HTTP UPLOAD {0} to {1}", files, url));
 			string boundary = String.Format("-----------{0:N}", Guid.NewGuid());
 			byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
 
@@ -777,22 +777,27 @@ namespace skdm
 					}
 				}
 
-				// Write File Header
-				bytes += WriteUploadBytes(rs, boundarybytes);
-				string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n";
-				string header = string.Format(headerTemplate, paramName, file, contentType);
-				bytes += WriteUploadBytes(rs, System.Text.Encoding.UTF8.GetBytes(header));
-
-				// Write File
-				FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read);
-				byte[] buffer = new byte[4096];
-				int bytesRead = 0;
-				while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+				foreach (string file in files)
 				{
-					bytes += WriteUploadBytes(rs, buffer, bytesRead, false);
+					// Write File Header
+					bytes += WriteUploadBytes(rs, boundarybytes);
+					string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n";
+					string header = string.Format(headerTemplate, paramName, Path.GetFileName(file), contentType);
+					bytes += WriteUploadBytes(rs, System.Text.Encoding.UTF8.GetBytes(header));
+
+					// Write File
+					using (FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
+					{
+						byte[] buffer = new byte[4096];
+						int bytesRead = 0;
+						while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+						{
+							bytes += WriteUploadBytes(rs, buffer, bytesRead, false);
+						}
+					}
+
+					ShowMessage(MessageLevel.Verbose, "FILE INSERTED HERE");
 				}
-				fileStream.Close();
-				ShowMessage(MessageLevel.Verbose, "FILE INSERTED HERE");
 
 				byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
 				bytes += WriteUploadBytes(rs, trailer);
@@ -854,19 +859,21 @@ namespace skdm
 			string filename = string.Empty;
 			while (true)
 			{
-				filename = string.Format("{0}{1}.{2}", prefix, Guid.NewGuid().ToString(), fileExtension);
-				filename = System.IO.Path.Combine(path, filename);
-				if (!System.IO.File.Exists(filename))
+				filename = string.Format("{0}{1}.{2}", prefix, Guid.NewGuid().GetHashCode().ToString(), fileExtension);
+				filename = Path.Combine(path, filename);
+				if (!File.Exists(filename))
 				{
 					try
 					{
-						System.IO.FileStream s = System.IO.File.Create(filename);
-						s.Close();
+						using (FileStream stream = File.Create(filename))
+						{
+						}
+						FileInfo fileInfo = new FileInfo(filename);
+						fileInfo.Attributes = FileAttributes.Temporary;
 						break;
 					}
 					catch (Exception)
 					{
-						
 					}
 				}
 			}
