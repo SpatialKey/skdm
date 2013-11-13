@@ -214,7 +214,7 @@ namespace skdm
 			if (Login() == null)
 				return null;
 
-			ShowMessage(MessageLevel.Status, "UPLOAD: " + paths);
+			ShowMessage(MessageLevel.Status, "UPLOAD: " + String.Join(", ", paths));
 
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
@@ -343,7 +343,7 @@ namespace skdm
 		/// <summary>
 		/// Import the uploadId as a new dataset with the given config
 		/// </summary>
-		public bool Import(string uploadId, string pathConfig)
+		public bool ImportDataset(string uploadId, string pathConfig)
 		{
 			if (Login() == null)
 				return false;
@@ -364,7 +364,36 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Failed to import {0} with config '{1}'", uploadId, pathConfig), ex);
+				ShowException(String.Format("Failed to import dataset {0} with config '{1}'", uploadId, pathConfig), ex);
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Import the uploadId as a new dataset with the given config
+		/// </summary>
+		public bool ImportInsurance(string uploadId, string pathConfig)
+		{
+			if (Login() == null)
+				return false;
+
+			ShowMessage(MessageLevel.Status, String.Format("IMPORT {0} with config'{1}'", uploadId, pathConfig));
+
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/insurance.json", uploadId)), pathConfig, query))
+				{
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					return true; 
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to import insurance {0} with config '{1}'", uploadId, pathConfig), ex);
 				return false;
 			}
 		}
@@ -458,39 +487,40 @@ namespace skdm
 				using (HttpWebResponse response = HttpGet(BuildUrl("dataset.json"), query))
 				{
 					Dictionary<string, object> json = HttpResponseToJSON(response);
-					List<object> items = JsonGetPath<List<object>>(json, "value");
-					if (items == null)
-						throw new Exception(String.Format("Dataset List JSON did not contain value array: {0}", json == null ? "null" : MiniJson.Serialize(json)));
-
-					List<Dictionary<string, string>> retList = new List<Dictionary<string, string>>();
-					foreach (Dictionary<string, object> item in items)
-					{
-						if (!item.ContainsKey("id") ||
-						    !item.ContainsKey("label") ||
-						    !item.ContainsKey("created") ||
-						    !item.ContainsKey("modified") ||
-						    !item.ContainsKey("geometryType") ||
-						    !item.ContainsKey("totalRows"))
-						{
-							ShowJSON(MessageLevel.Error, "List dataset found item with incorrect data", json);
-							continue;
-						}
-						Dictionary<string, string> cur = new Dictionary<string, string>();
-						cur["ID"] = item["id"].ToString();
-						cur["Label"] = item["label"].ToString();
-						//cur["Description"] = item["description"].ToString();
-						cur["Created"] = FromUnixTime(Convert.ToInt64(item["created"].ToString())).ToString();
-						cur["Modified"] = FromUnixTime(Convert.ToInt64(item["modified"].ToString())).ToString();
-						cur["Geometry Type"] = item["geometryType"].ToString();
-						cur["Total Rows"] = item["totalRows"].ToString();
-						retList.Add(cur);
-					}
-					return retList;
+					return ParseListJson(json, "Dataset");
 				}
 			}
 			catch (Exception ex)
 			{
 				ShowException("Error Processing Dataset List", ex);
+				return null;
+			}
+		}
+
+		/// <summary>
+		/// Get a list of all the insurance datasets the authenticated user has access to
+		/// </summary>
+		public List<Dictionary<string, string>> ListInsurance()
+		{
+			if (Login() == null)
+				return null;
+
+			ShowMessage(MessageLevel.Status, "LIST INSURANCE");
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl("insurance.json"), query))
+				{
+					Dictionary<string, object> json = HttpResponseToJSON(response);
+					return ParseListJson(json, "Insurance");
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException("Error Processing Insurance List", ex);
 				return null;
 			}
 		}
@@ -527,6 +557,42 @@ namespace skdm
 		#region JSON helpers
 
 		/// <summary>
+		/// Parse value list of datasets or insurance
+		/// </summary>
+		private List<Dictionary<string, string>> ParseListJson(Dictionary<string, object> json, string type)
+		{
+			List<object> items = JsonGetPath<List<object>>(json, "value");
+			if (items == null)
+				throw new Exception(String.Format("Dataset List JSON did not contain value array: {0}", json == null ? "null" : MiniJson.Serialize(json)));
+
+			List<Dictionary<string, string>> retList = new List<Dictionary<string, string>>();
+			foreach (Dictionary<string, object> item in items)
+			{
+				if (!item.ContainsKey("id") || !item.ContainsKey("label"))
+				{
+					ShowJSON(MessageLevel.Error, "List dataset found item with incorrect data", json);
+					continue;
+				}
+				Dictionary<string, string> cur = new Dictionary<string, string>();
+				cur["ID"] = item["id"].ToString();
+				cur["Label"] = item["label"].ToString();
+				//if (item.ContainsKey("description"))
+				//	cur["Description"] = item["description"].ToString();
+				if (item.ContainsKey("created"))
+					cur["Created"] = FromUnixTime(Convert.ToInt64(item["created"].ToString())).ToString();
+				if (item.ContainsKey("modified"))
+					cur["Modified"] = FromUnixTime(Convert.ToInt64(item["modified"].ToString())).ToString();
+				if (item.ContainsKey("geometryType"))
+					cur["Geometry Type"] = item["geometryType"].ToString();
+				if (item.ContainsKey("totalRows"))
+					cur["Total Rows"] = item["totalRows"].ToString();
+				cur["Type"] = type;
+				retList.Add(cur);
+			}
+			return retList;
+		}
+
+		/// <summary>
 		/// Return true if the upload json status is currently in progress.  False if done or error.
 		/// </summary>
 		public bool IsUploadStatusWorking(Dictionary<string,object> json)
@@ -560,22 +626,26 @@ namespace skdm
 		/// <summary>
 		/// Finds the datasetId for the first createdResources that has an id in the given JSON
 		/// </summary>
-		public string GetDatasetID(Dictionary<string,object> json)
+		public Dictionary<string,string> GetDatasetIDs(Dictionary<string,object> json)
 		{
-			// TODO should this throw error?
 			List<object> createdResources = JsonGetPath<List<object>>(json, "createdResources");
 			if (createdResources == null)
 			{
 				ShowMessage(MessageLevel.Error, String.Format("Upload status JSON did not contain 'createdResources': {0}", json == null ? "null" : MiniJson.Serialize(json)));
 				return null;
 			}
+			Dictionary<string,string> dict = new Dictionary<string,string>();
 			foreach (Dictionary<string, object> item in createdResources)
 			{
 				string id = JsonGetPath<string>(item, "id");
-				if (id != null)
-					return id;
+				string type = JsonGetPath<string>(item, "type");
+				if (id == null)
+					continue;
+				if (type == null)
+					type = "unknown";
+				dict[id] = type;
 			}
-			return null;
+			return dict;
 		}
 
 		/// <summary>
