@@ -476,7 +476,16 @@ namespace skdm
 				return "";
 
 			if (maxLength < 0)
-				maxLength = Console.BufferWidth;
+			{
+				try
+				{
+					maxLength = Console.BufferWidth; // Exception running outside terminal
+				}
+				catch(Exception)
+				{
+					maxLength = 80;
+				}
+			}
 			if (secondIndent < 0)
 				secondIndent = firstIndent;
 
