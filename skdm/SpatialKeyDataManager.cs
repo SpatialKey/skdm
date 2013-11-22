@@ -843,7 +843,7 @@ namespace skdm
 			{
 				url = url + ToQueryString(queryParam);
 				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
-				ShowMessage(MessageLevel.Verbose, string.Format("HTTP UPLOAD {0} to {1}", files, url));
+				ShowMessage(MessageLevel.Verbose, string.Format("HTTP UPLOAD {0} to {1}", String.Join(", ", files), url));
 				string boundary = String.Format("-----------{0:N}", Guid.NewGuid());
 				byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
 
