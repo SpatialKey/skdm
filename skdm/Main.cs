@@ -65,14 +65,15 @@ See http://support.spatialkey.com/dmapi for more information";
 
 		#region return values
 
-		private const int ERROR_SUCCESS = 0;
-		private const int ERROR_COMMAND_LINE = 1;
-		private const int ERROR_NO_COMMANDS = 2;
-		private const int ERROR_RUN_COMMAND = 3;
+		private const int EXIT_SUCCESS = 0;
+		private const int EXIT_WARNING = 1;
+		private const int EXIT_BAD_COMMAND_LINE = 2;
+		private const int EXIT_NO_COMMANDS = 3;
+		private const int EXIT_ERROR = 4;
 
 		#endregion
 
-		private static int errorCode = ERROR_SUCCESS;
+		private static int exitCode = EXIT_SUCCESS;
 		private static CommandLineParser clp;
 		private static CommandLineParser.OptionValue<int> optTrace;
 		private static String configFile;
@@ -106,33 +107,36 @@ See http://support.spatialkey.com/dmapi for more information";
 				clp.AddCommand(new string[] { COMMAND_DELETE }, "Delete datasets by id", "ID [[ID] ... [ID]]", RunDeleteCommand);
 
 				clp.Parse(args);
+				if (optTrace.Value < 0)
+					optTrace.Value = 0;
 			}
 			catch (Exception ex)
 			{
 				ShowMessage(MessageLevel.Help, clp.GetHelpMessage());
 				ShowMessage(MessageLevel.Help, "");
-				ShowMessage(MessageLevel.Error, "Error: " + ex.Message);
-				Environment.Exit(ERROR_COMMAND_LINE);
+				ShowMessage(MessageLevel.Error, ex.Message);
+				Environment.Exit(EXIT_BAD_COMMAND_LINE);
 			}
 
 			if (clp.HelpOption.IsMatched)
 			{
 				ShowMessage(MessageLevel.Help, clp.GetHelpMessage());
-				Environment.Exit(ERROR_SUCCESS);
+				Environment.Exit(EXIT_SUCCESS);
 			}
 			if (clp.FindOptionBoolean(PARAM_VERSION).IsMatched)
 			{
 				ShowMessage(MessageLevel.Result, "skdm version 2.0");
-				Environment.Exit(ERROR_SUCCESS);
+				Environment.Exit(EXIT_SUCCESS);
 			}
 
 			if (!clp.RunCommands())
 			{
-				errorCode = ERROR_NO_COMMANDS;
+				if (exitCode == EXIT_SUCCESS)
+					exitCode = EXIT_NO_COMMANDS;
 				ShowMessage(MessageLevel.Help, clp.GetHelpMessage());
 			}
 
-			Environment.Exit(errorCode);
+			Environment.Exit(exitCode);
 		}
 
 		private static XmlDocument LoadConfig()
@@ -142,7 +146,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			{
 				if (configFile == null || configFile.Length == 0 || !File.Exists(configFile))
 				{
-					ShowMessage(MessageLevel.Error, String.Format("ERROR XML configuration file '{0}' does not exist", configFile));
+					ShowMessage(MessageLevel.Error, String.Format("XML configuration file '{0}' does not exist", configFile));
 					return null;
 				}
 
@@ -158,7 +162,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			}
 			catch (Exception ex)
 			{
-				ShowMessage(MessageLevel.Error, String.Format("ERROR loading XML configuration file '{0}': {1}", configFile, ex.Message));
+				ShowMessage(MessageLevel.Error, String.Format("Failed to loading XML configuration file '{0}': {1}", configFile, ex.Message));
 				return null;
 			}
 		}
@@ -292,7 +296,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			XmlNodeList actionNodes = doc.SelectNodes("/config/actions/action");
 			if (actionNodes == null || actionNodes.Count < 1)
 			{
-				ShowMessage(MessageLevel.Error, String.Format("ERROR: No actions defined in '{0}'", configFile));
+				ShowMessage(MessageLevel.Error, String.Format("No actions defined in '{0}'", configFile));
 				return false;
 			}
 
@@ -334,19 +338,19 @@ See http://support.spatialkey.com/dmapi for more information";
 					// make sure data type is valid
 					if (!VALID_TYPES.Contains(dataType))
 					{
-						ShowMessage(MessageLevel.Error, String.Format("ERROR invalid dataType '{0}' must be one of '{1}'", dataType, String.Join(", ", VALID_TYPES)));
+						ShowMessage(MessageLevel.Error, String.Format("Invalid dataType '{0}' must be one of '{1}'", dataType, String.Join(", ", VALID_TYPES)));
 						continue;
 					}
 
 					// make sure have the right number of data files
 					if (dataType == TYPE_INSURANCE && pathDataArray.Length != 2)
 					{
-						ShowMessage(MessageLevel.Error, String.Format("ERROR dataType '{0}' requires 2 pathData entries.", dataType));
+						ShowMessage(MessageLevel.Error, String.Format("dataType '{0}' requires 2 pathData entries.", dataType));
 						continue;
 					}
 					else if (dataType != TYPE_INSURANCE && pathDataArray.Length != 1)
 					{
-						ShowMessage(MessageLevel.Error, String.Format("ERROR dataType '{0}' requires 1 pathData entries.", dataType));
+						ShowMessage(MessageLevel.Error, String.Format("dataType '{0}' requires 1 pathData entries.", dataType));
 						continue;
 					}
 
@@ -361,7 +365,7 @@ See http://support.spatialkey.com/dmapi for more information";
 						actionType = GetInnerText(actionNode, "actionType").ToLower();
 						if (!VALID_ACTIONS.Contains(actionType))
 						{
-							ShowMessage(MessageLevel.Error, String.Format("ERROR invalid actionType '{0}' must be one of '{1}'", actionType, String.Join(", ", VALID_ACTIONS)));
+							ShowMessage(MessageLevel.Error, String.Format("Invalid actionType '{0}' must be one of '{1}'", actionType, String.Join(", ", VALID_ACTIONS)));
 							continue;
 						}
 						if (actionType == ACTION_APPEND || actionType == ACTION_OVERWRITE)
@@ -390,7 +394,7 @@ See http://support.spatialkey.com/dmapi for more information";
 					Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
 					if (skapi.IsUploadStatusError(uploadStausJson))
 					{
-						ShowMessage(MessageLevel.Error, String.Format("Error uploading: {0}", MiniJson.Serialize(uploadStausJson)));
+						ShowMessage(MessageLevel.Error, String.Format("Failed uploading: {0}", MiniJson.Serialize(uploadStausJson)));
 						continue;
 					}
 					ShowMessage(MessageLevel.Status, String.Format("Uploaded '{0}'", String.Join(", ", pathDataArray)));
@@ -423,8 +427,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				}
 				catch (Exception ex)
 				{
-					ShowMessage(MessageLevel.Error, String.Format("Error: {0}", ex.ToString()));
-					errorCode = ERROR_RUN_COMMAND;
+					ShowMessage(MessageLevel.Error, ex.ToString());
 				}
 			}
 			skapi.Logout();
@@ -437,7 +440,7 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			if (!isRanAction)
 			{
-				ShowMessage(MessageLevel.Warning, String.Format("WARNING no upload actions run from {0}.  Check config file and specified actions '{1}'.", configFile, (actions.Count > 0 ? String.Join(", ", actions) : "ALL")));
+				ShowMessage(MessageLevel.Warning, String.Format("No upload actions run from {0}.  Check config file and specified actions '{1}'.", configFile, (actions.Count > 0 ? String.Join(", ", actions) : "ALL")));
 			}
 
 			return true;
@@ -491,7 +494,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				method = "ImportInsurance";
 			else
 			{
-				ShowMessage(MessageLevel.Error, String.Format("ERROR Unknown dataType '{1}", dataType));
+				ShowMessage(MessageLevel.Error, String.Format("Unknown dataType '{1}", dataType));
 				return;
 			}
 
@@ -530,7 +533,7 @@ See http://support.spatialkey.com/dmapi for more information";
 					Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
 					if (skapi.IsUploadStatusError(uploadStausJson))
 					{
-						ShowMessage(MessageLevel.Error, String.Format("Error Running Import: {0}", MiniJson.Serialize(uploadStausJson)));
+						ShowMessage(MessageLevel.Error, String.Format("Import failed: {0}", MiniJson.Serialize(uploadStausJson)));
 						return null;
 					}
 
@@ -555,7 +558,7 @@ See http://support.spatialkey.com/dmapi for more information";
 
 						if (policyId == null || locationId == null || insuranceId == null)
 						{
-							ShowMessage(MessageLevel.Error, String.Format("Error Running Import.  Could not find policy, location, and insurance ids: {0}", MiniJson.Serialize(uploadStausJson)));
+							ShowMessage(MessageLevel.Error, String.Format("Import failed.  Could not find policy, location, and insurance ids: {0}", MiniJson.Serialize(uploadStausJson)));
 							return null;
 						}
 
@@ -574,7 +577,7 @@ See http://support.spatialkey.com/dmapi for more information";
 						datasetId = ((ids != null && ids.Count == 1) ? (new List<string>(ids.Keys))[0] : null);
 						if (datasetId == null)
 						{
-							ShowMessage(MessageLevel.Error, String.Format("Error Running Import.  Could not find dataset Id: {0}", MiniJson.Serialize(uploadStausJson)));
+							ShowMessage(MessageLevel.Error, String.Format("Import failed.  Could not find dataset Id: {0}", MiniJson.Serialize(uploadStausJson)));
 							return null;
 						}
 					}
@@ -603,7 +606,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
 				if (skapi.IsUploadStatusError(uploadStausJson))
 				{
-					ShowMessage(MessageLevel.Error, String.Format("Error Running Append: {0}", MiniJson.Serialize(uploadStausJson)));
+					ShowMessage(MessageLevel.Error, String.Format("Append failed: {0}", MiniJson.Serialize(uploadStausJson)));
 				}
 				else
 				{
@@ -629,7 +632,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
 				if (skapi.IsUploadStatusError(uploadStausJson))
 				{
-					ShowMessage(MessageLevel.Error, String.Format("Error Running Overwrite: {0}", MiniJson.Serialize(uploadStausJson)));
+					ShowMessage(MessageLevel.Error, String.Format("Overwrite failed: {0}", MiniJson.Serialize(uploadStausJson)));
 				}
 				else
 				{
@@ -663,11 +666,38 @@ See http://support.spatialkey.com/dmapi for more information";
 			return retList.ToArray();
 		}
 
+		private static readonly Dictionary<MessageLevel, int> messageLevelMinimumTrace = new Dictionary<MessageLevel, int> {
+			{ MessageLevel.Result, 0 },
+			{ MessageLevel.Error, 0 },
+			{ MessageLevel.Help, 0 },
+			{ MessageLevel.Status, 1 },
+			{ MessageLevel.Warning, 1 },
+			{ MessageLevel.Verbose, 2 }
+		};
+		private static readonly List<MessageLevel> messageLevelTag = new List<MessageLevel> {
+			MessageLevel.Error,
+			MessageLevel.Status,
+			MessageLevel.Warning
+		};
+
 		public static void ShowMessage(MessageLevel level, string message)
 		{
-			if (optTrace.Value < (int)level)
+			if (level == MessageLevel.Error)
+				exitCode = EXIT_ERROR;
+			else if (level == MessageLevel.Warning && exitCode == EXIT_SUCCESS)
+				exitCode = EXIT_WARNING;
+
+			if (optTrace.Value < messageLevelMinimumTrace[level])
 				return;
-			Console.WriteLine(message);
+
+			StringBuilder str = new StringBuilder(message);
+			if (messageLevelTag.Contains(level))
+				str.Insert(0, String.Format("[{0} {1}] ", level.ToString().ToUpper(), DateTime.Now.ToString()));
+
+			if (level == MessageLevel.Error || level == MessageLevel.Warning)
+				Console.Error.WriteLine(str.ToString());
+			else
+				Console.WriteLine(str.ToString());
 		}
 	}
 }

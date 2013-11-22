@@ -730,6 +730,7 @@ namespace skdm
 				string result = reader.ReadToEnd().Trim();
 				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
 				ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
 				return result;
 			}
 		}
@@ -751,129 +752,157 @@ namespace skdm
 
 		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
 		{
-			url = url + ToQueryString(queryParam);
-			ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
-			ShowMessage(MessageLevel.Verbose, String.Format("HTTP GET: {0}", url));
+			try
+			{
+				url = url + ToQueryString(queryParam);
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+				ShowMessage(MessageLevel.Verbose, String.Format("HTTP GET: {0}", url));
 
-			HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
-			request.Method = method;
-			request.Timeout = timeout;
-			return request.GetResponse() as HttpWebResponse;
+				HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
+				request.Method = method;
+				request.Timeout = timeout;
+				return request.GetResponse() as HttpWebResponse;
+			}
+			finally
+			{
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+			}
 		}
 
 		private HttpWebResponse HttpPost(string url, NameValueCollection queryParam = null, NameValueCollection bodyParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_SHORT)
 		{
-			url = url + ToQueryString(queryParam);
-			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
-			request.Method = method;  
-			request.Timeout = timeout;
-			request.ContentType = "application/x-www-form-urlencoded";
+			try
+			{
+				url = url + ToQueryString(queryParam);
+				HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
+				request.Method = method;  
+				request.Timeout = timeout;
+				request.ContentType = "application/x-www-form-urlencoded";
 
-			// get the query string and trim off the starting "?"
-			string body = ToQueryString(bodyParam).Remove(0, 1);
+				// get the query string and trim off the starting "?"
+				string body = ToQueryString(bodyParam).Remove(0, 1);
 
-			ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
-			ShowMessage(MessageLevel.Verbose, String.Format("HTTP POST URL: {0} PARAM: {1}", url, body));
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+				ShowMessage(MessageLevel.Verbose, String.Format("HTTP POST URL: {0} PARAM: {1}", url, body));
 
-			// Encode the parameters as form data:
-			byte[] formData = UTF8Encoding.UTF8.GetBytes(body);
-			request.ContentLength = formData.Length;
+				// Encode the parameters as form data:
+				byte[] formData = UTF8Encoding.UTF8.GetBytes(body);
+				request.ContentLength = formData.Length;
 
-			// Send the request:
-			using (Stream post = request.GetRequestStream())
-			{  
-				post.Write(formData, 0, formData.Length);  
+				// Send the request:
+				using (Stream post = request.GetRequestStream())
+				{  
+					post.Write(formData, 0, formData.Length);  
+				}
+
+				return request.GetResponse() as HttpWebResponse;
 			}
-
-			return request.GetResponse() as HttpWebResponse;
+			finally
+			{
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+			}
 		}
 
 		private HttpWebResponse HttpPostXml(string url, string pathXML, NameValueCollection queryParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_MED)
 		{
-			url = url + ToQueryString(queryParam);
-			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
-			request.Method = method;  
-			request.Timeout = timeout;
-			request.ContentType = "application/xml";
+			try
+			{
+				url = url + ToQueryString(queryParam);
+				HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
+				request.Method = method;  
+				request.Timeout = timeout;
+				request.ContentType = "application/xml";
 
-			ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
-			ShowMessage(MessageLevel.Verbose, String.Format("HTTP POST URL: {0} XML: {1}", url, pathXML));
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+				ShowMessage(MessageLevel.Verbose, String.Format("HTTP POST URL: {0} XML: {1}", url, pathXML));
 
-			// Send the xml:
-			using (Stream rs = request.GetRequestStream())
-			{  
-				FileStream fileStream = new FileStream(pathXML, FileMode.Open, FileAccess.Read);
-				byte[] buffer = new byte[4096];
-				int bytesRead = 0;
-				while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
-				{
-					WriteUploadBytes(rs, buffer, bytesRead, false);
+				// Send the xml:
+				using (Stream rs = request.GetRequestStream())
+				{  
+					FileStream fileStream = new FileStream(pathXML, FileMode.Open, FileAccess.Read);
+					byte[] buffer = new byte[4096];
+					int bytesRead = 0;
+					while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+					{
+						WriteUploadBytes(rs, buffer, bytesRead, false);
+					}
+					fileStream.Close();
 				}
-				fileStream.Close();
-			}
 
-			return request.GetResponse() as HttpWebResponse;
+				return request.GetResponse() as HttpWebResponse;
+			}
+			finally
+			{
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+			}
 		}
 
 		private HttpWebResponse HttpUploadFiles(string url, string[] files, string paramName, string contentType, NameValueCollection queryParam, NameValueCollection bodyParam, string method = "POST", int timeout = HTTP_TIMEOUT_LONG)
 		{
-			url = url + ToQueryString(queryParam);
-			ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
-			ShowMessage(MessageLevel.Verbose, string.Format("HTTP UPLOAD {0} to {1}", files, url));
-			string boundary = String.Format("-----------{0:N}", Guid.NewGuid());
-			byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
-
-			HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
-			request.ContentType = "multipart/form-data; boundary=" + boundary;
-			request.Method = method;
-			request.KeepAlive = true;
-			request.Timeout = timeout;
-			//request.CookieContainer = new CookieContainer();
-
-			ShowMessage(MessageLevel.Verbose, "Content-Type: " + request.ContentType);
-			long bytes = 0;
-			using (Stream rs = request.GetRequestStream())
+			try
 			{
-				// Write NVP
-				if (bodyParam != null)
+				url = url + ToQueryString(queryParam);
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+				ShowMessage(MessageLevel.Verbose, string.Format("HTTP UPLOAD {0} to {1}", files, url));
+				string boundary = String.Format("-----------{0:N}", Guid.NewGuid());
+				byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
+
+				HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+				request.ContentType = "multipart/form-data; boundary=" + boundary;
+				request.Method = method;
+				request.KeepAlive = true;
+				request.Timeout = timeout;
+				//request.CookieContainer = new CookieContainer();
+
+				ShowMessage(MessageLevel.Verbose, "Content-Type: " + request.ContentType);
+				long bytes = 0;
+				using (Stream rs = request.GetRequestStream())
 				{
-					string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
-					foreach (string key in bodyParam.Keys)
+					// Write NVP
+					if (bodyParam != null)
 					{
-						bytes += WriteUploadBytes(rs, boundarybytes);
-
-						string formitem = string.Format(formdataTemplate, key, bodyParam[key]);
-						bytes += WriteUploadBytes(rs, System.Text.Encoding.UTF8.GetBytes(formitem));
-					}
-				}
-
-				foreach (string file in files)
-				{
-					// Write File Header
-					bytes += WriteUploadBytes(rs, boundarybytes);
-					string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n";
-					string header = string.Format(headerTemplate, paramName, Path.GetFileName(file), contentType);
-					bytes += WriteUploadBytes(rs, System.Text.Encoding.UTF8.GetBytes(header));
-
-					// Write File
-					using (FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
-					{
-						byte[] buffer = new byte[4096];
-						int bytesRead = 0;
-						while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+						string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
+						foreach (string key in bodyParam.Keys)
 						{
-							bytes += WriteUploadBytes(rs, buffer, bytesRead, false);
+							bytes += WriteUploadBytes(rs, boundarybytes);
+
+							string formitem = string.Format(formdataTemplate, key, bodyParam[key]);
+							bytes += WriteUploadBytes(rs, System.Text.Encoding.UTF8.GetBytes(formitem));
 						}
 					}
 
-					ShowMessage(MessageLevel.Verbose, "FILE INSERTED HERE");
+					foreach (string file in files)
+					{
+						// Write File Header
+						bytes += WriteUploadBytes(rs, boundarybytes);
+						string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n";
+						string header = string.Format(headerTemplate, paramName, Path.GetFileName(file), contentType);
+						bytes += WriteUploadBytes(rs, System.Text.Encoding.UTF8.GetBytes(header));
+
+						// Write File
+						using (FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
+						{
+							byte[] buffer = new byte[4096];
+							int bytesRead = 0;
+							while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+							{
+								bytes += WriteUploadBytes(rs, buffer, bytesRead, false);
+							}
+						}
+
+						ShowMessage(MessageLevel.Verbose, "FILE INSERTED HERE");
+					}
+
+					byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
+					bytes += WriteUploadBytes(rs, trailer);
 				}
 
-				byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
-				bytes += WriteUploadBytes(rs, trailer);
+				return request.GetResponse() as HttpWebResponse;
 			}
-
-			return request.GetResponse() as HttpWebResponse;
+			finally
+			{
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+			}
 		}
 
 		private int WriteUploadBytes(Stream rs, byte[] bytes, int length = -1, bool isLog = true)

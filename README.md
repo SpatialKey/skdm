@@ -13,6 +13,13 @@ You can optionally connect to the location of the files and view the help comman
 3. Open command-line prompt and go to directory above (optional)
 4. Run "skdm.exe" to see the help command (optional)
 
+# Exit Codes
+ - 0 Success
+ - 1 Warning
+ - 2 Bad Command Line
+ - 3 No Commands
+ - 4 Error
+
 # Options
 ## /help
 > /help, -help, /h, -h, /?, -?
