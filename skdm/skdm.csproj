@@ -60,8 +60,6 @@
     <None Include="lib\ICSharpCode.SharpZipLib.dll" />
     <None Include="TestData\110thCongressionalDistrictShapefile.zip" />
     <None Include="TestData\SpatialKeyDataManagerConfig.xml" />
-    <None Include="TestData\sacramento.xml" />
-    <None Include="TestData\sacramento.csv" />
     <None Include="TestData\110thCongressionalDistrictShapefile.xml" />
     <None Include="TestData\SalesData.xml" />
     <None Include="TestData\SalesData.csv" />
