@@ -48,7 +48,7 @@
 			<pathData>InsurancePolicy.csv</pathData>
 			<!--- configuration file for the data -->
 			<pathXML>InsuranceConfig.xml</pathXML>
-			<!-- datasetId will be filled in on overwrite or append if not set -->
+			<!-- datasetId (really insurance id) will be filled in on overwrite or append if not set -->
 			<datasetId/>
 		</action>
 	</actions>

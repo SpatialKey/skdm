@@ -311,6 +311,7 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			foreach (XmlNode actionNode in actionNodes)
 			{
+				string uploadId = null;
 				try
 				{
 					String actionName = GetInnerText(actionNode, "@name");
@@ -374,10 +375,6 @@ See http://support.spatialkey.com/dmapi for more information";
 							if (datasetId == null || datasetId.Length == 0)
 								actionType = ACTION_IMPORT;
 						}
-
-						// TODO changing to import for insurance => this replaces the insuranceId but keeps the policyId and locationId
-						if (dataType == TYPE_INSURANCE && actionType == ACTION_OVERWRITE)
-							actionType = ACTION_IMPORT;
 					}
 
 					// suggest actions should limit upload lengths
@@ -386,7 +383,7 @@ See http://support.spatialkey.com/dmapi for more information";
 
 					// Upload the data and wait for upload to finish
 					ShowMessage(MessageLevel.Status, String.Format("Uploading '{0}'", String.Join(", ", pathDataArray)));
-					string uploadId = skapi.Upload(pathDataArray);
+					uploadId = skapi.Upload(pathDataArray);
 					if (uploadId == null)
 					{
 						// error logged in API
@@ -429,6 +426,17 @@ See http://support.spatialkey.com/dmapi for more information";
 				catch (Exception ex)
 				{
 					ShowMessage(MessageLevel.Error, ex.ToString());
+				}
+				finally
+				{
+					try
+					{
+						if (uploadId != null && uploadId.Length > 0)
+							skapi.CancelUpload(uploadId);
+					}
+					catch
+					{
+					}
 				}
 			}
 			skapi.Logout();
@@ -512,7 +520,6 @@ See http://support.spatialkey.com/dmapi for more information";
 				}
 				ShowMessage(MessageLevel.Status, String.Format("Wrote Suggested XML to '{0}'", pathXML));
 			}
-			skapi.CancelUpload(uploadId);
 		}
 
 		private static string DoUploadImport(SpatialKeyDataManager skapi, string[] pathDataArray, string pathXML, string dataType, string uploadId, bool isWaitUpdate)
@@ -596,7 +603,7 @@ See http://support.spatialkey.com/dmapi for more information";
 		{
 			if (dataType == TYPE_INSURANCE || dataType == TYPE_SHAPE)
 			{
-				ShowMessage(MessageLevel.Status, String.Format("Canot append dataType '{0}'", dataType));
+				ShowMessage(MessageLevel.Error, String.Format("Canot append dataType '{0}'", dataType));
 				return;
 			}
 
@@ -620,12 +627,6 @@ See http://support.spatialkey.com/dmapi for more information";
 
 		private static void DoUploadOverwrite(SpatialKeyDataManager skapi, string[] pathDataArray, string pathXML, string dataType, string uploadId, string datasetId, bool isWaitUpdate)
 		{
-			if (dataType == TYPE_INSURANCE)
-			{
-				ShowMessage(MessageLevel.Status, String.Format("Canot overwrite dataType '{0}'", dataType));
-				return;
-			}
-
 			skapi.Overwrite(uploadId, datasetId, pathXML);
 			ShowMessage(MessageLevel.Status, String.Format("Overwriting '{0}'", String.Join(", ", pathDataArray)));
 			if (isWaitUpdate)
