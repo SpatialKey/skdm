@@ -33,6 +33,7 @@ namespace skdm
 		private const int HTTP_TIMEOUT_LONG = 3600000;
 		private const string LOG_SEPARATOR = "----------------------------------------";
 		private const int TOKEN_TIMEOUT = 1800;
+		private const string ROUTEID = "ROUTEID";
 
 		#endregion
 
@@ -71,6 +72,7 @@ namespace skdm
 		#region dataMartAPI properties - set by calls
 
 		private String _accessToken;
+		private String _routeId;
 
 		#endregion
 
@@ -123,6 +125,7 @@ namespace skdm
 
 			ShowMessage(MessageLevel.Status, "START LOGIN: " + OrganizationURL);
 			_accessToken = null;
+			_routeId = null;
 
 			string oauth = OAuth.GetOAuthToken(UserAPIKey, OrganizationAPIKey, OrganizationSecretKey, TOKEN_TIMEOUT);
 			// add the query string
@@ -134,6 +137,7 @@ namespace skdm
 			{
 				using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
 				{
+					_routeId = response.Cookies[ROUTEID].Value;
 					Dictionary<string,object> json = HttpResponseToJSON(response);
 					_accessToken = JsonGetPath<string>(json, "access_token");
 					if (_accessToken == null)
@@ -715,11 +719,15 @@ namespace skdm
 				return "";
 
 			List<string> list = new List<string>();
+			if (_routeId != null)
+				list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(ROUTEID), HttpUtility.UrlEncode(_routeId)));
 			foreach (string key in nvc)
 			{
 				list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(key), HttpUtility.UrlEncode(nvc[key])));
 			}
-			return "?" + string.Join("&", list);
+
+			String ret = "?" + string.Join("&", list);
+			return ret;
 		}
 
 		private string GetResponseString(HttpWebResponse response)
@@ -750,6 +758,16 @@ namespace skdm
 				ShowMessage(MessageLevel.Error, String.Format("{0}: {1}", message, ex.Message));
 		}
 
+		private HttpWebRequest CreateWebRequest(string url, string method, int timeout)
+		{
+			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
+			CookieContainer cookieJar = new CookieContainer();
+			request.CookieContainer = cookieJar;
+			request.Method = method;  
+			request.Timeout = timeout;
+			return request;
+		}
+
 		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
 		{
 			try
@@ -758,9 +776,7 @@ namespace skdm
 				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
 				ShowMessage(MessageLevel.Verbose, String.Format("HTTP GET: {0}", url));
 
-				HttpWebRequest request = WebRequest.Create(url) as HttpWebRequest;
-				request.Method = method;
-				request.Timeout = timeout;
+				HttpWebRequest request = CreateWebRequest(url, method, timeout);
 				return request.GetResponse() as HttpWebResponse;
 			}
 			finally
@@ -774,13 +790,12 @@ namespace skdm
 			try
 			{
 				url = url + ToQueryString(queryParam);
-				HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
-				request.Method = method;  
-				request.Timeout = timeout;
+				HttpWebRequest request = CreateWebRequest(url, method, timeout);
 				request.ContentType = "application/x-www-form-urlencoded";
 
 				// get the query string and trim off the starting "?"
-				string body = ToQueryString(bodyParam).Remove(0, 1);
+				string body = ToQueryString(bodyParam);
+				body = body.Remove(0, 1);
 
 				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
 				ShowMessage(MessageLevel.Verbose, String.Format("HTTP POST URL: {0} PARAM: {1}", url, body));
@@ -808,9 +823,7 @@ namespace skdm
 			try
 			{
 				url = url + ToQueryString(queryParam);
-				HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
-				request.Method = method;  
-				request.Timeout = timeout;
+				HttpWebRequest request = CreateWebRequest(url, method, timeout);
 				request.ContentType = "application/xml";
 
 				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
@@ -847,11 +860,9 @@ namespace skdm
 				string boundary = String.Format("-----------{0:N}", Guid.NewGuid());
 				byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
 
-				HttpWebRequest request = (HttpWebRequest)WebRequest.Create(url);
+				HttpWebRequest request = CreateWebRequest(url, method, timeout);
 				request.ContentType = "multipart/form-data; boundary=" + boundary;
-				request.Method = method;
 				request.KeepAlive = true;
-				request.Timeout = timeout;
 				//request.CookieContainer = new CookieContainer();
 
 				ShowMessage(MessageLevel.Verbose, "Content-Type: " + request.ContentType);

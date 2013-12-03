@@ -628,6 +628,7 @@ See http://support.spatialkey.com/dmapi for more information";
 		private static void DoUploadOverwrite(SpatialKeyDataManager skapi, string[] pathDataArray, string pathXML, string dataType, string uploadId, string datasetId, bool isWaitUpdate)
 		{
 			skapi.Overwrite(uploadId, datasetId, pathXML);
+			// TODO insurance needs to fix up ids
 			ShowMessage(MessageLevel.Status, String.Format("Overwriting '{0}'", String.Join(", ", pathDataArray)));
 			if (isWaitUpdate)
 			{
