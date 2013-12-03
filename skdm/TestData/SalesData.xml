@@ -3,6 +3,10 @@
 	<permissions>
 		<addAllUsers>true</addAllUsers>
 	</permissions>
+	<notifications>
+		<sendEmail>false</sendEmail>
+		<clientNotification>false</clientNotification>
+	</notifications>
 	<dataset>
 		<latlon />
 		<datasetColumn>

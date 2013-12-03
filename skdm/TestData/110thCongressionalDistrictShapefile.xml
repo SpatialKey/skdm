@@ -3,6 +3,10 @@
 	<permissions>
 		<addAllUsers>true</addAllUsers>
 	</permissions>
+	<notifications>
+		<sendEmail>false</sendEmail>
+		<clientNotification>false</clientNotification>
+	</notifications>
 	<dataset>
 		<type>Shapefile</type>
 		<name>TEST 110th_congressional_district_shapefile</name>
