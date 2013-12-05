@@ -102,8 +102,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				cmd = clp.AddCommand(new string[] { COMMAND_UPLOAD }, "Upload dataset data", "[[ACTION1] ... [ACTIONN]]", RunUploadCommand);
 				cmd.Parser.AddOptionBoolean(new string[] { PARAM_NO_WAIT }, "Don't wait for import, overwrite, and append actions to complete.");
 
-				// TODO put back suggest command when supported by server
-				//clp.AddCommand(new string[] { COMMAND_SUGGEST }, "Get suggested config for data", "[[ACTION1] ... [ACTIONN]]", RunUploadCommand);
+				clp.AddCommand(new string[] { COMMAND_SUGGEST }, "Get suggested config for data", "[[ACTION1] ... [ACTIONN]]", RunUploadCommand);
 				clp.AddCommand(new string[] { COMMAND_LIST }, "List available datasets", "", RunListCommand);
 				clp.AddCommand(new string[] { COMMAND_DELETE }, "Delete datasets by id", "ID [[ID] ... [ID]]", RunDeleteCommand);
 
@@ -218,7 +217,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage);
 			skapi.Init(defaultOrganizationURL, defaultOrganizationAPIKey, defaultOrganizationSecretKey, defaultUserAPIKey);
 			List<Dictionary<string, string>> list = skapi.ListDatasets();
-			list.AddRange(skapi.ListInsurance());
+			list.AddRange(skapi.InsuranceList());
 			if (list == null || list.Count < 1)
 			{
 				ShowMessage(MessageLevel.Result, "Dataset List Empty");
@@ -257,7 +256,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			{
 				try
 				{
-					skapi.DeleteDataset(id);
+					skapi.DatasetDelete(id);
 					// TODO need some way to delete insurance
 				}
 				catch (Exception)
@@ -345,9 +344,9 @@ See http://support.spatialkey.com/dmapi for more information";
 					}
 
 					// make sure have the right number of data files
-					if (dataType == TYPE_INSURANCE && pathDataArray.Length != 2)
+					if (dataType == TYPE_INSURANCE && !(pathDataArray.Length == 2 || pathDataArray.Length == 0))
 					{
-						ShowMessage(MessageLevel.Error, String.Format("dataType '{0}' requires 2 pathData entries.", dataType));
+						ShowMessage(MessageLevel.Error, String.Format("dataType '{0}' requires 0 or 2 pathData entries.", dataType));
 						continue;
 					}
 					else if (dataType != TYPE_INSURANCE && pathDataArray.Length != 1)
@@ -370,6 +369,10 @@ See http://support.spatialkey.com/dmapi for more information";
 							ShowMessage(MessageLevel.Error, String.Format("Invalid actionType '{0}' must be one of '{1}'", actionType, String.Join(", ", VALID_ACTIONS)));
 							continue;
 						}
+
+						if (dataType == TYPE_INSURANCE && pathDataArray.Length == 0)
+							actionType = ACTION_IMPORT;
+
 						if (actionType == ACTION_APPEND || actionType == ACTION_OVERWRITE)
 						{
 							if (datasetId == null || datasetId.Length == 0)
@@ -382,20 +385,7 @@ See http://support.spatialkey.com/dmapi for more information";
 						pathDataArray = CreateSuggestShortFiles(pathDataArray);
 
 					// Upload the data and wait for upload to finish
-					ShowMessage(MessageLevel.Status, String.Format("Uploading '{0}'", String.Join(", ", pathDataArray)));
-					uploadId = skapi.Upload(pathDataArray);
-					if (uploadId == null)
-					{
-						// error logged in API
-						continue;
-					}
-					Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
-					if (skapi.IsUploadStatusError(uploadStausJson))
-					{
-						ShowMessage(MessageLevel.Error, String.Format("Failed uploading: {0}", MiniJson.Serialize(uploadStausJson)));
-						continue;
-					}
-					ShowMessage(MessageLevel.Status, String.Format("Uploaded '{0}'", String.Join(", ", pathDataArray)));
+					uploadId = UploadAndGetId(skapi, pathDataArray, pathXML, dataType);
 
 					// perform the specified dataset action
 					switch (actionType)
@@ -455,6 +445,34 @@ See http://support.spatialkey.com/dmapi for more information";
 			return true;
 		}
 
+		static string UploadAndGetId(SpatialKeyDataManager skapi, string[] pathDataArray, string pathXML, string dataType)
+		{
+			string uploadId;
+			string uploadMessage;
+			if (dataType == TYPE_INSURANCE && pathDataArray.Length == 0)
+			{
+				// return null because when using existing datasets there is nothing to upload
+				return null;
+			}
+			else
+			{
+				uploadMessage = String.Format("Uploading '{0}' for {1}", String.Join(", ", pathDataArray), (dataType == TYPE_INSURANCE ? "insurance" : "dataset"));
+				ShowMessage(MessageLevel.Status, uploadMessage);
+				uploadId = skapi.Upload(pathDataArray);
+			}
+			if (uploadId == null)
+			{
+				throw new Exception(uploadMessage + "  Error: No uploadId retrieved.");
+			}
+			Dictionary<string, object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
+			if (skapi.IsUploadStatusError(uploadStausJson))
+			{
+				throw new Exception(String.Format("{0} Error Message: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
+			}
+			ShowMessage(MessageLevel.Status, String.Format("Finished. {0}", String.Join(", ", pathDataArray)));
+			return uploadId;
+		}
+
 		private static string[] CreateSuggestShortFiles(string[] pathDataArray)
 		{
 			List<string> list = new List<string>();
@@ -507,7 +525,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				return;
 			}
 
-			string xml = skapi.GetSampleImportConfiguration(uploadId, method);
+			string xml = skapi.GetSampleConfiguration(uploadId, method);
 			if (xml != null)
 			{
 				if (File.Exists(pathXML))
@@ -526,13 +544,35 @@ See http://support.spatialkey.com/dmapi for more information";
 		{
 			String datasetId = null;
 
-			ShowMessage(MessageLevel.Status, String.Format("Importing '{0}'", String.Join(", ", pathDataArray)));
+			string uploadMessage;
+			if (dataType == TYPE_INSURANCE && pathDataArray.Length == 0)
+			{
+				uploadMessage = String.Format("Importing insurance using existing dataset ids in '{0}'", pathXML);
+			}
+			else
+			{
+				uploadMessage = String.Format("Importing '{0}' for {1}", String.Join(", ", pathDataArray), (dataType == TYPE_INSURANCE ? "insurance" : "dataset"));
+			}
+
+			ShowMessage(MessageLevel.Status, uploadMessage);
 
 			bool isSuccess;
 			if (dataType == TYPE_INSURANCE)
-				isSuccess = skapi.ImportInsurance(uploadId, pathXML);
+			{
+				if (pathDataArray.Length == 0)
+				{
+					uploadId = skapi.InsuranceCreateExistingDatasets(pathXML);
+					isSuccess = uploadId != null;
+				}
+				else
+				{
+					isSuccess = skapi.InsuranceCreate(uploadId, pathDataArray, pathXML);
+				}
+			}
 			else
-				isSuccess = skapi.ImportDataset(uploadId, pathXML);
+			{
+				isSuccess = skapi.DatasetCreate(uploadId, pathXML);
+			}
 
 			if (isSuccess)
 			{
@@ -541,7 +581,7 @@ See http://support.spatialkey.com/dmapi for more information";
 					Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
 					if (skapi.IsUploadStatusError(uploadStausJson))
 					{
-						ShowMessage(MessageLevel.Error, String.Format("Import failed: {0}", MiniJson.Serialize(uploadStausJson)));
+						ShowMessage(MessageLevel.Error, String.Format("{0} Failed: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
 						return null;
 					}
 
@@ -551,7 +591,8 @@ See http://support.spatialkey.com/dmapi for more information";
 						string policyId = null;
 						string locationId = null;
 						string insuranceId = null;
-						if (ids != null && ids.Count >= 3)
+
+						if (ids != null)
 						{
 							foreach (KeyValuePair<string, string> cur in ids)
 							{
@@ -564,19 +605,35 @@ See http://support.spatialkey.com/dmapi for more information";
 							}
 						}
 
-						if (policyId == null || locationId == null || insuranceId == null)
+						if (pathDataArray.Length == 2)
 						{
-							ShowMessage(MessageLevel.Error, String.Format("Import failed.  Could not find policy, location, and insurance ids: {0}", MiniJson.Serialize(uploadStausJson)));
+							if (policyId == null || locationId == null || insuranceId == null)
+							{
+								ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find policy, location, and insurance ids: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
+								return null;
+							}
+
+							XmlDocument doc = new XmlDocument();
+							doc.Load(pathXML);
+							(doc.SelectSingleNode("/insuranceImport/policyDataset") as XmlElement).SetAttribute("id", policyId);
+							(doc.SelectSingleNode("/insuranceImport/locationDataset") as XmlElement).SetAttribute("id", locationId);
+							doc.Save(pathXML);
+
+							ShowMessage(MessageLevel.Result, String.Format("Wrote ids to {0}", pathXML));
+						}
+						if (pathDataArray.Length == 0)
+						{
+							if (insuranceId == null)
+							{
+								ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find insurance id: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
+								return null;
+							}
+						}
+						else
+						{
+							ShowMessage(MessageLevel.Error, String.Format("{0} Failed. Incorrect number of ids: {0}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
 							return null;
 						}
-
-						XmlDocument doc = new XmlDocument();
-						doc.Load(pathXML);
-						(doc.SelectSingleNode("/insuranceImport/policyDataset") as XmlElement).SetAttribute("id", policyId);
-						(doc.SelectSingleNode("/insuranceImport/locationDataset") as XmlElement).SetAttribute("id", locationId);
-						doc.Save(pathXML);
-
-						ShowMessage(MessageLevel.Result, String.Format("Wrote ids to {0}", pathXML));
 
 						datasetId = insuranceId;
 					}
@@ -585,15 +642,15 @@ See http://support.spatialkey.com/dmapi for more information";
 						datasetId = ((ids != null && ids.Count == 1) ? (new List<string>(ids.Keys))[0] : null);
 						if (datasetId == null)
 						{
-							ShowMessage(MessageLevel.Error, String.Format("Import failed.  Could not find dataset Id: {0}", MiniJson.Serialize(uploadStausJson)));
+							ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find dataset Id: {0}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
 							return null;
 						}
 					}
 
-					ShowMessage(MessageLevel.Result, String.Format("Imported '{0}'", String.Join(", ", pathDataArray)));
+					ShowMessage(MessageLevel.Result, String.Format("{0} Complete",uploadMessage));
 				}
 				else
-					ShowMessage(MessageLevel.Status, String.Format("Not waiting for import of '{0}' to complete", String.Join(", ", pathDataArray)));
+					ShowMessage(MessageLevel.Status, String.Format("{0} Not watiting for completion.", uploadMessage));
 			}
 
 			return datasetId;
@@ -607,7 +664,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				return;
 			}
 
-			skapi.Append(uploadId, datasetId, pathXML);
+			skapi.DatasetAppend(uploadId, datasetId, pathXML);
 			ShowMessage(MessageLevel.Status, String.Format("Appending '{0}'", String.Join(", ", pathDataArray)));
 			if (isWaitUpdate)
 			{
@@ -627,23 +684,37 @@ See http://support.spatialkey.com/dmapi for more information";
 
 		private static void DoUploadOverwrite(SpatialKeyDataManager skapi, string[] pathDataArray, string pathXML, string dataType, string uploadId, string datasetId, bool isWaitUpdate)
 		{
-			skapi.Overwrite(uploadId, datasetId, pathXML);
-			// TODO insurance needs to fix up ids
-			ShowMessage(MessageLevel.Status, String.Format("Overwriting '{0}'", String.Join(", ", pathDataArray)));
+			string uploadMessage;
+			if (dataType == TYPE_INSURANCE && pathDataArray.Length == 0)
+			{
+				ShowMessage(MessageLevel.Error, String.Format("Canot do an insurance overwrite with only ids '{0}'", pathXML));
+				return;
+			}
+			else
+			{
+				uploadMessage = String.Format("Overwriting {0} '{1}' using csv '{2}' and config '{3}'", (dataType == TYPE_INSURANCE ? "insurance" : "dataset"), datasetId, String.Join(", ", pathDataArray), pathXML);
+				ShowMessage(MessageLevel.Status, uploadMessage);
+				if (dataType == TYPE_INSURANCE)
+					skapi.InsuranceOverwrite(uploadId, datasetId, pathXML);
+				else
+					skapi.DatasetOverwrite(uploadId, datasetId, pathXML);
+			}
+
+			// TODO insurance needs to fix up id in main command line client config
 			if (isWaitUpdate)
 			{
 				Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(uploadId);
 				if (skapi.IsUploadStatusError(uploadStausJson))
 				{
-					ShowMessage(MessageLevel.Error, String.Format("Overwrite failed: {0}", MiniJson.Serialize(uploadStausJson)));
+					ShowMessage(MessageLevel.Error, String.Format("{0} Failed: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
 				}
 				else
 				{
-					ShowMessage(MessageLevel.Result, String.Format("Overwrote with '{0}'", String.Join(", ", pathDataArray)));
+					ShowMessage(MessageLevel.Result, String.Format("Finished {0}", uploadMessage));
 				}
 			}
 			else
-				ShowMessage(MessageLevel.Status, String.Format("Not waiting for overwrite of '{0}' to complete", String.Join(", ", pathDataArray)));
+				ShowMessage(MessageLevel.Status, String.Format("Not waiting for completion. {0}", uploadMessage));
 		}
 
 		private static String GetInnerText(XmlNode node, String path, String defaultValue = "")

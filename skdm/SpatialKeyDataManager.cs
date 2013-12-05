@@ -98,6 +98,8 @@ namespace skdm
 
 			Logout();
 
+			_accessToken = null;
+			_routeId = null;
 			this.OrganizationURL = organizationURL;
 			this.OrganizationAPIKey = organizationAPIKey;
 			this.OrganizationSecretKey = organizationSecretKey;
@@ -137,7 +139,9 @@ namespace skdm
 			{
 				using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
 				{
-					_routeId = response.Cookies[ROUTEID].Value;
+					if (response.Cookies != null && response.Cookies[ROUTEID] != null)
+						_routeId = response.Cookies[ROUTEID].Value;
+
 					Dictionary<string,object> json = HttpResponseToJSON(response);
 					_accessToken = JsonGetPath<string>(json, "access_token");
 					if (_accessToken == null)
@@ -207,6 +211,7 @@ namespace skdm
 			finally
 			{
 				_accessToken = null;
+				_routeId = null;
 			}
 		}
 
@@ -320,7 +325,7 @@ namespace skdm
 		/// <summary>
 		/// Gets the sample import configuration.
 		/// </summary>
-		public string GetSampleImportConfiguration(string uploadId, string method)
+		public string GetSampleConfiguration(string uploadId, string method)
 		{
 			if (Login() == null)
 				return null;
@@ -347,7 +352,7 @@ namespace skdm
 		/// <summary>
 		/// Import the uploadId as a new dataset with the given config
 		/// </summary>
-		public bool ImportDataset(string uploadId, string pathConfig)
+		public bool DatasetCreate(string uploadId, string pathConfig)
 		{
 			if (Login() == null)
 				return false;
@@ -374,9 +379,41 @@ namespace skdm
 		}
 
 		/// <summary>
+		/// Create uploadId for insurance from existing datasets
+		/// </summary>
+		public string InsuranceCreateExistingDatasets(string pathConfig)
+		{
+			if (Login() == null)
+				return null;
+
+			ShowMessage(MessageLevel.Status, "INSURANCE CREATE FROM DATASETS: " + pathConfig);
+
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpPostXml(BuildUrl("upload/insurance.json"), pathConfig, query))
+				{
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					string uploadId = JsonGetPath<string>(json, "upload/uploadId");
+					if (uploadId == null)
+						throw new Exception(String.Format("JSON does not contian '{0}': {1}", "upload/uploadId", MiniJson.Serialize(json)));
+					return uploadId;
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed create from datasets '{0}'", pathConfig), ex);
+				return null;
+			}
+		}
+
+		/// <summary>
 		/// Import the uploadId as a new dataset with the given config
 		/// </summary>
-		public bool ImportInsurance(string uploadId, string pathConfig)
+		public bool InsuranceCreate(string uploadId, string[] pathDataArray, string pathConfig)
 		{
 			if (Login() == null)
 				return false;
@@ -402,26 +439,31 @@ namespace skdm
 			}
 		}
 
+		public bool InsuranceOverwrite(string uploadId, string datasetId, string pathConfig)
+		{
+			return DatasetAppendOrOverwrite(uploadId, datasetId, pathConfig, "Overwrite");
+		}
+
 		/// <summary>
 		/// Append the uploadId to the datasetId
 		/// </summary>
-		public bool Append(string uploadId, string datasetId, string pathConfig)
+		public bool DatasetAppend(string uploadId, string datasetId, string pathConfig)
 		{
-			return AppendOrOverwrite(uploadId, datasetId, pathConfig, "Append");
+			return DatasetAppendOrOverwrite(uploadId, datasetId, pathConfig, "Append");
 		}
 
 		/// <summary>
 		/// Overwrite the datasetId with datasetId
 		/// </summary>
-		public bool Overwrite(string uploadId, string datasetId, string pathConfig)
+		public bool DatasetOverwrite(string uploadId, string datasetId, string pathConfig)
 		{
-			return AppendOrOverwrite(uploadId, datasetId, pathConfig, "Overwrite");
+			return DatasetAppendOrOverwrite(uploadId, datasetId, pathConfig, "Overwrite");
 		}
 
 		/// <summary>
 		/// Append or overwrite datasetId with uploadId
 		/// </summary>
-		private bool AppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
+		private bool DatasetAppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
 		{
 			if (Login() == null)
 				return false;
@@ -504,7 +546,7 @@ namespace skdm
 		/// <summary>
 		/// Get a list of all the insurance datasets the authenticated user has access to
 		/// </summary>
-		public List<Dictionary<string, string>> ListInsurance()
+		public List<Dictionary<string, string>> InsuranceList()
 		{
 			if (Login() == null)
 				return null;
@@ -532,7 +574,7 @@ namespace skdm
 		/// <summary>
 		/// Deletes the datasetId
 		/// </summary>
-		public void DeleteDataset(string datasetId)
+		public void DatasetDelete(string datasetId)
 		{
 			if (Login() == null)
 				return;
