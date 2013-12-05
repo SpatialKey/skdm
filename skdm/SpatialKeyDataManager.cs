@@ -42,25 +42,8 @@ namespace skdm
 		/// <summary>Logging delegate</summary>
 		public delegate void Messager(MessageLevel level, string message);
 
-		/// <summary>
-		/// Name of the SpatialKey organization url"/>
-		/// </summary>
-		public string OrganizationURL { get; private set; }
-
-		/// <summary>
-		/// Authentication organizationAPIKey for <see cref="Authenticate()"/>
-		/// </summary>
-		public string OrganizationAPIKey { get; private set; }
-
-		/// <summary>
-		/// Authentication organizationSecretKey for <see cref="Authenticate()"/>
-		/// </summary>
-		public string OrganizationSecretKey { get; private set; }
-
-		/// <summary>
-		/// Authentication userAPIKey for <see cref="Authenticate()"/>
-		/// </summary>
-		public string UserAPIKey { get; private set; }
+		/// <summary>Authenticaton Configuration</summary>
+		public ConfigAuth MyConfigAuth { get; private set; }
 
 		/// <summary>
 		/// Gets or sets the logger.  Used by  for <see cref="Log(message)"/>
@@ -85,25 +68,18 @@ namespace skdm
 		/// Init the manager.  If the organizationURL, organizationAPIKey, organizationSecretKey or userAPIKey
 		/// have changed the application will logout.
 		/// </summary>
-		public void Init(string organizationURL, string organizationAPIKey, string organizationSecretKey, string userAPIKey)
+		public void Init(ConfigAuth configAuth)
 		{
 			// if the setup is the same, bail
-			if (this.OrganizationURL == organizationURL &&
-			    this.OrganizationAPIKey == organizationAPIKey &&
-			    this.OrganizationSecretKey == organizationSecretKey &&
-			    this.UserAPIKey == userAPIKey)
-			{
+			if (configAuth == MyConfigAuth)
 				return;
-			}
 
 			Logout();
 
 			_accessToken = null;
 			_routeId = null;
-			this.OrganizationURL = organizationURL;
-			this.OrganizationAPIKey = organizationAPIKey;
-			this.OrganizationSecretKey = organizationSecretKey;
-			this.UserAPIKey = userAPIKey;
+
+			MyConfigAuth = configAuth;
 		}
 
 		/// <summary>
@@ -125,11 +101,11 @@ namespace skdm
 			if (IsLoginTokenValid())
 				return _accessToken;
 
-			ShowMessage(MessageLevel.Status, "START LOGIN: " + OrganizationURL);
+			ShowMessage(MessageLevel.Status, "START LOGIN: " + MyConfigAuth.organizationURL);
 			_accessToken = null;
 			_routeId = null;
 
-			string oauth = OAuth.GetOAuthToken(UserAPIKey, OrganizationAPIKey, OrganizationSecretKey, TOKEN_TIMEOUT);
+			string oauth = OAuth.GetOAuthToken(MyConfigAuth.userAPIKey, MyConfigAuth.organizationAPIKey, MyConfigAuth.organizationSecretKey, TOKEN_TIMEOUT);
 			// add the query string
 			NameValueCollection bodyParam = new NameValueCollection();
 			bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
@@ -151,7 +127,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Unable to login to '{0}' using oAuth token '{1}'", OrganizationURL, oauth), ex);
+				ShowException(String.Format("Unable to login to '{0}' using oAuth token '{1}'", MyConfigAuth.organizationURL, oauth), ex);
 				return null;
 			}
 		}
@@ -367,7 +343,7 @@ namespace skdm
 			{
 				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, query))
 				{
-					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
 					return true; 
 				}
 			}
@@ -428,7 +404,7 @@ namespace skdm
 			{
 				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/insurance.json", uploadId)), pathConfig, query))
 				{
-					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
 					return true; 
 				}
 			}
@@ -441,7 +417,27 @@ namespace skdm
 
 		public bool InsuranceOverwrite(string uploadId, string datasetId, string pathConfig)
 		{
-			return DatasetAppendOrOverwrite(uploadId, datasetId, pathConfig, "Overwrite");
+			if (Login() == null)
+				return false;
+			ShowMessage(MessageLevel.Status, String.Format("Overwrite uploadId:{0} datasetId: {1} config: '{2}'", uploadId, datasetId, pathConfig));
+
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/insurance/overwrite.json", uploadId, datasetId)), pathConfig, query))
+				{
+					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					return true;
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed overwrite uploadId:{0} datasetId: {1} config: '{2}'",uploadId, datasetId, pathConfig), ex);
+				return false;
+			}
 		}
 
 		/// <summary>
@@ -478,7 +474,7 @@ namespace skdm
 			{
 				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
 				{
-					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
 					return true;
 				}
 			}
@@ -506,7 +502,7 @@ namespace skdm
 			{
 				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
 				{
-					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
 				}
 			}
 			catch (Exception ex)
@@ -588,7 +584,7 @@ namespace skdm
 			{
 				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("dataset/{0}.json", datasetId)), query, "DELETE"))
 				{
-					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
 				}
 			}
 			catch (Exception ex)
@@ -750,7 +746,7 @@ namespace skdm
 
 		private string BuildUrl(string command, NameValueCollection query = null)
 		{
-			UriBuilder uri = new UriBuilder(OrganizationURL);
+			UriBuilder uri = new UriBuilder(MyConfigAuth.organizationURL);
 			uri.Path = String.Format("/SpatialKeyFramework/api/{0}/{1}", API_VERSION, command);
 			return uri.ToString() + ToQueryString(query);
 		}
