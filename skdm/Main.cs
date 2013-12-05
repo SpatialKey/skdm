@@ -445,6 +445,67 @@ See http://support.spatialkey.com/dmapi for more information";
 			}
 		}
 
+		static bool ExtractDatasetIds(SpatialKeyDataManager skapi, ConfigAction action, string uploadMessage, Dictionary<string, object> uploadStausJson)
+		{
+			Dictionary<string, string> ids = skapi.GetDatasetIDs(uploadStausJson);
+			if (action.dataType == ConfigAction.TYPE_INSURANCE)
+			{
+				string policyId = null;
+				string locationId = null;
+				string insuranceId = null;
+				if (ids != null)
+				{
+					foreach (KeyValuePair<string, string> cur in ids)
+					{
+						if (cur.Value.ToLower() == "policy_dataset")
+							policyId = cur.Key;
+						else if (cur.Value.ToLower() == "location_dataset")
+							locationId = cur.Key;
+						else if (cur.Value.ToLower() == "insurance")
+							insuranceId = cur.Key;
+					}
+				}
+				if (action.pathDataArray.Length == 2)
+				{
+					if (policyId == null || locationId == null || insuranceId == null)
+					{
+						ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find policy, location, and insurance ids: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
+						return false;
+					}
+					XmlDocument doc = new XmlDocument();
+					doc.Load(action.pathXML);
+					(doc.SelectSingleNode("/insuranceImport/policyDataset") as XmlElement).SetAttribute("id", policyId);
+					(doc.SelectSingleNode("/insuranceImport/locationDataset") as XmlElement).SetAttribute("id", locationId);
+					doc.Save(action.pathXML);
+					ShowMessage(MessageLevel.Result, String.Format("Wrote ids to {0}", action.pathXML));
+				}
+				else if (action.pathDataArray.Length == 0)
+				{
+					if (insuranceId == null)
+					{
+						ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find insurance id: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
+						return false;
+					}
+				}
+				else
+				{
+					ShowMessage(MessageLevel.Error, String.Format("{0} Failed. Incorrect number of ids: {0}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
+					return false;
+				}
+				action.datasetId = insuranceId;
+			}
+			else
+			{
+				action.datasetId = ((ids != null && ids.Count == 1) ? (new List<string>(ids.Keys))[0] : null);
+				if (action.datasetId == null)
+				{
+					ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find dataset Id: {0}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
+					return false;
+				}
+			}
+			return true;
+		}
+
 		private static void DoUploadImport(SpatialKeyDataManager skapi, ConfigAction action, bool isWaitUpdate)
 		{
 			string uploadMessage;
@@ -489,67 +550,8 @@ See http://support.spatialkey.com/dmapi for more information";
 					return;
 				}
 
-				Dictionary<string,string> ids = skapi.GetDatasetIDs(uploadStausJson);
-				if (action.dataType == ConfigAction.TYPE_INSURANCE)
-				{
-					string policyId = null;
-					string locationId = null;
-					string insuranceId = null;
-
-					if (ids != null)
-					{
-						foreach (KeyValuePair<string, string> cur in ids)
-						{
-							if (cur.Value.ToLower() == "policy_dataset")
-								policyId = cur.Key;
-							else if (cur.Value.ToLower() == "location_dataset")
-								locationId = cur.Key;
-							else if (cur.Value.ToLower() == "insurance")
-								insuranceId = cur.Key;
-						}
-					}
-
-					if (action.pathDataArray.Length == 2)
-					{
-						if (policyId == null || locationId == null || insuranceId == null)
-						{
-							ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find policy, location, and insurance ids: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
-							return;
-						}
-
-						XmlDocument doc = new XmlDocument();
-						doc.Load(action.pathXML);
-						(doc.SelectSingleNode("/insuranceImport/policyDataset") as XmlElement).SetAttribute("id", policyId);
-						(doc.SelectSingleNode("/insuranceImport/locationDataset") as XmlElement).SetAttribute("id", locationId);
-						doc.Save(action.pathXML);
-
-						ShowMessage(MessageLevel.Result, String.Format("Wrote ids to {0}", action.pathXML));
-					}
-					else if (action.pathDataArray.Length == 0)
-					{
-						if (insuranceId == null)
-						{
-							ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find insurance id: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
-							return;
-						}
-					}
-					else
-					{
-						ShowMessage(MessageLevel.Error, String.Format("{0} Failed. Incorrect number of ids: {0}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
-						return;
-					}
-
-					action.datasetId = insuranceId;
-				}
-				else
-				{
-					action.datasetId = ((ids != null && ids.Count == 1) ? (new List<string>(ids.Keys))[0] : null);
-					if (action.datasetId == null)
-					{
-						ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find dataset Id: {0}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
-						return;
-					}
-				}
+				if (!ExtractDatasetIds(skapi, action, uploadMessage, uploadStausJson))
+					return;
 
 				ShowMessage(MessageLevel.Result, String.Format("{0} Complete", uploadMessage));
 			}
@@ -616,8 +618,8 @@ See http://support.spatialkey.com/dmapi for more information";
 				{
 					if (action.dataType == ConfigAction.TYPE_INSURANCE)
 					{
-						// TODO insurance needs to fix up id in main command line client config
-						ShowMessage(MessageLevel.Status, "update insurance id");
+						if (!ExtractDatasetIds(skapi, action, uploadMessage, uploadStausJson))
+							return;
 					}
 
 					ShowMessage(MessageLevel.Result, String.Format("Finished {0}", uploadMessage));
