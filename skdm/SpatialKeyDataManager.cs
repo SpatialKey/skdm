@@ -91,8 +91,7 @@ namespace skdm
 				MyMessenger(level, message);
 		}
 
-		#region API calls
-
+		#region API calls - Common
 		/// <summary>
 		/// If don't have a valid login token, login to the API and get one.
 		/// </summary>
@@ -251,54 +250,6 @@ namespace skdm
 		}
 
 		/// <summary>
-		/// Get information about a dataset
-		/// </summary>
-		public Dictionary<string,object> GetDatasetInfo(string datasetId)
-		{
-			if (Login() == null || datasetId == null || datasetId.Length < 1)
-				return null;
-
-			ShowMessage(MessageLevel.Status, "Dataset Info: " + datasetId);
-
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-
-			try
-			{
-				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("dataset/{0}.json", datasetId)), query))
-				{
-					return HttpResponseToJSON(response);
-				}
-			}
-			catch (Exception ex)
-			{
-				ShowException(String.Format("Failed to get dataset information for '{0}'", datasetId), ex);
-				return null;
-			}
-		}
-
-		/// <summary>
-		/// Waits the upload complete and returns the final status json
-		/// </summary>
-		public Dictionary<string,object> WaitUploadComplete(string uploadId)
-		{
-			ShowMessage(MessageLevel.Status, "WAIT UPLOAD COMPLETE: " + uploadId);
-
-			DateTime start = DateTime.Now;
-			Dictionary<string,object> json = GetUploadStatus(uploadId);
-
-			while (IsUploadStatusWorking(json))
-			{
-				if (DateTime.Now.Subtract(start).TotalMilliseconds > HTTP_TIMEOUT_MED)
-					throw new Exception(String.Format("Timed out waiting for upload '{0}' to complete", uploadId));
-
-				System.Threading.Thread.Sleep(10000);
-				json = GetUploadStatus(uploadId);
-			}
-			return json;
-		}
-
-		/// <summary>
 		/// Gets the sample import configuration.
 		/// </summary>
 		public string GetSampleConfiguration(string uploadId, string method)
@@ -326,6 +277,62 @@ namespace skdm
 		}
 
 		/// <summary>
+		/// Cancel the given uploadId
+		/// </summary>
+		public void CancelUpload(string uploadId)
+		{
+			if (Login() == null)
+				return;
+
+			ShowMessage(MessageLevel.Status, "CANCEL UPLOAD: " + uploadId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
+				{
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to cancel upload {0}" + uploadId), ex);
+			}
+		}
+
+		#endregion // API calls - Common
+
+		#region API calls - Dataset
+		/// <summary>
+		/// Get information about a dataset
+		/// </summary>
+		public Dictionary<string,object> GetDatasetInfo(string datasetId)
+		{
+			if (Login() == null || datasetId == null || datasetId.Length < 1)
+				return null;
+
+			ShowMessage(MessageLevel.Status, "Dataset Info: " + datasetId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("dataset/{0}.json", datasetId)), query))
+				{
+					return HttpResponseToJSON(response);
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to get dataset information for '{0}'", datasetId), ex);
+				return null;
+			}
+		}
+
+		/// <summary>
 		/// Import the uploadId as a new dataset with the given config
 		/// </summary>
 		public bool DatasetCreate(string uploadId, string pathConfig)
@@ -343,7 +350,7 @@ namespace skdm
 			{
 				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, query))
 				{
-					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
 					return true; 
 				}
 			}
@@ -354,6 +361,108 @@ namespace skdm
 			}
 		}
 
+		/// <summary>
+		/// Append the uploadId to the datasetId
+		/// </summary>
+		public bool DatasetAppend(string uploadId, string datasetId, string pathConfig)
+		{
+			return DatasetAppendOrOverwrite(uploadId, datasetId, pathConfig, "Append");
+		}
+
+		/// <summary>
+		/// Overwrite the datasetId with datasetId
+		/// </summary>
+		public bool DatasetOverwrite(string uploadId, string datasetId, string pathConfig)
+		{
+			return DatasetAppendOrOverwrite(uploadId, datasetId, pathConfig, "Overwrite");
+		}
+
+		/// <summary>
+		/// Append or overwrite datasetId with uploadId
+		/// </summary>
+		private bool DatasetAppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
+		{
+			if (Login() == null)
+				return false;
+			ShowMessage(MessageLevel.Status, String.Format("{0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig));
+
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+			query["method"] = method;
+
+			try
+			{
+				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
+				{
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					return true;
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed {0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig), ex);
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Get a list of all the datasets the authenticated user has access to
+		/// </summary>
+		public List<Dictionary<string, string>> DatasetList()
+		{
+			if (Login() == null)
+				return null;
+
+			ShowMessage(MessageLevel.Status, "LIST DATASETS");
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl("dataset.json"), query))
+				{
+					Dictionary<string, object> json = HttpResponseToJSON(response);
+					return ParseListJson(json, "Dataset");
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException("Error Processing Dataset List", ex);
+				return null;
+			}
+		}
+
+		/// <summary>
+		/// Deletes the datasetId
+		/// </summary>
+		public void DatasetDelete(string datasetId)
+		{
+			if (Login() == null)
+				return;
+
+			ShowMessage(MessageLevel.Status, "DELETE DATASET: " + datasetId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("dataset/{0}.json", datasetId)), query, "DELETE"))
+				{
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException("Failed to delete dataset " + datasetId, ex);
+				return;
+			}
+		}
+		#endregion // API calls - Dataset
+
+		#region API calls - Insurance
 		/// <summary>
 		/// Create uploadId for insurance from existing datasets
 		/// </summary>
@@ -404,7 +513,7 @@ namespace skdm
 			{
 				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/insurance.json", uploadId)), pathConfig, query))
 				{
-					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
 					return true; 
 				}
 			}
@@ -429,7 +538,7 @@ namespace skdm
 			{
 				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/insurance/overwrite.json", uploadId, datasetId)), pathConfig, query))
 				{
-					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
 					return true;
 				}
 			}
@@ -437,105 +546,6 @@ namespace skdm
 			{
 				ShowException(String.Format("Failed overwrite uploadId:{0} datasetId: {1} config: '{2}'",uploadId, datasetId, pathConfig), ex);
 				return false;
-			}
-		}
-
-		/// <summary>
-		/// Append the uploadId to the datasetId
-		/// </summary>
-		public bool DatasetAppend(string uploadId, string datasetId, string pathConfig)
-		{
-			return DatasetAppendOrOverwrite(uploadId, datasetId, pathConfig, "Append");
-		}
-
-		/// <summary>
-		/// Overwrite the datasetId with datasetId
-		/// </summary>
-		public bool DatasetOverwrite(string uploadId, string datasetId, string pathConfig)
-		{
-			return DatasetAppendOrOverwrite(uploadId, datasetId, pathConfig, "Overwrite");
-		}
-
-		/// <summary>
-		/// Append or overwrite datasetId with uploadId
-		/// </summary>
-		private bool DatasetAppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
-		{
-			if (Login() == null)
-				return false;
-			ShowMessage(MessageLevel.Status, String.Format("{0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig));
-
-			// add the query string
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-			query["method"] = method;
-
-			try
-			{
-				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
-				{
-					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
-					return true;
-				}
-			}
-			catch (Exception ex)
-			{
-				ShowException(String.Format("Failed {0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig), ex);
-				return false;
-			}
-		}
-
-		/// <summary>
-		/// Cancel the given uploadId
-		/// </summary>
-		public void CancelUpload(string uploadId)
-		{
-			if (Login() == null)
-				return;
-
-			ShowMessage(MessageLevel.Status, "CANCEL UPLOAD: " + uploadId);
-
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-
-			try
-			{
-				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
-				{
-					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
-				}
-			}
-			catch (Exception ex)
-			{
-				ShowException(String.Format("Failed to cancel upload {0}" + uploadId), ex);
-			}
-		}
-
-		/// <summary>
-		/// Get a list of all the datasets the authenticated user has access to
-		/// </summary>
-		public List<Dictionary<string, string>> ListDatasets()
-		{
-			if (Login() == null)
-				return null;
-			
-			ShowMessage(MessageLevel.Status, "LIST DATASETS");
-
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-
-			try
-			{
-				using (HttpWebResponse response = HttpGet(BuildUrl("dataset.json"), query))
-				{
-					Dictionary<string, object> json = HttpResponseToJSON(response);
-					return ParseListJson(json, "Dataset");
-				}
-			}
-			catch (Exception ex)
-			{
-				ShowException("Error Processing Dataset List", ex);
-				return null;
 			}
 		}
 
@@ -567,34 +577,33 @@ namespace skdm
 			}
 		}
 
+		#endregion // API calls - Insurance
+
+		#region API calls - Composite
+
 		/// <summary>
-		/// Deletes the datasetId
+		/// Waits the upload complete and returns the final status json
 		/// </summary>
-		public void DatasetDelete(string datasetId)
+		public Dictionary<string,object> WaitUploadComplete(string uploadId)
 		{
-			if (Login() == null)
-				return;
+			ShowMessage(MessageLevel.Status, "WAIT UPLOAD COMPLETE: " + uploadId);
 
-			ShowMessage(MessageLevel.Status, "DELETE DATASET: " + datasetId);
+			DateTime start = DateTime.Now;
+			Dictionary<string,object> json = GetUploadStatus(uploadId);
 
-			NameValueCollection query = new NameValueCollection();
-			query["token"] = _accessToken;
-
-			try
+			while (IsUploadStatusWorking(json))
 			{
-				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("dataset/{0}.json", datasetId)), query, "DELETE"))
-				{
-					Dictionary<string, object> json = HttpResponseToJSON(response);  // TODO should the json be examined for success?
-				}
+				if (DateTime.Now.Subtract(start).TotalMilliseconds > HTTP_TIMEOUT_MED)
+					throw new Exception(String.Format("Timed out waiting for upload '{0}' to complete", uploadId));
+
+				System.Threading.Thread.Sleep(10000);
+				json = GetUploadStatus(uploadId);
 			}
-			catch (Exception ex)
-			{
-				ShowException("Failed to delete dataset " + datasetId, ex);
-				return;
-			}
+			return json;
 		}
 
-		#endregion
+
+		#endregion // API calls - Composite
 
 		#region JSON helpers
 
@@ -734,7 +743,7 @@ namespace skdm
 			return json;
 		}
 
-		#endregion
+		#endregion // JSON helpers
 
 		#region HTTP/Web helpers
 
@@ -987,9 +996,9 @@ namespace skdm
 			return string.Join(", ", d);
 		}
 
-		#endregion
+		#endregion //  HTTP/Web helpers
 
-		#region Helpers
+		#region General Helpers
 
 		/// <summary>
 		/// Gets a temporary file path with a given extension
@@ -1028,7 +1037,7 @@ namespace skdm
 			return filename;
 		}
 
-		#endregion
+		#endregion //  General Helpers
 
 	}
 }

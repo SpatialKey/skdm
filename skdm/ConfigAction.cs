@@ -46,7 +46,7 @@ namespace skdm
 			get { return _id; } 
 			set { 
 				_id = value;
-				if (_id != null)
+				if (_id != null && xml != null)
 				{
 					string elementName = dataType == TYPE_INSURANCE ? "insuranceId" : "datasetId";
 					if (xml.SelectSingleNode(elementName) == null)

@@ -71,10 +71,10 @@ See http://support.spatialkey.com/dmapi for more information";
 				cmd = clp.AddCommand(new string[] { COMMAND_OAUTH }, "Get oAuth token for keys in XML configuration or by passing in values", "[ORG_API_KEY ORG_SECRET_KEY USER_API_KEY]", RunOAuthCommand);
 				cmd.Parser.AddOptionValue<int>(new string[] { PARAM_TTL }, String.Format("oAuth token time to live in seconds. Min {0}, Max {1} (Default 60)", TTL_MIN, TTL_MAX), "TTL", 60);
 
-				cmd = clp.AddCommand(new string[] { COMMAND_UPLOAD }, "Upload dataset data", "[[ACTION1] ... [ACTIONN]]", RunUploadCommand);
+				cmd = clp.AddCommand(new string[] { COMMAND_UPLOAD }, "Upload dataset data", "[[ACTION1] ... [ACTIONN]]", RunActions);
 				cmd.Parser.AddOptionBoolean(new string[] { PARAM_NO_WAIT }, "Don't wait for import, overwrite, and append actions to complete.");
 
-				clp.AddCommand(new string[] { COMMAND_SUGGEST }, "Get suggested config for data", "[[ACTION1] ... [ACTIONN]]", RunUploadCommand);
+				clp.AddCommand(new string[] { COMMAND_SUGGEST }, "Get suggested config for data", "[[ACTION1] ... [ACTIONN]]", RunActions);
 				clp.AddCommand(new string[] { COMMAND_LIST }, "List available datasets", "", RunListCommand);
 				clp.AddCommand(new string[] { COMMAND_DELETE }, "Delete datasets by id", "ID [[ID] ... [ID]]", RunDeleteCommand);
 
@@ -185,7 +185,7 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage);
 			skapi.Init(defaultConfigAuth);
-			List<Dictionary<string, string>> list = skapi.ListDatasets();
+			List<Dictionary<string, string>> list = skapi.DatasetList();
 			list.AddRange(skapi.InsuranceList());
 			if (list == null || list.Count < 1)
 			{
@@ -238,7 +238,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			return true;
 		}
 
-		private static Boolean RunUploadCommand(string command, Queue<string> args)
+		private static Boolean RunActions(string command, Queue<string> args)
 		{
 			XmlDocument doc = LoadConfig();
 			if (doc == null)
