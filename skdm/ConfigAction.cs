@@ -34,18 +34,18 @@ namespace skdm
 		#endregion
 
 		#region properties
+
 		public XmlNode xml;
 		public ConfigAuth configAuth;
-
 		// from the action xml
 		public String actionName;
 		public String actionType;
 		public String[] pathDataArray;
 		public String pathXML;
+
 		public String datasetId { 
 			get { return _datasetId; } 
-			set 
-			{ 
+			set { 
 				_datasetId = value;
 				if (_datasetId != null)
 				{
@@ -56,16 +56,14 @@ namespace skdm
 				}
 			} 
 		}
+
 		private String _datasetId;
 		public String dataType;
-
 		// from pathXML if dataType is TYPE_INSURANCE
 		public String locationId;
 		public String policyId;
-
 		// set when uploaded pathDataArray
 		public String uploadId;
-
 		public Boolean isUpdateDoc = false;
 
 		#endregion
@@ -129,6 +127,45 @@ namespace skdm
 				if (datasetId == null || datasetId.Length == 0)
 					actionType = ACTION_IMPORT;
 			}
+		}
+
+		private string FormatTraceValue(object value)
+		{
+			if (value is String)
+			{
+				String s = value as String;
+				s.Trim();
+				if (s.Length < 1)
+					return "UNSET";
+				else
+					return s;
+			}
+			else if (value is String[])
+				return String.Join(", ", (value as String[]));
+			else
+				return "UNSET";
+		}
+
+		public string TraceInfo()
+		{
+			if (dataType == TYPE_INSURANCE)
+				return String.Format("actionName: '{0}' actionType: '{1}' dataType: '{2}' insuranceId: '{3}' policyId: '{4}' locationId: '{5}', pathXML: '{6}' pathData: '{7}'", 
+					FormatTraceValue(actionName),
+					FormatTraceValue(actionType), 
+					FormatTraceValue(dataType), 
+					FormatTraceValue(datasetId), 
+					FormatTraceValue(policyId), 
+					FormatTraceValue(locationId), 
+					FormatTraceValue(pathXML), 
+					FormatTraceValue(pathDataArray));
+			else
+				return String.Format("actionName: '{0}' actionType: '{1}' dataType: '{2}' datasetId: '{3}' pathXML: '{4}' pathData: '{5}'", 
+					FormatTraceValue(actionName), 
+					FormatTraceValue(actionType), 
+					FormatTraceValue(dataType), 
+					FormatTraceValue(datasetId), 
+					FormatTraceValue(pathXML), 
+					FormatTraceValue(pathDataArray));
 		}
 	}
 }

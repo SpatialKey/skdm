@@ -273,16 +273,15 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			foreach (XmlNode actionNode in actionNodes)
 			{
-				ConfigAction action = null;
+				ConfigAction action = new ConfigAction(actionNode, defaultConfigAuth);
+				if (!(actions.Count == 0 || actions.Contains(action.actionName)))
+					continue;
+
 				try
 				{
-					action = new ConfigAction(actionNode, defaultConfigAuth);
-					if (!(actions.Count == 0 || actions.Contains(action.actionName)))
-						continue;
-
 					isRanAction = true;
 
-					ShowMessage(MessageLevel.Status, String.Format("Running Action: {0}", action.actionName));
+					ShowMessage(MessageLevel.Status, String.Format("START {0}", action.TraceInfo()));
 
 					skapi.Init(action.configAuth);
 
@@ -313,8 +312,6 @@ See http://support.spatialkey.com/dmapi for more information";
 						DoUploadAppend(skapi, action, isWaitUpdate);
 						break;
 					}
-
-					ShowMessage(MessageLevel.Status, String.Format("Finished Action: {0}", action.actionName));
 				}
 				catch (Exception ex)
 				{
@@ -333,13 +330,15 @@ See http://support.spatialkey.com/dmapi for more information";
 					catch
 					{
 					}
+
+					ShowMessage(MessageLevel.Result, String.Format("FINISH {0}", action.TraceInfo()));
 				}
 			}
 			skapi.Logout();
 
 			if (isUpdateDoc)
 			{
-				ShowMessage(MessageLevel.Result, String.Format("Updating {0}", configFile));
+				ShowMessage(MessageLevel.Result, String.Format("UPDATE datasetId(s) in {0}", configFile));
 				doc.Save(configFile);
 			}
 
@@ -477,7 +476,7 @@ See http://support.spatialkey.com/dmapi for more information";
 					(doc.SelectSingleNode("/insuranceImport/policyDataset") as XmlElement).SetAttribute("id", policyId);
 					(doc.SelectSingleNode("/insuranceImport/locationDataset") as XmlElement).SetAttribute("id", locationId);
 					doc.Save(action.pathXML);
-					ShowMessage(MessageLevel.Result, String.Format("Wrote ids to {0}", action.pathXML));
+					ShowMessage(MessageLevel.Result, String.Format("UPDATE wrote policy and location ids to {0}", action.pathXML));
 				}
 				else if (action.pathDataArray.Length == 0)
 				{
@@ -553,7 +552,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				if (!ExtractDatasetIds(skapi, action, uploadMessage, uploadStausJson))
 					return;
 
-				ShowMessage(MessageLevel.Result, String.Format("{0} Complete", uploadMessage));
+				ShowMessage(MessageLevel.Status, String.Format("{0} Complete", uploadMessage));
 			}
 			else
 				ShowMessage(MessageLevel.Status, String.Format("{0} Not watiting for completion.", uploadMessage));
@@ -578,7 +577,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				}
 				else
 				{
-					ShowMessage(MessageLevel.Result, String.Format("Appended '{0}'", String.Join(", ", action.pathDataArray)));
+					ShowMessage(MessageLevel.Status, String.Format("Appended '{0}'", String.Join(", ", action.pathDataArray)));
 				}
 			}
 			else
@@ -622,7 +621,7 @@ See http://support.spatialkey.com/dmapi for more information";
 							return;
 					}
 
-					ShowMessage(MessageLevel.Result, String.Format("Finished {0}", uploadMessage));
+					ShowMessage(MessageLevel.Status, String.Format("Finished {0}", uploadMessage));
 				}
 			}
 			else
