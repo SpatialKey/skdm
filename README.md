@@ -120,14 +120,14 @@ This field defines what user is authenticating into Spatial Key.  Login to Spati
 The "actions" section of the Config XML file defines all the actions that will be done when the Command Line Tool is executed.
 
 The `<actionType>` element defines what action will be done.  The current options are:
-- import – Always creates a new dataset.  This will set `<datasetId>` in the xml to the id created when the import is complete.  If you specified /no-wait, the application will not wait until the id is created so it will not be set.
 - append – Append to an existing dataset.  If the `<datasetId>` is not set before running this action, an import will be done the first time it is run.  A shape dataset cannot be appened to, so this will overwite.
 - overwrite – Overwrite an existing dataset.  If the `<datasetId>` is not set before running this action, an import will be done the first time it is run.
 
-- dataType - What type of data is in the `<pathData>`. Can be "CSV" or "Shapefile"
+- dataType - What type of data is in the `<pathData>`. Can be "CSV", "Shapefile", or "Insurance"
 - pathData - Path of the data to upload.  CSV can be a raw file or zip, shapes are always zipped up.
 - pathXML - configuration file for the data.  You can use the "suggest" command to get an xml file or retrieve it from an already uploaded sample on the Spatial Key client.
-- datasetId - datasetId to use fro overwrite or append.  If not set, an import will be done and the generated id will be saved to the xml.
+- datasetId (dataType not "Insurance") - datasetId to use for overwrite or append.  If not set, an import will be done and the generated id will be saved to the xml.
+- insuranceId (dataType "Insurance") - insuranceId to use for overwrite or append.  If not set, an import will be done and the generated id will be saved to the xml.  A new insuranceId is always generated.
 
 Note: you don't get email or client notifications at this time.
 

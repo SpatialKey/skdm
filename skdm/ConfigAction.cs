@@ -16,8 +16,6 @@ namespace skdm
 		public const string ACTION_OVERWRITE = "overwrite";
 		public const string ACTION_APPEND = "append";
 		private static readonly List<string> VALID_ACTIONS = new List<string> {
-			ACTION_SUGGEST,
-			ACTION_IMPORT,
 			ACTION_OVERWRITE,
 			ACTION_APPEND
 		};
@@ -43,21 +41,22 @@ namespace skdm
 		public String[] pathDataArray;
 		public String pathXML;
 
-		public String datasetId { 
-			get { return _datasetId; } 
+		private String _id;
+		public String id { 
+			get { return _id; } 
 			set { 
-				_datasetId = value;
-				if (_datasetId != null)
+				_id = value;
+				if (_id != null)
 				{
-					if (xml.SelectSingleNode("datasetId") == null)
-						xml.AppendChild(xml.OwnerDocument.CreateElement("datasetId"));
-					xml.SelectSingleNode("datasetId").InnerText = _datasetId;
+					string elementName = dataType == TYPE_INSURANCE ? "insuranceId" : "datasetId";
+					if (xml.SelectSingleNode(elementName) == null)
+						xml.AppendChild(xml.OwnerDocument.CreateElement(elementName));
+					xml.SelectSingleNode(elementName).InnerText = _id;
 					isUpdateDoc = true;
 				}
 			} 
 		}
 
-		private String _datasetId;
 		public String dataType;
 		// from pathXML if dataType is TYPE_INSURANCE
 		public String locationId;
@@ -87,8 +86,9 @@ namespace skdm
 			actionType = XMLUtils.GetInnerText(xml, "actionType").ToLower();
 			pathDataArray = XMLUtils.GetInnerTextList(xml, "pathData");
 			pathXML = XMLUtils.GetInnerText(xml, "pathXML");
-			_datasetId = XMLUtils.GetInnerText(xml, "datasetId");
 			dataType = XMLUtils.GetInnerText(xml, "dataType").ToLower();
+
+			_id = (dataType == TYPE_INSURANCE ? XMLUtils.GetInnerText(xml, "insuranceId") : XMLUtils.GetInnerText(xml, "datasetId"));
 
 			// load insurance configuration ids if needed
 			if (dataType == TYPE_INSURANCE && File.Exists(pathXML))
@@ -124,7 +124,7 @@ namespace skdm
 
 			if (actionType == ACTION_APPEND || actionType == ACTION_OVERWRITE)
 			{
-				if (datasetId == null || datasetId.Length == 0)
+				if (id == null || id.Length == 0)
 					actionType = ACTION_IMPORT;
 			}
 		}
@@ -153,7 +153,7 @@ namespace skdm
 					FormatTraceValue(actionName),
 					FormatTraceValue(actionType), 
 					FormatTraceValue(dataType), 
-					FormatTraceValue(datasetId), 
+					FormatTraceValue(id), 
 					FormatTraceValue(policyId), 
 					FormatTraceValue(locationId), 
 					FormatTraceValue(pathXML), 
@@ -163,7 +163,7 @@ namespace skdm
 					FormatTraceValue(actionName), 
 					FormatTraceValue(actionType), 
 					FormatTraceValue(dataType), 
-					FormatTraceValue(datasetId), 
+					FormatTraceValue(id), 
 					FormatTraceValue(pathXML), 
 					FormatTraceValue(pathDataArray));
 		}

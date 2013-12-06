@@ -491,12 +491,12 @@ See http://support.spatialkey.com/dmapi for more information";
 					ShowMessage(MessageLevel.Error, String.Format("{0} Failed. Incorrect number of ids: {0}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
 					return false;
 				}
-				action.datasetId = insuranceId;
+				action.id = insuranceId;
 			}
 			else
 			{
-				action.datasetId = ((ids != null && ids.Count == 1) ? (new List<string>(ids.Keys))[0] : null);
-				if (action.datasetId == null)
+				action.id = ((ids != null && ids.Count == 1) ? (new List<string>(ids.Keys))[0] : null);
+				if (action.id == null)
 				{
 					ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find dataset Id: {0}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
 					return false;
@@ -566,7 +566,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				return;
 			}
 
-			skapi.DatasetAppend(action.uploadId, action.datasetId, action.pathXML);
+			skapi.DatasetAppend(action.uploadId, action.id, action.pathXML);
 			ShowMessage(MessageLevel.Status, String.Format("Appending '{0}'", String.Join(", ", action.pathDataArray)));
 			if (isWaitUpdate)
 			{
@@ -595,12 +595,12 @@ See http://support.spatialkey.com/dmapi for more information";
 			}
 			else
 			{
-				uploadMessage = String.Format("Overwriting {0} '{1}' using csv '{2}' and config '{3}'", (action.dataType == ConfigAction.TYPE_INSURANCE ? "insurance" : "dataset"), action.datasetId, String.Join(", ", action.pathDataArray), action.pathXML);
+				uploadMessage = String.Format("Overwriting {0} '{1}' using csv '{2}' and config '{3}'", (action.dataType == ConfigAction.TYPE_INSURANCE ? "insurance" : "dataset"), action.id, String.Join(", ", action.pathDataArray), action.pathXML);
 				ShowMessage(MessageLevel.Status, uploadMessage);
 				if (action.dataType == ConfigAction.TYPE_INSURANCE)
-					isSuccess = skapi.InsuranceOverwrite(action.uploadId, action.datasetId, action.pathXML);
+					isSuccess = skapi.InsuranceOverwrite(action.uploadId, action.id, action.pathXML);
 				else
-					isSuccess = skapi.DatasetOverwrite(action.uploadId, action.datasetId, action.pathXML);
+					isSuccess = skapi.DatasetOverwrite(action.uploadId, action.id, action.pathXML);
 			}
 
 			if (!isSuccess)
