@@ -294,7 +294,7 @@ See http://support.spatialkey.com/dmapi for more information";
 						action.pathDataArray = CreateSuggestShortFiles(action.pathDataArray);
 
 					// Upload the data and wait for upload to finish
-					UploadAndGetId(skapi, action);
+					action.uploadId = skapi.UploadAndWait(action.pathDataArray);
 
 					// perform the specified dataset action
 					switch (action.actionType)
@@ -348,32 +348,6 @@ See http://support.spatialkey.com/dmapi for more information";
 			}
 
 			return true;
-		}
-
-		static void UploadAndGetId(SpatialKeyDataManager skapi, ConfigAction action)
-		{
-			string uploadMessage;
-			if (action.dataType == ConfigAction.TYPE_INSURANCE && action.pathDataArray.Length == 0)
-			{
-				// return because when using existing datasets there is nothing to upload
-				return;
-			}
-			else
-			{
-				uploadMessage = String.Format("Uploading '{0}' for {1}", String.Join(", ", action.pathDataArray), (action.dataType == ConfigAction.TYPE_INSURANCE ? "insurance" : "dataset"));
-				ShowMessage(MessageLevel.Status, uploadMessage);
-				action.uploadId = skapi.Upload(action.pathDataArray);
-			}
-			if (action.uploadId == null)
-			{
-				throw new Exception(uploadMessage + "  Error: No uploadId retrieved.");
-			}
-			Dictionary<string, object> uploadStausJson = skapi.WaitUploadComplete(action.uploadId);
-			if (skapi.IsUploadStatusError(uploadStausJson))
-			{
-				throw new Exception(String.Format("{0} Error Message: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
-			}
-			ShowMessage(MessageLevel.Status, String.Format("Finished. {0}", uploadMessage));
 		}
 
 		private static string[] CreateSuggestShortFiles(string[] pathDataArray)
@@ -572,13 +546,9 @@ See http://support.spatialkey.com/dmapi for more information";
 			{
 				Dictionary<string,object> uploadStausJson = skapi.WaitUploadComplete(action.uploadId);
 				if (skapi.IsUploadStatusError(uploadStausJson))
-				{
 					ShowMessage(MessageLevel.Error, String.Format("Append failed: {0}", MiniJson.Serialize(uploadStausJson)));
-				}
 				else
-				{
 					ShowMessage(MessageLevel.Status, String.Format("Appended '{0}'", String.Join(", ", action.pathDataArray)));
-				}
 			}
 			else
 				ShowMessage(MessageLevel.Status, String.Format("Not waiting for append of '{0}' to complete", String.Join(", ", action.pathDataArray)));

@@ -602,6 +602,17 @@ namespace skdm
 			return json;
 		}
 
+		public string UploadAndWait(string[] paths)
+		{
+			if (paths == null || paths.Length < 1)
+				return null;
+
+			string uploadId = Upload(paths);
+			Dictionary<string, object> uploadStausJson = WaitUploadComplete(uploadId);
+			if (IsUploadStatusError(uploadStausJson))
+				throw new Exception(String.Format("Upload failed: {1}", MiniJson.Serialize(uploadStausJson)));
+			return uploadId;
+		}
 
 		#endregion // API calls - Composite
 
