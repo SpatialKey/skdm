@@ -92,6 +92,7 @@ namespace skdm
 		}
 
 		#region API calls - Common
+
 		/// <summary>
 		/// If don't have a valid login token, login to the API and get one.
 		/// </summary>
@@ -126,8 +127,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Unable to login to '{0}' using oAuth token '{1}'", MyConfigAuth.organizationURL, oauth), ex);
-				return null;
+				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token '{1}'", MyConfigAuth.organizationURL, oauth), ex);
 			}
 		}
 
@@ -195,8 +195,7 @@ namespace skdm
 		/// </summary>
 		public string Upload(string[] paths)
 		{
-			if (Login() == null)
-				return null;
+			Login();
 
 			ShowMessage(MessageLevel.Status, "UPLOAD: " + String.Join(", ", paths));
 
@@ -217,8 +216,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Failed to upload '{0}'", paths), ex);
-				return null;
+				throw new Exception(String.Format("Failed to upload '{0}'", paths), ex);
 			}
 		}
 
@@ -227,8 +225,7 @@ namespace skdm
 		/// </summary>
 		public Dictionary<string,object> GetUploadStatus(string uploadId)
 		{
-			if (Login() == null)
-				return null;
+			Login();
 
 			ShowMessage(MessageLevel.Status, "UPLOAD STATUS: " + uploadId);
 
@@ -244,8 +241,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Failed to get upload status for '{0}'", uploadId), ex);
-				return null;
+				throw new Exception(String.Format("Failed to get upload status for '{0}'", uploadId), ex);
 			}
 		}
 
@@ -254,8 +250,7 @@ namespace skdm
 		/// </summary>
 		public string GetSampleConfiguration(string uploadId, string method)
 		{
-			if (Login() == null)
-				return null;
+			Login();
 
 			ShowMessage(MessageLevel.Status, "GET SAMPLE IMPORT CONFIG: " + uploadId);
 
@@ -271,8 +266,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Failed to get sample import config '{0}'", uploadId), ex);
-				return null;
+				throw new Exception(String.Format("Failed to get sample import config '{0}'", uploadId), ex);
 			}
 		}
 
@@ -305,13 +299,15 @@ namespace skdm
 		#endregion // API calls - Common
 
 		#region API calls - Dataset
+
 		/// <summary>
 		/// Get information about a dataset
 		/// </summary>
 		public Dictionary<string,object> GetDatasetInfo(string datasetId)
 		{
-			if (Login() == null || datasetId == null || datasetId.Length < 1)
-				return null;
+			Login();
+			if (datasetId == null || datasetId.Length < 1)
+				throw new Exception("Need to give datasetId to get info.");
 
 			ShowMessage(MessageLevel.Status, "Dataset Info: " + datasetId);
 
@@ -327,8 +323,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Failed to get dataset information for '{0}'", datasetId), ex);
-				return null;
+				throw new Exception(String.Format("Failed to get dataset information for '{0}'", datasetId), ex);
 			}
 		}
 
@@ -411,8 +406,7 @@ namespace skdm
 		/// </summary>
 		public List<Dictionary<string, string>> DatasetList()
 		{
-			if (Login() == null)
-				return null;
+			Login();
 
 			ShowMessage(MessageLevel.Status, "LIST DATASETS");
 
@@ -429,8 +423,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException("Error Processing Dataset List", ex);
-				return null;
+				throw new Exception("Error Processing Dataset List", ex);
 			}
 		}
 
@@ -460,16 +453,17 @@ namespace skdm
 				return;
 			}
 		}
+
 		#endregion // API calls - Dataset
 
 		#region API calls - Insurance
+
 		/// <summary>
 		/// Create uploadId for insurance from existing datasets
 		/// </summary>
 		public string InsuranceCreateExistingDatasets(string pathConfig)
 		{
-			if (Login() == null)
-				return null;
+			Login();
 
 			ShowMessage(MessageLevel.Status, "INSURANCE CREATE FROM DATASETS: " + pathConfig);
 
@@ -490,8 +484,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Failed create from datasets '{0}'", pathConfig), ex);
-				return null;
+				throw new Exception(String.Format("Failed create from datasets '{0}'", pathConfig), ex);
 			}
 		}
 
@@ -544,7 +537,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Failed overwrite uploadId:{0} datasetId: {1} config: '{2}'",uploadId, datasetId, pathConfig), ex);
+				ShowException(String.Format("Failed overwrite uploadId:{0} datasetId: {1} config: '{2}'", uploadId, datasetId, pathConfig), ex);
 				return false;
 			}
 		}
@@ -554,8 +547,7 @@ namespace skdm
 		/// </summary>
 		public List<Dictionary<string, string>> InsuranceList()
 		{
-			if (Login() == null)
-				return null;
+			Login();
 
 			ShowMessage(MessageLevel.Status, "LIST INSURANCE");
 
@@ -693,8 +685,7 @@ namespace skdm
 			List<object> createdResources = JsonGetPath<List<object>>(json, "createdResources");
 			if (createdResources == null)
 			{
-				ShowMessage(MessageLevel.Error, String.Format("Upload status JSON did not contain 'createdResources': {0}", json == null ? "null" : MiniJson.Serialize(json)));
-				return null;
+				throw new Exception(String.Format("Upload status JSON did not contain 'createdResources': {0}", json == null ? "null" : MiniJson.Serialize(json)));
 			}
 			Dictionary<string,string> dict = new Dictionary<string,string>();
 			foreach (Dictionary<string, object> item in createdResources)
@@ -878,6 +869,9 @@ namespace skdm
 
 		private HttpWebResponse HttpPostXml(string url, string pathXML, NameValueCollection queryParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_MED)
 		{
+			if (!File.Exists(pathXML))
+				throw new Exception(String.Format("File '{0}' does not exist.", pathXML));
+
 			try
 			{
 				url = url + ToQueryString(queryParam);
@@ -910,6 +904,15 @@ namespace skdm
 
 		private HttpWebResponse HttpUploadFiles(string url, string[] files, string paramName, string contentType, NameValueCollection queryParam, NameValueCollection bodyParam, string method = "POST", int timeout = HTTP_TIMEOUT_LONG)
 		{
+			if (files == null || files.Length < 1)
+				throw new Exception("No files to upload.");
+
+			foreach (string file in files)
+			{
+				if (!File.Exists(file))
+					throw new Exception(String.Format("File '{0}' does not exist.", file));
+			}
+
 			try
 			{
 				url = url + ToQueryString(queryParam);

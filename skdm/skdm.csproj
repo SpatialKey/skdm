@@ -66,8 +66,9 @@
     <None Include="TestData\110thCongressionalDistrictShapefile.xml" />
     <None Include="TestData\SalesData.xml" />
     <None Include="TestData\SalesData.csv" />
-    <None Include="TestData\InsuranceConfig.xml" />
-    <None Include="TestData\InsuranceLocation.csv" />
-    <None Include="TestData\InsurancePolicy.csv" />
+    <None Include="TestData\Sample Locations and Policies Insurance with peril specific limits.xml" />
+    <None Include="TestData\Sample Locations and Policies Insurance.xml" />
+    <None Include="TestData\Sample Locations.csv" />
+    <None Include="TestData\Sample Policies.csv" />
   </ItemGroup>
 </Project>
