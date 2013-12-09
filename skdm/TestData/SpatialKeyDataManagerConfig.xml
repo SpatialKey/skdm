@@ -66,5 +66,17 @@
 			<!-- insuranceId will be filled in on overwrite or append if not set -->
 			<insuranceId/>
 		</action>
+		<action name="insurance3">
+			<!-- Can override organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey  -->
+			<!---actionType can be import, overwrite, or append -->
+			<actionType>overwrite</actionType>
+			<!--- dataType can be CSV or Shapefile -->
+			<dataType>insurance</dataType>
+			<!-- no pathData, using existing ids in pathXML -->
+			<!--- configuration file for the data -->
+			<pathXML>Sample Locations and Policies Insurance.xml</pathXML>
+			<!-- insuranceId will be filled in on overwrite or append if not set -->
+			<insuranceId/>
+		</action>
 	</actions>
 </config>
