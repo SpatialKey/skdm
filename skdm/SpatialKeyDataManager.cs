@@ -19,7 +19,7 @@ namespace skdm
 	/// The SpatialKey Data Import API (DIAPI) allows developers to programmatically create or update SpatialKey datasets.
 	/// </summary>
 	/// <see cref="http://support.spatialkey.com/dmapi"/>
-	public class SpatialKeyDataManager
+	public class SpatialKeyDataManager : BaseMessageClass
 	{
 
 		#region constants
@@ -39,16 +39,8 @@ namespace skdm
 
 		#region parameters
 
-		/// <summary>Logging delegate</summary>
-		public delegate void Messager(MessageLevel level, string message);
-
 		/// <summary>Authenticaton Configuration</summary>
 		public ConfigAuth MyConfigAuth { get; private set; }
-
-		/// <summary>
-		/// Gets or sets the logger.  Used by  for <see cref="Log(message)"/>
-		/// </summary>
-		public Messager MyMessenger { get; set; }
 
 		#endregion
 
@@ -59,9 +51,8 @@ namespace skdm
 
 		#endregion
 
-		public SpatialKeyDataManager(Messager messenger = null)
+		public SpatialKeyDataManager(Messager messenger = null) : base(messenger)
 		{
-			this.MyMessenger = messenger;
 		}
 
 		/// <summary>
@@ -80,15 +71,6 @@ namespace skdm
 			_routeId = null;
 
 			MyConfigAuth = configAuth;
-		}
-
-		/// <summary>
-		/// Log the specified message if the <see cref="MyMessenger"/> is set
-		/// </summary>
-		private void ShowMessage(MessageLevel level, string message)
-		{
-			if (MyMessenger != null)
-				MyMessenger(level, message);
 		}
 
 		#region API calls - Common

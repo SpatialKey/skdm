@@ -53,6 +53,7 @@
     <Compile Include="ConfigAuth.cs" />
     <Compile Include="ConfigAction.cs" />
     <Compile Include="XMLUtils.cs" />
+    <Compile Include="BaseMessageClass.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
