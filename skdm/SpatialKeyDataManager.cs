@@ -109,7 +109,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token '{1}': {2}", MyConfigAuth.organizationURL, oauth, FormatException(ex)));
+				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token '{1}': {2}", MyConfigAuth.organizationURL, oauth, FormatException(ex)), ex);
 			}
 		}
 
@@ -198,7 +198,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Failed to upload '{0}'. {1}", paths, FormatException(ex)));
+				throw new Exception(String.Format("Failed to upload '{0}'. {1}", paths, FormatException(ex)), ex);
 			}
 		}
 
@@ -223,7 +223,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Failed to get upload status for '{0}'. {1}", uploadId, FormatException(ex)));
+				throw new Exception(String.Format("Failed to get upload status for '{0}'. {1}", uploadId, FormatException(ex)), ex);
 			}
 		}
 
@@ -248,7 +248,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Failed to get sample import config '{0}'. {1}", uploadId, FormatException(ex)));
+				throw new Exception(String.Format("Failed to get sample import config '{0}'. {1}", uploadId, FormatException(ex)), ex);
 			}
 		}
 
@@ -305,7 +305,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Failed to get dataset information for '{0}'. {1}", datasetId, FormatException(ex)));
+				throw new Exception(String.Format("Failed to get dataset information for '{0}'. {1}", datasetId, FormatException(ex)), ex);
 			}
 		}
 
@@ -405,7 +405,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Error Processing Dataset List", FormatException(ex)));
+				throw new Exception(String.Format("Error Processing Dataset List", FormatException(ex)), ex);
 			}
 		}
 
@@ -466,7 +466,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Failed create from datasets '{0}'. {1}", pathConfig, FormatException(ex)));
+				throw new Exception(String.Format("Failed create from datasets '{0}'. {1}", pathConfig, FormatException(ex)), ex);
 			}
 		}
 
