@@ -198,7 +198,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Failed to upload '{0}'", paths), ex);
+				throw new Exception(String.Format("Failed to upload '{0}'. {1}", paths, FormatException(ex)));
 			}
 		}
 
@@ -223,7 +223,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Failed to get upload status for '{0}'", uploadId), ex);
+				throw new Exception(String.Format("Failed to get upload status for '{0}'. {1}", uploadId, FormatException(ex)));
 			}
 		}
 
@@ -248,7 +248,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Failed to get sample import config '{0}'", uploadId), ex);
+				throw new Exception(String.Format("Failed to get sample import config '{0}'. {1}", uploadId, FormatException(ex)));
 			}
 		}
 
@@ -305,7 +305,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Failed to get dataset information for '{0}'", datasetId), ex);
+				throw new Exception(String.Format("Failed to get dataset information for '{0}'. {1}", datasetId, FormatException(ex)));
 			}
 		}
 
@@ -405,7 +405,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception("Error Processing Dataset List", ex);
+				throw new Exception(String.Format("Error Processing Dataset List", FormatException(ex)));
 			}
 		}
 
@@ -466,7 +466,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Failed create from datasets '{0}'", pathConfig), ex);
+				throw new Exception(String.Format("Failed create from datasets '{0}'. {1}", pathConfig, FormatException(ex)));
 			}
 		}
 
