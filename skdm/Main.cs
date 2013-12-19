@@ -288,7 +288,9 @@ See http://support.spatialkey.com/dmapi for more information";
 				}
 				catch (Exception ex)
 				{
-					ShowMessage(MessageLevel.Error, ex.ToString());
+					ShowMessage(MessageLevel.Error, ex.Message);
+					ShowMessage(MessageLevel.Verbose, ex.Source);
+					ShowMessage(MessageLevel.Verbose, ex.StackTrace);
 				}
 				finally
 				{

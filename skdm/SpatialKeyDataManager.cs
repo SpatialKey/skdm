@@ -109,7 +109,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token '{1}'", MyConfigAuth.organizationURL, oauth), ex);
+				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token '{1}': {2}", MyConfigAuth.organizationURL, oauth, FormatException(ex)));
 			}
 		}
 
@@ -776,17 +776,22 @@ namespace skdm
 
 		private void ShowException(string message, Exception ex)
 		{
+			ShowMessage(MessageLevel.Error, String.Format("{0}: {1}", message, FormatException(ex)));
+		}
+
+		private string FormatException(Exception ex)
+		{
 			if (ex is WebException)
 			{
 				WebException we = ex as WebException;
 				HttpWebResponse response = we != null ? we.Response as HttpWebResponse : null;
 				if (response == null)
-					ShowMessage(MessageLevel.Error, String.Format("{0}: {1}", message, ex.Message));
+					return ex.Message;
 				else
-					ShowMessage(MessageLevel.Error, String.Format("{0}: StatusCode:  {1}; {2}", message, response.StatusCode, GetResponseString(response)));
+					return String.Format("StatusCode:  {0}; {1}",response.StatusCode, GetResponseString(response));
 			}
 			else
-				ShowMessage(MessageLevel.Error, String.Format("{0}: {1}", message, ex.Message));
+				return ex.Message;
 		}
 
 		private HttpWebRequest CreateWebRequest(string url, string method, int timeout)
