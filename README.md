@@ -90,7 +90,7 @@ Delete datasets by id.  One or more ids can be specified.
 
 You can create the suggested xml configuration files by running "skdm.exe suggest".
 
-For tips on generating an XML descriptor file for your CSV, check out this [article](http://support.spatialkey.com/dmapi-generate-xml)
+For tips on generating an XML descriptor file for your CSV, check out this [article](http://support.spatialkey.com/xml-file-generation/)
 
 # Setting up the Data Manager Config XML file
 The Data Manager Config XML file is split into the following sections:
@@ -204,7 +204,7 @@ Run all upload actions in SpatialKeyDataManagerConfig.xml
 Run the specified upload action in SpatialKeyDataManagerConfig.xml
 > `skdm.exe upload "sample csv"`
 
-Run all upload actions in AnoterConfig.xml
+Run all upload actions in AnotherConfig.xml
 > `skdm.exe /config AnotherConfig.xml upload`
 
 Run suggest the default pathXML config for all actions in SpatialKeyDataManagerConfig.xml
@@ -216,5 +216,5 @@ List all datasets for the organziation and user defined in SpatialKeyDataManager
 Delete the given dataset at the organziation and user defined in SpatialKeyDataManagerConfig.xml
 > `skdm.exe delete 55555-66-88-33-abcd`
 
-Get oAuth key for organization and user defined in in SpatialKeyDataManagerConfig.xml
+Get oAuth key for organization and user defined in SpatialKeyDataManagerConfig.xml
 > `skdm.exe oauth`
