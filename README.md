@@ -121,7 +121,7 @@ This field defines what user is authenticating into Spatial Key.  Login to Spati
 The "actions" section of the Config XML file defines all the actions that will be done when the Command Line Tool is executed.
 
 The `<actionType>` element defines what action will be done.  The current options are:
-- append – Append to an existing dataset.  If the `<datasetId>` is not set before running this action, an import will be done the first time it is run.  A shape dataset cannot be appened to, so this will overwite.
+- append – Append to an existing dataset.  If the `<datasetId>` is not set before running this action, an import will be done the first time it is run.  A shape dataset cannot be appended to, so this will overwrite.
 - overwrite – Overwrite an existing dataset.  If the `<datasetId>` is not set before running this action, an import will be done the first time it is run.
 
 - dataType - What type of data is in the `<pathData>`. Can be "CSV", "Shapefile", or "Insurance"
@@ -192,7 +192,7 @@ Syntax to run any command:
 
 Running Data Management API Command Line Tool from a **Mac** workstation?  Install on your workstation. ([Installation Instructions](http://www.mono-project.com/Mono:OSX))
 
-Syntax to anycommand:
+Syntax to any command:
 > `mono skdm.exe [options] <command> [<args>]`
 
 ## Examples
@@ -210,10 +210,10 @@ Run all upload actions in AnotherConfig.xml
 Run suggest the default pathXML config for all actions in SpatialKeyDataManagerConfig.xml
 > `skdm.exe suggest`
 
-List all datasets for the organziation and user defined in SpatialKeyDataManagerConfig.xml
+List all datasets for the organization and user defined in SpatialKeyDataManagerConfig.xml
 > `skdm.exe list`
 
-Delete the given dataset at the organziation and user defined in SpatialKeyDataManagerConfig.xml
+Delete the given dataset at the organization and user defined in SpatialKeyDataManagerConfig.xml
 > `skdm.exe delete 55555-66-88-33-abcd`
 
 Get oAuth key for organization and user defined in SpatialKeyDataManagerConfig.xml
