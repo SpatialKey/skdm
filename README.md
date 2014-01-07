@@ -57,10 +57,11 @@ Get oAuth token for keys in XML configuration or by passing in values.  The orga
 - /ttl TTL - sets the time to live for the token.  The default is 60 seconds.
 
 ## upload
-> upload [/no-wait] [[ACTION1] ... [ACTIONN]]
+> upload [/no-wait] [/keep-uploadid] [[ACTION1] ... [ACTIONN]]
 
 Upload dataset data.  By default this waits until the import, append, or overwrite completes.  All actions are performed unless one or more specific actions are listed. 
 - /no-wait - Doesn't wait for import, append, or overwrite to complete.  If this is defined, the datasetId created on imports will not be updated in the data manager config XML.
+- /keep-uploadid - Don't cancel the upload id so it can be used in other manual operations.
 
 ## suggest
 > suggest [[ACTION1] ... [ACTIONN]]
