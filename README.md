@@ -132,15 +132,15 @@ The `<actionType>` element defines what action will be done.  The current option
 
 Note: you don't get email or client notifications at this time.
 
-*Always Import New Dataset*
+*Initial Import a Dataset*
 >     <action name="csv example">
->       <actionType>import</actionType>
+>       <actionType>overwrite or append</actionType>
 >       <dataType>CSV</dataType>
 >       <pathData>SalesData.csv</pathData>
 >       <pathXML>SalesData.xml</pathXML>
 >     </action>
 
-*Overwrite Existing Dataset*
+*Overwrite Existing Shapefile*
 >     <action name="csv example">
 >       <actionType>overwrite</actionType>
 >       <dataType>Shapefile</dataType>
