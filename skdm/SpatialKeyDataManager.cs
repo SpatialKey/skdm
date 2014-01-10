@@ -10,491 +10,972 @@ using System.Net;
 using System.IO;
 using System.Text;
 using System.Collections.Specialized;
-using ICSharpCode.SharpZipLib.Core;
-using ICSharpCode.SharpZipLib.Zip;
+using System.Collections.Generic;
 
 // Using http://www.icsharpcode.net/opensource/sharpziplib/
-
 namespace skdm
 {
 	/// <summary>
 	/// The SpatialKey Data Import API (DIAPI) allows developers to programmatically create or update SpatialKey datasets.
 	/// </summary>
 	/// <see cref="http://support.spatialkey.com/dmapi"/>
-	public class SpatialKeyDataManager
+	public class SpatialKeyDataManager : BaseMessageClass
 	{
+
+		#region constants
+
+		public const string API_VERSION = "v2";
+		// 1 min * 60 sec * 1000 msec = 60000 msec
+		private const int HTTP_TIMEOUT_SHORT = 60000;
+		// 15 min * 60 sec * 1000 msec = 900000 msec
+		private const int HTTP_TIMEOUT_MED = 900000;
+		// 60 min * 60 sec * 1000 msec = 3600000 msec
+		private const int HTTP_TIMEOUT_LONG = 3600000;
+		private const string LOG_SEPARATOR = "----------------------------------------";
+		private const int TOKEN_TIMEOUT = 1800;
+		private const string ROUTEID = "ROUTEID";
+
+		#endregion
+
 		#region parameters
-		/// <summary>Logging delegate</summary>
-		public delegate void Logger(string message);
-		
-		/// <summary>
-		/// Name of the SpatialKey organization used to get cluster info in <see cref="ClusterLookup()"/>
-		/// </summary>
-		public string organizationName { get; private set; }
-		
-		/// <summary>
-		/// Name of the SpatialKey organization url"/>
-		/// </summary>
-		public string clusterDomainUrl { get; private set; }
-		
-		/// <summary>
-		/// Authentication username for <see cref="Authenticate()"/>
-		/// </summary>
-		public string userName { get; private set; }
-		
-		/// <summary>
-		/// Authentication password for <see cref="Authenticate()"/>
-		/// </summary>
-		public string password { get; private set; }
-		
-		/// <summary>
-		/// Authentication apiKey for <see cref="Authenticate()"/>
-		/// </summary>
-		public string apiKey { get; private set; }
-		
-		/// <summary>
-		/// Authentication userId for <see cref="Authenticate()"/>
-		/// </summary>
-		public string userId { get; private set; }
+
+		/// <summary>Authenticaton Configuration</summary>
+		public ConfigAuth MyConfigAuth { get; private set; }
+
+		#endregion
+
+		#region dataMartAPI properties - set by calls
+
+		private String _accessToken;
+		private String _routeId;
+
+		#endregion
+
+		public SpatialKeyDataManager(Messager messenger = null) : base(messenger)
+		{
+		}
 
 		/// <summary>
-		/// Gets or sets the logger.  Used by  for <see cref="Log(message)"/>
+		/// Init the manager.  If the organizationURL, organizationAPIKey, organizationSecretKey or userAPIKey
+		/// have changed the application will logout.
 		/// </summary>
-		public Logger logger { get; set; }
-		#endregion
-		
-		#region dataMartAPI properties - set by calls
-		/// <summary>
-		/// Gets the cluster for the the given organizationName.
-		/// </summary>
-		public string clusterHost { get; private set; }
-		
-		/// <summary>
-		/// The cookies retrieved by <see cref="Authenticate()"/>
-		/// </summary>
-		private CookieCollection _cookies;
-		
-		/// <summary>
-		/// The protocol retrieved by <see cref="ClusterLookup()"/>
-		/// </summary>
-		private string _protocol;
-		#endregion
-		
-		/// <summary>
-		/// Initializes a new instance of the <see cref="SpatialKey.SpatialKeyDataManager"/> class.
-		/// </summary>
-		/// <param name='organizationName'>
-		/// Name of the SpatialKey organization used to get cluster info in <see cref="ClusterLookup()"/>
-		/// </param>
-		/// <param name='userName'>
-		/// Authentication username for <see cref="Authenticate()"/>
-		/// </param>
-		/// <param name='password'>
-		/// Authentication password for <see cref="Authenticate()"/>
-		/// </param>
-		/// </param>
-		/// <param name='apiKey'>
-		/// Authentication apiKey for <see cref="Authenticate()"/>
-		/// </param>
-		/// <param name='userId'>
-		/// Authentication userId for <see cref="Authenticate()"/>
-		/// </param>
-		/// <param name='logger'>
-		/// Used by for <see cref="Log(message)"/>
-		/// </param>
-		public SpatialKeyDataManager(string organizationName = null, string clusterDomainUrl = null, string userName = null, string password = null, String apiKey = null, String userId = null, Logger logger = null)
-		{
-			this.logger = logger;
-			Init(organizationName, clusterDomainUrl, userName, password, apiKey, userId);
-		}
-		
-		/// <summary>
-		/// Initialize/Reset the DataMartImporter
-		/// </summary>
-		/// <param name='organizationName'>
-		/// Name of the SpatialKey organization used to get cluster info in <see cref="ClusterLookup()"/>
-		/// </param>
-		/// <param name='userName'>
-		/// Authentication username for <see cref="Authenticate()"/>
-		/// </param>
-		/// <param name='password'>
-		/// Authentication password for <see cref="Authenticate()"/>
-		/// </param>
-		/// <param name='apiKey'>
-		/// Authentication apiKey for <see cref="Authenticate()"/>
-		/// </param>
-		/// <param name='userId'>
-		/// Authentication userId for <see cref="Authenticate()"/>
-		/// </param>
-		public void Init(string organizationName = null, string clusterDomainUrl = null, string userName = null, string password = null, String apiKey = null, String userId = null)
+		public void Init(ConfigAuth configAuth)
 		{
 			// if the setup is the same, bail
-			if (this.organizationName == organizationName && 
-				this.clusterDomainUrl == clusterDomainUrl &&
-			    this.userName == userName &&
-			    this.password == password &&
-			    this.apiKey == apiKey &&
-			    this.userId == userId)
-			{
-				return;
-			}
-
-			this.organizationName = organizationName;
-			this.clusterDomainUrl = clusterDomainUrl;
-			this.userName = userName;
-			this.password = password;
-			this.logger = logger;
-			this.apiKey = apiKey;
-			this.userId = userId;
-			
-			clusterHost = null;
-			_cookies = null; 
-			_protocol = null;
-
-			if (clusterDomainUrl != null && clusterDomainUrl.Length > 0)
-			{
-				Uri uri = new Uri(clusterDomainUrl);
-				_protocol = uri.Scheme == "http" ? "http://" : "https://";
-				clusterHost = uri.Host;
-				string[] hostTokens = clusterHost.Split('.');
-				if (hostTokens.Length == 3)
-					this.organizationName = hostTokens[0];
-			}
-		}
-		
-		/// <summary>
-		/// Log the specified message if the <see cref="logger"/> is set
-		/// </summary>
-		/// <param name='message'>
-		/// Message to log
-		/// </param>
-		private void Log(string message)
-		{
-			if (logger != null)
-				logger(message);
-		}
-		
-		#region low level dataImportAPI calls
-		/// <summary>
-		/// Look up the cluster for the <see cref="organizationName"/> to get <see cref="clusterHost"/> and <see cref="_protocol"/>
-		/// </summary>
-		private void ClusterLookup()
-		{
-			if (clusterHost != null && clusterHost.Length > 0 && _protocol != null && _protocol.Length > 0)
+			if (configAuth == MyConfigAuth)
 				return;
 
-			string url = String.Format("http://{0}.spatialkey.com/clusterlookup.cfm", organizationName);
-			Log(String.Format("ClusterLookup: {0}", url));
-			
-			XmlDocument doc = new XmlDocument();
-			doc.Load(url);
-			Log(doc.InnerXml);
-			
-			clusterHost = doc.SelectSingleNode("/organization/cluster").InnerText;
-			_protocol = doc.SelectSingleNode("/organization/protocol").InnerText;
-			
-			Log(String.Format("Cluster: {0}", clusterHost));
+			Logout();
+
+			_accessToken = null;
+			_routeId = null;
+
+			MyConfigAuth = configAuth;
 		}
-		
+
+		#region API calls - Common
+
 		/// <summary>
-		/// Authenticate to the dataImportAPI and get the <see cref="_cookies"/>
+		/// If don't have a valid login token, login to the API and get one.
 		/// </summary>
-		private void Authenticate()
+		public string Login()
 		{
-			if (_cookies != null)
-				return;
+			if (IsLoginTokenValid())
+				return _accessToken;
 
-			ClusterLookup();
+			ShowMessage(MessageLevel.Status, "START LOGIN: " + MyConfigAuth.organizationURL);
+			_accessToken = null;
+			_routeId = null;
 
-			string url = "";
-			if (apiKey != null && apiKey.Length > 0 && userId != null && userId.Length > 0)
-			{
-				url = String.Format("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&userId={2}&apiKey={3}", 
-				                    _protocol, clusterHost, HttpUtility.UrlEncode(userId), HttpUtility.UrlEncode(apiKey));
-				Log(String.Format("Authenticate: {0}", url.Replace(apiKey, "XXX").Replace(userId, "XXX")));
-			}
-			else if (userName != null && userName.Length > 0 && this.password != null && this.password.Length > 0)
-			{
-				string password = HttpUtility.UrlEncode(this.password);
-				url = String.Format("{0}{1}/SpatialKeyFramework/dataImportAPI?action=login&user={2}&password={3}", 
-				                     _protocol, clusterHost, HttpUtility.UrlEncode(userName), password);
-				Log(String.Format("Authenticate: {0}", url.Replace(password, "XXX")));
-			}
-			else
-			{
-				throw new ArgumentException("Must have userName and password or apiKey and userId.");
-			}
-			if (organizationName != null && organizationName.Length > 0)
-				url += String.Format("&orgName={0}", organizationName);
+			string oauth = OAuth.GetOAuthToken(MyConfigAuth.userAPIKey, MyConfigAuth.organizationAPIKey, MyConfigAuth.organizationSecretKey, TOKEN_TIMEOUT);
+			// add the query string
+			NameValueCollection bodyParam = new NameValueCollection();
+			bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
+			bodyParam["assertion"] = oauth;
 
-			HttpWebRequest request = (HttpWebRequest)HttpWebRequest.Create(url);
-			request.Method = "GET";
-			CookieContainer cookieJar = new CookieContainer();
-			request.CookieContainer = cookieJar;
-			
-			using (HttpWebResponse response = (HttpWebResponse)request.GetResponse ())
-			using (StreamReader streamReader = new StreamReader(response.GetResponseStream()))
-			{
-				if (response.StatusCode != HttpStatusCode.OK)
-				{
-					throw new SystemException("Authentication Failed");
-				}
-
-				_cookies = cookieJar.GetCookies(request.RequestUri);
-				LogCookies(_cookies);
-				Log(streamReader.ReadToEnd());
-			}
-		}
-
-		private void LogCookies(CookieCollection cookies)
-		{
-			string[] d = new string[_cookies.Count];
-			int i = 0;
-			foreach (Cookie c in cookies)
-			{
-				d[i] = c.ToString();
-				i++;
-			}
-			Log("COOKIES: "+string.Join(", ", d));
-		}
-		#endregion
-		
-		#region Upload
-		/// <summary>
-		/// Zips up the data and uploads it to the dataImportAPI
-		/// </summary>
-		/// <param name='dataPath'>
-		/// The path to the data to import.
-		/// </param>
-		/// <param name='xmlPath'>
-		/// The path to the xml description of the data being imported
-		/// </param>
-		/// <param name='action'>
-		/// Import action.  Can be 'overwrite' or 'append'
-		/// </param>
-		/// <param name='runAsBackground'>
-		/// determines if the SpatialKey server should return as soon as the data is uploaded 
-		/// (thus freeing up your connection), or should it wait for the entire import process to complete
-		/// </param>
-		/// <param name='notifyByEmail'>
-		/// if set as true the SpatialKey server will send an email to the authenticated user when the import is complete
-		/// </param>
-		/// <param name='addAllUsers'>
-		/// if set as true the SpatialKey server will add the All Users group as a viewer of the dataset
-		/// </param>
-		public void UploadData(string dataPath, string xmlPath, string action = "overwrite", bool runAsBackground = true, bool notifyByEmail = false, bool addAllUsers = false)
-		{
-			Authenticate();
-			
-			Log(String.Format("UploadData: {0} {1}", dataPath, xmlPath));
-			
-			string zipPath = ZipData(new string[] {dataPath, xmlPath});
-			
 			try
 			{
-				UploadZip(zipPath, action, runAsBackground, notifyByEmail, addAllUsers);
+				using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
+				{
+					if (response.Cookies != null && response.Cookies[ROUTEID] != null)
+						_routeId = response.Cookies[ROUTEID].Value;
+
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					_accessToken = JsonGetPath<string>(json, "access_token");
+					if (_accessToken == null)
+						throw new Exception(String.Format("JSON does not contian 'access_token': {0}", MiniJson.Serialize(json)));
+					return _accessToken;
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token '{1}': {2}", MyConfigAuth.organizationURL, oauth, FormatException(ex)), ex);
+			}
+		}
+
+		/// <summary>
+		/// Return true if the _accessToken is valid
+		/// </summary>
+		public bool IsLoginTokenValid()
+		{
+			if (_accessToken == null || _accessToken.Length == 0)
+				return false;
+
+			ShowMessage(MessageLevel.Status, "VALIDATE TOKEN: " + _accessToken);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query))
+				{
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					return json != null; // TODO check what valid json should contain as this throws an error for invalid response or json already
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to validate token '{0}'", _accessToken), ex);
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Logout and clear the _accessToken
+		/// </summary>
+		public void Logout()
+		{
+			if (_accessToken == null || _accessToken.Length == 0)
+				return;
+
+			ShowMessage(MessageLevel.Status, "LOGOUT TOKEN: " + _accessToken);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl("oauth.json"), query, "DELETE"))
+				{
+					HttpResponseToJSON(response);
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to logout with token '{0}'", _accessToken), ex);
 			}
 			finally
 			{
-				File.Delete(zipPath);
+				_accessToken = null;
+				_routeId = null;
 			}
-			
-			Log("UploadData: Complete");
 		}
-		
+
 		/// <summary>
-		/// Uploads the zip to the dataImportAPI
+		/// Upload the given file and return the uploadId
 		/// </summary>
-		/// <param name='zipPath'>
-		/// Path to the zip file (containing data and xml configuration) to upload
-		/// </param>
-		/// <param name='action'>
-		/// Import action.  Can be 'overwrite' or 'append'
-		/// </param>
-		/// <param name='runAsBackground'>
-		/// determines if the SpatialKey server should return as soon as the data is uploaded 
-		/// (thus freeing up your connection), or should it wait for the entire import process to complete
-		/// </param>
-		/// <param name='notifyByEmail'>
-		/// if set as true the SpatialKey server will send an email to the authenticated user when the import is complete
-		/// </param>
-		/// <param name='addAllUsers'>
-		/// if set as true the SpatialKey server will add the All Users group as a viewer of the dataset
-		/// </param>
-		private void UploadZip(string zipPath, string action = "overwrite", bool runAsBackground = true, bool notifyByEmail = false, bool addAllUsers = false)
+		public string Upload(string[] paths)
 		{
-			string path = "/SpatialKeyFramework/dataImportAPI";
-			
-			string url = String.Format("{0}{1}{2}", 
-			                            _protocol,
-			                            clusterHost,
-			                            path);
-			
-			Log(String.Format("UploadZip: {0} {1}", url, zipPath));
-			
-			CustomWebClient client = CreateCustomWebClient();
+			Login();
+
+			ShowMessage(MessageLevel.Status, "UPLOAD: " + String.Join(", ", paths));
 
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
-			query.Add("action", action);
-			query.Add("runAsBackground", runAsBackground.ToString().ToLower());
-			query.Add("notifyByEmail", notifyByEmail.ToString().ToLower());
-			query.Add("addAllUsers", addAllUsers.ToString().ToLower());
-			//AddCookiesToQuery(query);
-			client.QueryString = query;
-			Log("QUERY PARAMS: "+NameValueCollectionToString(query));
+			query["token"] = _accessToken;
 
-			byte[] response = client.UploadFile(url, zipPath);
-			Log(Encoding.ASCII.GetString(response));
-
-			Log("UploadZip: Complete");
+			try
+			{
+				using (HttpWebResponse response = HttpUploadFiles(BuildUrl("upload.json"), paths, "file", "application/octet-stream", query, null))
+				{
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					string uploadId = JsonGetPath<string>(json, "upload/uploadId");
+					if (uploadId == null)
+						throw new Exception(String.Format("JSON does not contian '{0}': {1}", "upload/uploadId", MiniJson.Serialize(json)));
+					return uploadId;
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(String.Format("Failed to upload '{0}'. {1}", paths, FormatException(ex)), ex);
+			}
 		}
-		#endregion
 
-		#region Shape File Upload
-		public void UploadShape(string dataPath, string datasetName, string datasetId)
+		/// <summary>
+		/// Return the json status for the given uploadId
+		/// </summary>
+		public Dictionary<string,object> GetUploadStatus(string uploadId)
 		{
-			Log(String.Format("UploadShape: {0}", dataPath));
-			
-			Authenticate();
-			
-			string path = "/SpatialKeyFramework/dataImportAPI";
-			
-			string url = String.Format("{0}{1}{2}", 
-			                           _protocol,
-			                           clusterHost,
-			                           path);
-			
-			CustomWebClient client = CreateCustomWebClient();
-			
+			Login();
+
+			ShowMessage(MessageLevel.Status, "UPLOAD STATUS: " + uploadId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query))
+				{
+					return HttpResponseToJSON(response);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(String.Format("Failed to get upload status for '{0}'. {1}", uploadId, FormatException(ex)), ex);
+			}
+		}
+
+		/// <summary>
+		/// Gets the sample import configuration.
+		/// </summary>
+		public string GetSampleConfiguration(string uploadId, string method)
+		{
+			Login();
+
+			ShowMessage(MessageLevel.Status, "GET SAMPLE IMPORT CONFIG: " + uploadId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}/construct/{1}.xml", uploadId, method)), query))
+				{
+					return GetResponseString(response);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(String.Format("Failed to get sample import config '{0}'. {1}", uploadId, FormatException(ex)), ex);
+			}
+		}
+
+		/// <summary>
+		/// Cancel the given uploadId
+		/// </summary>
+		public void CancelUpload(string uploadId)
+		{
+			if (Login() == null)
+				return;
+
+			ShowMessage(MessageLevel.Status, "CANCEL UPLOAD: " + uploadId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("upload/{0}.json", uploadId)), query, "DELETE"))
+				{
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to cancel upload {0}" + uploadId), ex);
+			}
+		}
+
+		#endregion // API calls - Common
+
+		#region API calls - Dataset
+
+		/// <summary>
+		/// Get information about a dataset
+		/// </summary>
+		public Dictionary<string,object> GetDatasetInfo(string datasetId)
+		{
+			Login();
+			if (datasetId == null || datasetId.Length < 1)
+				throw new Exception("Need to give datasetId to get info.");
+
+			ShowMessage(MessageLevel.Status, "Dataset Info: " + datasetId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("dataset/{0}.json", datasetId)), query))
+				{
+					return HttpResponseToJSON(response);
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(String.Format("Failed to get dataset information for '{0}'. {1}", datasetId, FormatException(ex)), ex);
+			}
+		}
+
+		/// <summary>
+		/// Import the uploadId as a new dataset with the given config
+		/// </summary>
+		public bool DatasetCreate(string uploadId, string pathConfig)
+		{
+			if (Login() == null)
+				return false;
+
+			ShowMessage(MessageLevel.Status, String.Format("IMPORT {0} with config'{1}'", uploadId, pathConfig));
+
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
-			query.Add("action", "poly");
-			if (datasetName != null && datasetName.Length > 0)
-				query.Add("datasetName", datasetName);
-			if (datasetId != null && datasetId.Length > 0)
-				query.Add("datasetId", datasetId);
-			//AddCookiesToQuery(query);
-			client.QueryString = query;
-			Log("QUERY PARAMS: "+NameValueCollectionToString(query));
-			
-			byte[] response = client.UploadFile(url, dataPath);
-			Log(Encoding.ASCII.GetString(response));
+			query["token"] = _accessToken;
 
-			Log("UploadShape: Complete");
-		}
-		#endregion
-		
-		#region Zip Up Files
-		/// <summary>
-		/// Zips the given files into a temporary zip file
-		/// </summary>
-		/// <returns>
-		/// The path to the zip file
-		/// </returns>
-		/// <param name='paths'>
-		/// Array of file paths to include
-		/// </param>
-		private string ZipData(string[] paths)
-		{
-			Log(String.Format("ZipData: {0}", String.Join(", ", paths)));
-			
-			string zipPath = GetTempFile("zip");
-			ZipOutputStream zipStream = new ZipOutputStream(File.Create(zipPath));
-			
-			foreach (string path in paths)
+			try
 			{
-				ZipAdd(zipStream, path);
+				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset.json", uploadId)), pathConfig, query))
+				{
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					return true; 
+				}
 			}
-			
-			zipStream.Finish();
-			zipStream.IsStreamOwner = true;	// Makes the Close also Close the underlying stream
-			zipStream.Close();
-			
-			Log(String.Format("ZipData: {0}", zipPath));
-			return zipPath;
-		}
-		
-		/// <summary>
-		/// Adds the given file to the zip stream
-		/// </summary>
-		/// <param name='zipStream'>
-		/// Zip stream.
-		/// </param>
-		/// <param name='fName'>
-		/// File path to add to the zip
-		/// </param>
-		private void ZipAdd(ZipOutputStream zipStream, string fName)
-		{
-			Log(String.Format("ZipAdd: {0}", fName));
-			FileInfo fi = new FileInfo(fName);
-			
-			// add the entry
-			ZipEntry newEntry = new ZipEntry(fi.Name);
-			newEntry.DateTime = fi.LastWriteTime;
-			// To permit the zip to be unpacked by built-in extractor in WinXP and Server2003, WinZip 8, Java, and other older code,
-			// you need to do one of the following: Specify UseZip64.Off, or set the Size.
-			// If the file may be bigger than 4GB, or you do not need WinXP built-in compatibility, you do not need either,
-			// but the zip will be in Zip64 format which not all utilities can understand.
-			//   zipStream.UseZip64 = UseZip64.Off;
-			newEntry.Size = fi.Length;
-			
-			zipStream.PutNextEntry(newEntry);
-			
-			// Zip the file in buffered chunks
-			// the "using" will close the stream even if an exception occurs
-			using (FileStream streamReader = File.OpenRead(fName))
+			catch (Exception ex)
 			{
-				streamReader.CopyTo(zipStream);
+				ShowException(String.Format("Failed to import dataset {0} with config '{1}'", uploadId, pathConfig), ex);
+				return false;
 			}
-			zipStream.CloseEntry();
-			Log("ZipAdd: Complete");
 		}
-		
-		#endregion
-		
-		#region helpers
-		private CustomWebClient CreateCustomWebClient()
+
+		/// <summary>
+		/// Append the uploadId to the datasetId
+		/// </summary>
+		public bool DatasetAppend(string uploadId, string datasetId, string pathConfig)
 		{
+			return DatasetAppendOrOverwrite(uploadId, datasetId, pathConfig, "Append");
+		}
+
+		/// <summary>
+		/// Overwrite the datasetId with datasetId
+		/// </summary>
+		public bool DatasetOverwrite(string uploadId, string datasetId, string pathConfig)
+		{
+			return DatasetAppendOrOverwrite(uploadId, datasetId, pathConfig, "Overwrite");
+		}
+
+		/// <summary>
+		/// Append or overwrite datasetId with uploadId
+		/// </summary>
+		private bool DatasetAppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
+		{
+			if (Login() == null)
+				return false;
+			ShowMessage(MessageLevel.Status, String.Format("{0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig));
+
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+			query["method"] = method;
+
+			try
+			{
+				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/dataset/{1}.json", uploadId, datasetId)), pathConfig, query))
+				{
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					return true;
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed {0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig), ex);
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Get a list of all the datasets the authenticated user has access to
+		/// </summary>
+		public List<Dictionary<string, string>> DatasetList()
+		{
+			Login();
+
+			ShowMessage(MessageLevel.Status, "LIST DATASETS");
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl("dataset.json"), query))
+				{
+					Dictionary<string, object> json = HttpResponseToJSON(response);
+					return ParseListJson(json, "Dataset");
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(String.Format("Error Processing Dataset List", FormatException(ex)), ex);
+			}
+		}
+
+		/// <summary>
+		/// Deletes the datasetId
+		/// </summary>
+		public void DatasetDelete(string datasetId)
+		{
+			if (Login() == null)
+				return;
+
+			ShowMessage(MessageLevel.Status, "DELETE DATASET: " + datasetId);
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl(string.Format("dataset/{0}.json", datasetId)), query, "DELETE"))
+				{
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException("Failed to delete dataset " + datasetId, ex);
+				return;
+			}
+		}
+
+		#endregion // API calls - Dataset
+
+		#region API calls - Insurance
+
+		/// <summary>
+		/// Create uploadId for insurance from existing datasets
+		/// </summary>
+		public string InsuranceCreateExistingDatasets(string pathConfig)
+		{
+			Login();
+
+			ShowMessage(MessageLevel.Status, "INSURANCE CREATE FROM DATASETS: " + pathConfig);
+
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpPostXml(BuildUrl("upload/insurance.json"), pathConfig, query))
+				{
+					Dictionary<string,object> json = HttpResponseToJSON(response);
+					string uploadId = JsonGetPath<string>(json, "upload/uploadId");
+					if (uploadId == null)
+						throw new Exception(String.Format("JSON does not contian '{0}': {1}", "upload/uploadId", MiniJson.Serialize(json)));
+					return uploadId;
+				}
+			}
+			catch (Exception ex)
+			{
+				throw new Exception(String.Format("Failed create from datasets '{0}'. {1}", pathConfig, FormatException(ex)), ex);
+			}
+		}
+
+		/// <summary>
+		/// Import the uploadId as a new dataset with the given config
+		/// </summary>
+		public bool InsuranceCreate(string uploadId, string[] pathDataArray, string pathConfig)
+		{
+			if (Login() == null)
+				return false;
+
+			ShowMessage(MessageLevel.Status, String.Format("IMPORT {0} with config'{1}'", uploadId, pathConfig));
+
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/insurance.json", uploadId)), pathConfig, query))
+				{
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					return true; 
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed to import insurance {0} with config '{1}'", uploadId, pathConfig), ex);
+				return false;
+			}
+		}
+
+		public bool InsuranceOverwrite(string uploadId, string datasetId, string pathConfig)
+		{
+			if (Login() == null)
+				return false;
+			ShowMessage(MessageLevel.Status, String.Format("Overwrite uploadId:{0} datasetId: {1} config: '{2}'", uploadId, datasetId, pathConfig));
+
+			// add the query string
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpPostXml(BuildUrl(string.Format("upload/{0}/insurance/overwrite.json", uploadId, datasetId)), pathConfig, query))
+				{
+					HttpResponseToJSON(response);  // TODO should the json be examined for success?
+					return true;
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException(String.Format("Failed overwrite uploadId:{0} datasetId: {1} config: '{2}'", uploadId, datasetId, pathConfig), ex);
+				return false;
+			}
+		}
+
+		/// <summary>
+		/// Get a list of all the insurance datasets the authenticated user has access to
+		/// </summary>
+		public List<Dictionary<string, string>> InsuranceList()
+		{
+			Login();
+
+			ShowMessage(MessageLevel.Status, "LIST INSURANCE");
+
+			NameValueCollection query = new NameValueCollection();
+			query["token"] = _accessToken;
+
+			try
+			{
+				using (HttpWebResponse response = HttpGet(BuildUrl("insurance.json"), query))
+				{
+					Dictionary<string, object> json = HttpResponseToJSON(response);
+					return ParseListJson(json, "Insurance");
+				}
+			}
+			catch (Exception ex)
+			{
+				ShowException("Error Processing Insurance List", ex);
+				return null;
+			}
+		}
+
+		#endregion // API calls - Insurance
+
+		#region API calls - Composite
+
+		/// <summary>
+		/// Waits the upload complete and returns the final status json
+		/// </summary>
+		public Dictionary<string,object> WaitUploadComplete(string uploadId)
+		{
+			ShowMessage(MessageLevel.Status, "WAIT UPLOAD COMPLETE: " + uploadId);
+
+			DateTime start = DateTime.Now;
+			Dictionary<string,object> json = GetUploadStatus(uploadId);
+
+			while (IsUploadStatusWorking(json))
+			{
+				if (DateTime.Now.Subtract(start).TotalMilliseconds > HTTP_TIMEOUT_MED)
+					throw new Exception(String.Format("Timed out waiting for upload '{0}' to complete", uploadId));
+
+				System.Threading.Thread.Sleep(10000);
+				json = GetUploadStatus(uploadId);
+			}
+			return json;
+		}
+
+		public string UploadAndWait(string[] paths)
+		{
+			if (paths == null || paths.Length < 1)
+				return null;
+
+			string uploadId = Upload(paths);
+			Dictionary<string, object> uploadStausJson = WaitUploadComplete(uploadId);
+			if (IsUploadStatusError(uploadStausJson))
+				throw new Exception(String.Format("Upload failed: {1}", MiniJson.Serialize(uploadStausJson)));
+			return uploadId;
+		}
+
+		#endregion // API calls - Composite
+
+		#region JSON helpers
+
+		/// <summary>
+		/// Parse value list of datasets or insurance
+		/// </summary>
+		private List<Dictionary<string, string>> ParseListJson(Dictionary<string, object> json, string type)
+		{
+			List<object> items = JsonGetPath<List<object>>(json, "value");
+			if (items == null)
+				throw new Exception(String.Format("Dataset List JSON did not contain value array: {0}", json == null ? "null" : MiniJson.Serialize(json)));
+
+			List<Dictionary<string, string>> retList = new List<Dictionary<string, string>>();
+			foreach (Dictionary<string, object> item in items)
+			{
+				if (!item.ContainsKey("id") || !item.ContainsKey("label"))
+				{
+					ShowJSON(MessageLevel.Error, "List dataset found item with incorrect data", json);
+					continue;
+				}
+				Dictionary<string, string> cur = new Dictionary<string, string>();
+				cur["ID"] = item["id"].ToString();
+				cur["Label"] = item["label"].ToString();
+				//if (item.ContainsKey("description"))
+				//	cur["Description"] = item["description"].ToString();
+				if (item.ContainsKey("created"))
+					cur["Created"] = FromUnixTime(Convert.ToInt64(item["created"].ToString())).ToString();
+				if (item.ContainsKey("modified"))
+					cur["Modified"] = FromUnixTime(Convert.ToInt64(item["modified"].ToString())).ToString();
+				if (item.ContainsKey("geometryType"))
+					cur["Geometry Type"] = item["geometryType"].ToString();
+				if (item.ContainsKey("totalRows"))
+					cur["Total Rows"] = item["totalRows"].ToString();
+				cur["Type"] = type;
+				retList.Add(cur);
+			}
+			return retList;
+		}
+
+		/// <summary>
+		/// Return true if the upload json status is currently in progress.  False if done or error.
+		/// </summary>
+		public bool IsUploadStatusWorking(Dictionary<string,object> json)
+		{
+			// TODO should this throw error?
+			string status = JsonGetPath<string>(json, "status");
+			if (status == null)
+				ShowMessage(MessageLevel.Error, String.Format("Upload status JSON not valid: {0}", json == null ? "null" : MiniJson.Serialize(json)));
+			return !(status == null || status.IndexOf("ERROR_") == 0 || UPLOAD_IDLE_STATUSES.IndexOf(status) >= 0);
+		}
+
+		private static readonly List<string> UPLOAD_IDLE_STATUSES = new List<string> {
+			"UPLOAD_IDLE",
+			"UPLOAD_CANCELED",
+			"IMPORT_COMPLETE_CLEAN",
+			"IMPORT_COMPLETE_WARNING"
+		};
+
+		/// <summary>
+		/// Return true if the upload json status is an error
+		/// </summary>
+		public bool IsUploadStatusError(Dictionary<string,object> json)
+		{
+			// TODO should this throw error?
+			string status = JsonGetPath<string>(json, "status");
+			if (status == null)
+				ShowMessage(MessageLevel.Error, String.Format("Upload status JSON not valid: {0}", json == null ? "null" : MiniJson.Serialize(json)));
+			return (status == null || status.IndexOf("ERROR_") == 0);
+		}
+
+		/// <summary>
+		/// Finds the datasetId for the first createdResources that has an id in the given JSON
+		/// </summary>
+		public Dictionary<string,string> GetDatasetIDs(Dictionary<string,object> json)
+		{
+			List<object> createdResources = JsonGetPath<List<object>>(json, "createdResources");
+			if (createdResources == null)
+			{
+				throw new Exception(String.Format("Upload status JSON did not contain 'createdResources': {0}", json == null ? "null" : MiniJson.Serialize(json)));
+			}
+			Dictionary<string,string> dict = new Dictionary<string,string>();
+			foreach (Dictionary<string, object> item in createdResources)
+			{
+				string id = JsonGetPath<string>(item, "id");
+				string type = JsonGetPath<string>(item, "type");
+				if (id == null)
+					continue;
+				if (type == null)
+					type = "unknown";
+				dict[id] = type;
+			}
+			return dict;
+		}
+
+		/// <summary>
+		/// Get json value at given path.  Null if it doesn't exist or can't be converted to type
+		/// </summary>
+		private static T JsonGetPath<T>(Dictionary<string,object> json, string path)
+		{
+			return JsonGetPath<T>(json, path != null ? path.Split('/') : null);
+		}
+
+		private static T JsonGetPath<T>(Dictionary<string,object> json, string[] path)
+		{
+			if (json == null || path == null || path.Length < 1)
+				return default(T);
+
+			Queue<string> queue = new Queue<string>(path);
+			string key = queue.Dequeue();
+			if (!json.ContainsKey(key))
+				return default(T);
+
+			if (queue.Count < 1)
+				return (T)Convert.ChangeType(json[key], typeof(T));
+			else
+				return JsonGetPath<T>(json[key] as Dictionary<string,object>, queue.ToArray());
+		}
+
+		/// <summary>
+		/// Get json value at given path.  Null if it doesn't exist or can't be converted to type
+		/// </summary>
+		private void ShowJSON(MessageLevel level, string message, Dictionary<string,object> json)
+		{
+			ShowMessage(level, String.Format("{0}: {1}", message, json != null ? MiniJson.Serialize(json) : "null"));
+		}
+
+		/// <summary>
+		/// Convert http response to json or throw error if fail
+		/// </summary>
+		private Dictionary<string, object> HttpResponseToJSON(HttpWebResponse response)
+		{
+			string result = GetResponseString(response);
+			Dictionary<string, object> json = MiniJson.Deserialize(result) as Dictionary<string, object>;
+			if (json == null)
+				throw new Exception(String.Format("Unable to parse JSON: {0}", result));
+			return json;
+		}
+
+		#endregion // JSON helpers
+
+		#region HTTP/Web helpers
+
+		private static DateTime FromUnixTime(long unixTime)
+		{
+			var epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+			return epoch.AddMilliseconds(unixTime).ToLocalTime();
+		}
+
+		private string BuildUrl(string command, NameValueCollection query = null)
+		{
+			UriBuilder uri = new UriBuilder(MyConfigAuth.organizationURL);
+			uri.Path = String.Format("/SpatialKeyFramework/api/{0}/{1}", API_VERSION, command);
+			return uri.ToString() + ToQueryString(query);
+		}
+
+		private string ToQueryString(NameValueCollection nvc)
+		{
+			if (nvc == null || nvc.Count < 1)
+				return "";
+
+			List<string> list = new List<string>();
+			if (_routeId != null)
+				list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(ROUTEID), HttpUtility.UrlEncode(_routeId)));
+			foreach (string key in nvc)
+			{
+				list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(key), HttpUtility.UrlEncode(nvc[key])));
+			}
+
+			String ret = "?" + string.Join("&", list);
+			return ret;
+		}
+
+		private string GetResponseString(HttpWebResponse response)
+		{
+			using (response)
+			{
+				StreamReader reader = new StreamReader(response.GetResponseStream());
+				string result = reader.ReadToEnd().Trim();
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+				ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+				return result;
+			}
+		}
+
+		private void ShowException(string message, Exception ex)
+		{
+			ShowMessage(MessageLevel.Error, String.Format("{0}: {1}", message, FormatException(ex)));
+		}
+
+		private string FormatException(Exception ex)
+		{
+			if (ex is WebException)
+			{
+				WebException we = ex as WebException;
+				HttpWebResponse response = we != null ? we.Response as HttpWebResponse : null;
+				if (response == null)
+					return ex.Message;
+				else
+					return String.Format("StatusCode:  {0}; {1}",response.StatusCode, GetResponseString(response));
+			}
+			else
+				return ex.Message;
+		}
+
+		private HttpWebRequest CreateWebRequest(string url, string method, int timeout)
+		{
+			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
 			CookieContainer cookieJar = new CookieContainer();
-			foreach (Cookie c in _cookies)
-			{
-				Cookie cookie = new Cookie(c.Name, c.Value);
-				cookieJar.Add(new Uri(String.Format("{0}{1}", _protocol, clusterHost)), cookie);
-			}
-			return new CustomWebClient(cookieJar);
+			request.CookieContainer = cookieJar;
+			request.Method = method;  
+			request.Timeout = timeout;
+			return request;
 		}
 
-		private void AddCookiesToQuery(NameValueCollection query)
+		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
 		{
-			foreach (Cookie c in _cookies)
+			try
 			{
-				query.Add(c.Name, c.Value);
+				url = url + ToQueryString(queryParam);
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+				ShowMessage(MessageLevel.Verbose, String.Format("HTTP GET: {0}", url));
+
+				HttpWebRequest request = CreateWebRequest(url, method, timeout);
+				return request.GetResponse() as HttpWebResponse;
+			}
+			finally
+			{
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
 			}
 		}
 
-		/// <summary>
-		/// Custom <see cref="System.Net.WebClient"/> that allows setting of cookies
-		/// </summary>
-		/// <see cref="http://www.codeproject.com/Articles/72232/C-File-Upload-with-form-fields-cookies-and-headers"/>
-		private class CustomWebClient : WebClient
+		private HttpWebResponse HttpPost(string url, NameValueCollection queryParam = null, NameValueCollection bodyParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_SHORT)
 		{
-			private CookieContainer _cookies;
-			
-			public CustomWebClient(CookieContainer cookies)
+			try
 			{
-				_cookies = cookies;
+				url = url + ToQueryString(queryParam);
+				HttpWebRequest request = CreateWebRequest(url, method, timeout);
+				request.ContentType = "application/x-www-form-urlencoded";
+
+				// get the query string and trim off the starting "?"
+				string body = ToQueryString(bodyParam);
+				body = body.Remove(0, 1);
+
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+				ShowMessage(MessageLevel.Verbose, String.Format("HTTP POST URL: {0} PARAM: {1}", url, body));
+
+				// Encode the parameters as form data:
+				byte[] formData = UTF8Encoding.UTF8.GetBytes(body);
+				request.ContentLength = formData.Length;
+
+				// Send the request:
+				using (Stream post = request.GetRequestStream())
+				{  
+					post.Write(formData, 0, formData.Length);  
+				}
+
+				return request.GetResponse() as HttpWebResponse;
 			}
-			
-			protected override WebRequest GetWebRequest(Uri address)
+			finally
 			{
-				HttpWebRequest request = (HttpWebRequest)base.GetWebRequest(address);
-				request.CookieContainer = _cookies;
-				request.Timeout = 3600000; // 60 min * 60 sec * 1000 msec = 3600000 msec
-				return request;
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
 			}
 		}
-		
+
+		private HttpWebResponse HttpPostXml(string url, string pathXML, NameValueCollection queryParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_MED)
+		{
+			if (!File.Exists(pathXML))
+				throw new Exception(String.Format("File '{0}' does not exist.", pathXML));
+
+			try
+			{
+				url = url + ToQueryString(queryParam);
+				HttpWebRequest request = CreateWebRequest(url, method, timeout);
+				request.ContentType = "application/xml";
+
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+				ShowMessage(MessageLevel.Verbose, String.Format("HTTP POST URL: {0} XML: {1}", url, pathXML));
+
+				// Send the xml:
+				using (Stream rs = request.GetRequestStream())
+				{  
+					FileStream fileStream = new FileStream(pathXML, FileMode.Open, FileAccess.Read);
+					byte[] buffer = new byte[4096];
+					int bytesRead = 0;
+					while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+					{
+						WriteUploadBytes(rs, buffer, bytesRead, false);
+					}
+					fileStream.Close();
+				}
+
+				return request.GetResponse() as HttpWebResponse;
+			}
+			finally
+			{
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+			}
+		}
+
+		private HttpWebResponse HttpUploadFiles(string url, string[] files, string paramName, string contentType, NameValueCollection queryParam, NameValueCollection bodyParam, string method = "POST", int timeout = HTTP_TIMEOUT_LONG)
+		{
+			if (files == null || files.Length < 1)
+				throw new Exception("No files to upload.");
+
+			foreach (string file in files)
+			{
+				if (!File.Exists(file))
+					throw new Exception(String.Format("File '{0}' does not exist.", file));
+			}
+
+			try
+			{
+				url = url + ToQueryString(queryParam);
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+				ShowMessage(MessageLevel.Verbose, string.Format("HTTP UPLOAD {0} to {1}", String.Join(", ", files), url));
+				string boundary = String.Format("-----------{0:N}", Guid.NewGuid());
+				byte[] boundarybytes = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "\r\n");
+
+				HttpWebRequest request = CreateWebRequest(url, method, timeout);
+				request.ContentType = "multipart/form-data; boundary=" + boundary;
+				request.KeepAlive = true;
+				//request.CookieContainer = new CookieContainer();
+
+				ShowMessage(MessageLevel.Verbose, "Content-Type: " + request.ContentType);
+				long bytes = 0;
+				using (Stream rs = request.GetRequestStream())
+				{
+					// Write NVP
+					if (bodyParam != null)
+					{
+						string formdataTemplate = "Content-Disposition: form-data; name=\"{0}\"\r\n\r\n{1}";
+						foreach (string key in bodyParam.Keys)
+						{
+							bytes += WriteUploadBytes(rs, boundarybytes);
+
+							string formitem = string.Format(formdataTemplate, key, bodyParam[key]);
+							bytes += WriteUploadBytes(rs, System.Text.Encoding.UTF8.GetBytes(formitem));
+						}
+					}
+
+					foreach (string file in files)
+					{
+						// Write File Header
+						bytes += WriteUploadBytes(rs, boundarybytes);
+						string headerTemplate = "Content-Disposition: form-data; name=\"{0}\"; filename=\"{1}\"\r\nContent-Type: {2}\r\n\r\n";
+						string header = string.Format(headerTemplate, paramName, Path.GetFileName(file), contentType);
+						bytes += WriteUploadBytes(rs, System.Text.Encoding.UTF8.GetBytes(header));
+
+						// Write File
+						using (FileStream fileStream = new FileStream(file, FileMode.Open, FileAccess.Read))
+						{
+							byte[] buffer = new byte[4096];
+							int bytesRead = 0;
+							while ((bytesRead = fileStream.Read(buffer, 0, buffer.Length)) != 0)
+							{
+								bytes += WriteUploadBytes(rs, buffer, bytesRead, false);
+							}
+						}
+
+						ShowMessage(MessageLevel.Verbose, "FILE INSERTED HERE");
+					}
+
+					byte[] trailer = System.Text.Encoding.ASCII.GetBytes("\r\n--" + boundary + "--\r\n");
+					bytes += WriteUploadBytes(rs, trailer);
+				}
+
+				return request.GetResponse() as HttpWebResponse;
+			}
+			finally
+			{
+				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+			}
+		}
+
+		private int WriteUploadBytes(Stream rs, byte[] bytes, int length = -1, bool isLog = true)
+		{
+			if (length < 0)
+				length = bytes.Length;
+
+			rs.Write(bytes, 0, length);
+			if (isLog)
+				ShowMessage(MessageLevel.Verbose, Encoding.UTF8.GetString(bytes));
+
+			return length;
+		}
+
 		/// <summary>
 		/// Gets a string representation of a NameValueCollection
 		/// </summary>
@@ -515,7 +996,11 @@ namespace skdm
 			}
 			return string.Join(", ", d);
 		}
-		
+
+		#endregion //  HTTP/Web helpers
+
+		#region General Helpers
+
 		/// <summary>
 		/// Gets a temporary file path with a given extension
 		/// </summary>
@@ -525,32 +1010,35 @@ namespace skdm
 		/// <param name='fileExtension'>
 		/// File extension.
 		/// </param>
-		private string GetTempFile(string fileExtension)
+		public static string GetTempFile(string fileExtension, string prefix = "", string path = null)
 		{
-			string temp = System.IO.Path.GetTempPath();
-			string res = string.Empty;
+			if (path == null)
+				path = System.IO.Path.GetTempPath();
+			string filename = string.Empty;
 			while (true)
 			{
-				res = string.Format("{0}.{1}", Guid.NewGuid().ToString(), fileExtension);
-				res = System.IO.Path.Combine(temp, res);
-				if (!System.IO.File.Exists(res))
+				filename = string.Format("{0}{1}.{2}", prefix, Guid.NewGuid().GetHashCode().ToString(), fileExtension);
+				filename = Path.Combine(path, filename);
+				if (!File.Exists(filename))
 				{
 					try
 					{
-						System.IO.FileStream s = System.IO.File.Create(res);
-						s.Close();
+						using (FileStream stream = File.Create(filename))
+						{
+						}
+						FileInfo fileInfo = new FileInfo(filename);
+						fileInfo.Attributes = FileAttributes.Temporary;
 						break;
 					}
 					catch (Exception)
 					{
-						
 					}
 				}
 			}
-			return res;
+			return filename;
 		}
-		#endregion
-		
+
+		#endregion //  General Helpers
+
 	}
 }
-

@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<insuranceImport>
+       <linkColumn>
+                <policyColumn>account id</policyColumn>
+                <locationColumn>account id</locationColumn>
+       </linkColumn>
+   <feature>PolicyExposedLimit</feature>
+   <permissions>
+      <addAllUsers>true</addAllUsers>
+      <denyExporting>true</denyExporting>
+      <hideFromUI>false</hideFromUI>
+   </permissions>
+   <notifications>
+      <sendEmail>true</sendEmail>
+      <clientNotification>true</clientNotification>
+   </notifications>
+   <locationDataset>
+      <latlon />
+      <type>CSV</type>
+      <filename>Sample Locations.csv</filename>
+      <name>Sample Insurance Locations and Policies</name>
+      <preparedWith>Spatialkey API</preparedWith>
+      <preparedDate>2013-12-05T16:03:21.476-05:00</preparedDate>
+      <expirationDate>2013-12-15T16:09:08.113-05:00</expirationDate>
+	  <pointThematicLayer>
+		      <thematicDataset>US_Postal</thematicDataset>
+	  </pointThematicLayer>
+	  <pointThematicLayer>
+		      <thematicDataset>US_Counties</thematicDataset>
+	  </pointThematicLayer>
+	  <pointThematicLayer>
+		      <thematicDataset>US_States</thematicDataset>
+	  </pointThematicLayer>
+      <locationColumn>
+         <name>hurricane site limit</name>
+         <label>hurricane site limit</label>
+         <perilMapping peril="Hurricane">limit</perilMapping>
+         <type>Currency</type>
+         <format>USD</format>
+      </locationColumn>
+      <locationColumn>
+         <name>year built</name>
+         <label>year built</label>
+         <type>Date</type>
+         <format>Year</format>
+      </locationColumn>
+      <locationColumn>
+         <name>earthquake gross aal</name>
+         <label>earthquake gross aal</label>
+         <type>Currency</type>
+         <format>USD</format>
+      </locationColumn>
+      <locationColumn>
+         <name>account id</name>
+         <label>account id</label>
+         <type>Integer</type>
+         <format>ID</format>
+      </locationColumn>
+      <locationColumn>
+         <name>total insured value</name>
+         <label>total insured value</label>
+         <insuranceMapping>tiv</insuranceMapping>
+         <type>Currency</type>
+         <format>USD</format>
+      </locationColumn>
+      <locationColumn>
+         <name>earthquake site deductible</name>
+         <label>earthquake site deductible</label>
+         <perilMapping peril="Earthquake">deductible</perilMapping>
+         <type>Currency</type>
+         <format>USD</format>
+      </locationColumn>
+      <locationColumn>
+         <name>state</name>
+         <label>state</label>
+         <type>String</type>
+      </locationColumn>
+      <locationColumn>
+         <name>site id</name>
+         <label>site id</label>
+         <insuranceMapping>site_id</insuranceMapping>
+         <type>Integer</type>
+         <format>ID</format>
+      </locationColumn>
+      <locationColumn>
+         <name>earthquake risk</name>
+         <label>earthquake risk</label>
+         <type>String</type>
+      </locationColumn>
+      <locationColumn>
+         <name>hurricane site deductible</name>
+         <label>hurricane site deductible</label>
+         <perilMapping peril="Hurricane">deductible</perilMapping>
+         <type>Currency</type>
+         <format>USD</format>
+      </locationColumn>
+      <locationColumn>
+         <name>location id</name>
+         <label>location id</label>
+         <insuranceMapping>location_id</insuranceMapping>
+         <type>Integer</type>
+         <format>ID</format>
+      </locationColumn>
+      <locationColumn>
+         <name>city</name>
+         <label>city</label>
+         <type>String</type>
+      </locationColumn>
+      <locationColumn>
+         <name>hurricane risk</name>
+         <label>hurricane risk</label>
+         <type>String</type>
+      </locationColumn>
+      <locationColumn>
+         <name>square footage</name>
+         <label>square footage</label>
+         <type>Integer</type>
+      </locationColumn>
+      <locationColumn>
+         <name>hurricane gross aal</name>
+         <label>hurricane gross aal</label>
+         <type>Currency</type>
+         <format>USD</format>
+      </locationColumn>
+      <locationColumn>
+         <name>earthquake ground up aal</name>
+         <label>earthquake ground up aal</label>
+         <type>Currency</type>
+         <format>USD</format>
+      </locationColumn>
+      <locationColumn>
+         <name>postal code</name>
+         <label>postal code</label>
+         <type>String</type>
+      </locationColumn>
+      <locationColumn>
+         <name>hurricane ground up aal</name>
+         <label>hurricane ground up aal</label>
+         <type>Currency</type>
+         <format>USD</format>
+      </locationColumn>
+      <locationColumn>
+         <name>longitude</name>
+         <label>longitude</label>
+         <type>Longitude</type>
+      </locationColumn>
+      <locationColumn>
+         <name>latitude</name>
+         <label>latitude</label>
+         <type>Latitude</type>
+      </locationColumn>
+      <locationColumn>
+         <name>occupancy</name>
+         <label>occupancy</label>
+         <type>String</type>
+      </locationColumn>
+      <locationColumn>
+         <name>earthquake site limit</name>
+         <label>earthquake site limit</label>
+         <perilMapping peril="Earthquake">limit</perilMapping>
+         <type>Currency</type>
+         <format>USD</format>
+      </locationColumn>
+      <locationColumn>
+         <name>construction</name>
+         <label>construction</label>
+         <type>String</type>
+      </locationColumn>
+      <locationColumn>
+         <name>number of stories</name>
+         <label>number of stories</label>
+         <type>Integer</type>
+      </locationColumn>
+   </locationDataset>
+   <policyDataset>
+<name>Policies</name>
+   		<filename>Sample Policies.csv</filename>
+		<preparedWith>Spatialkey API</preparedWith>
+		<preparedDate>2013-11-19T16:24:31.203-05:00</preparedDate>
+		<!--<expirationDate>2013-11-29T16:24:31.181-05:00</expirationDate>-->
+	  <policyColumn>
+         <name>limit</name>
+         <label>limit</label>
+         <insuranceMapping>limit</insuranceMapping>
+         <type>Currency</type>
+         <format>USD</format>
+      </policyColumn>
+      <policyColumn>
+         <name>Line of Business</name>
+         <label>line of business</label>
+         <type>String</type>
+      </policyColumn>
+      <policyColumn>
+         <name>account id</name>
+         <label>account id</label>
+         <type>Integer</type>
+         <format>ID</format>
+      </policyColumn>
+      <policyColumn>
+         <name>blanket/minimum deductible</name>
+         <label>blanketminimum deductible</label>
+         <type>Currency</type>
+         <format>USD</format>
+      </policyColumn>
+      <policyColumn>
+         <name>premium</name>
+         <label>premium</label>
+         <type>Currency</type>
+         <format>USD</format>
+      </policyColumn>
+      <policyColumn>
+         <name>underwriter</name>
+         <label>underwriter</label>
+         <type>String</type>
+      </policyColumn>
+      <policyColumn>
+         <name>peril</name>
+         <label>peril</label>
+         <type>String</type>
+         <insuranceMapping>peril</insuranceMapping>
+      </policyColumn>
+      <policyColumn>
+         <name>attachment point</name>
+         <label>attachment point</label>
+         <insuranceMapping>attach_point</insuranceMapping>
+         <type>Currency</type>
+         <format>USD</format>
+      </policyColumn>
+      <policyColumn>
+         <name>policy id</name>
+         <label>policy id</label>
+         <type>Integer</type>
+         <insuranceMapping>policy_id</insuranceMapping>
+         <format>ID</format>
+      </policyColumn>
+      <policyColumn>
+         <name>product line</name>
+         <label>product line</label>
+         <type>String</type>
+      </policyColumn>
+      <policyColumn>
+         <name>expiration date</name>
+         <label>expiration date</label>
+         <type>Date</type>
+         <format>Day</format>
+      </policyColumn>
+      <policyColumn>
+         <name>branch</name>
+         <label>branch</label>
+         <type>String</type>
+      </policyColumn>
+      <policyColumn>
+         <name>maximum deductible</name>
+         <label>maximum deductible</label>
+         <insuranceMapping>max_deductible</insuranceMapping>
+         <type>Currency</type>
+         <format>USD</format>
+      </policyColumn>
+      <policyColumn>
+         <name>layer amount</name>
+         <label>layer amount</label>
+         <insuranceMapping>layer</insuranceMapping>
+         <type>Currency</type>
+         <format>USD</format>
+      </policyColumn>
+      <type>CSV</type>
+	</policyDataset>
+</insuranceImport>

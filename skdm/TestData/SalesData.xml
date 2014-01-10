@@ -1,72 +1,78 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<umgMeta version="1.0" purpose="for publishing">
-  <dataset>
-    <name>Example SalesData</name>
-    <georeference method="trust">
-      <latitudeField>Latitude</latitudeField>
-      <longitudeField>Longitude</longitudeField>
-    </georeference>
-  </dataset>
-  <columns>
-    <column>
-      <position>1</position>
-      <name>Transaction_date</name>
-      <type confidence="100">DATE/MINUTE</type>
-    </column>
-    <column>
-      <position>2</position>
-      <name>Product_Name</name>
-      <type confidence="100">STRING</type>
-    </column>
-    <column>
-      <position>3</position>
-      <name>Price</name>
-      <type confidence="100">NUMBER/INTEGER</type>
-    </column>
-    <column>
-      <position>4</position>
-      <name>Payment_Type</name>
-      <type confidence="100">STRING</type>
-    </column>
-    <column>
-      <position>5</position>
-      <name>Name</name>
-      <type confidence="100">STRING</type>
-    </column>
-    <column>
-      <position>6</position>
-      <name>City</name>
-      <type confidence="100">STRING/CITY</type>
-    </column>
-    <column>
-      <position>7</position>
-      <name>State</name>
-      <type confidence="100">STRING/STATE</type>
-    </column>
-    <column>
-      <position>8</position>
-      <name>Country</name>
-      <type confidence="100">STRING/COUNTRY</type>
-    </column>
-    <column>
-      <position>9</position>
-      <name>Account_Created</name>
-      <type confidence="100">DATE/MINUTE</type>
-    </column>
-    <column>
-      <position>10</position>
-      <name>Last_Login</name>
-      <type confidence="100">DATE/MINUTE</type>
-    </column>
-    <column>
-      <position>11</position>
-      <name>Latitude</name>
-      <type confidence="100">LATITUDE</type>
-    </column>
-    <column>
-      <position>12</position>
-      <name>Longitude</name>
-      <type confidence="100">LONGITUDE</type>
-    </column>
-  </columns>
-</umgMeta>
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<datasetImport>
+	<permissions>
+		<addAllUsers>true</addAllUsers>
+	</permissions>
+	<notifications>
+		<sendEmail>false</sendEmail>
+		<clientNotification>false</clientNotification>
+	</notifications>
+	<dataset>
+		<latlon />
+		<datasetColumn>
+			<name>account_created</name>
+			<label>account created</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>price</name>
+			<label>price</label>
+			<type>Integer</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>name</name>
+			<label>name</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>product_name</name>
+			<label>product name</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>state</name>
+			<label>state</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>transaction_date</name>
+			<label>transaction date</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>longitude</name>
+			<label>longitude</label>
+			<type>Longitude</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>latitude</name>
+			<label>latitude</label>
+			<type>Latitude</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>payment_type</name>
+			<label>payment type</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>last_login</name>
+			<label>last login</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>country</name>
+			<label>country</label>
+			<type>String</type>
+		</datasetColumn>
+		<datasetColumn>
+			<name>city</name>
+			<label>city</label>
+			<type>String</type>
+		</datasetColumn>
+		<type>CSV</type>
+		<name>TEST SalesData</name>
+		<preparedWith>Spatialkey API</preparedWith>
+		<preparedDate>2013-11-08T16:41:57.203-05:00</preparedDate>
+		<expirationDate>2013-11-18T16:41:57.202-05:00</expirationDate>
+	</dataset>
+</datasetImport>

@@ -6,28 +6,96 @@ This documentation can also be found [here](http://support.spatialkey.com/data-m
 Note that the Data Management API Command Line Tool isn’t currently supported when called through a proxy server.
 
 # Installing the Command Line Tool
-1. Download the Command Line Tool and sample data [Download .zip file](https://github.com/SpatialKey/skdm/raw/master/skdm.zip)
+1. Download the Command Line Tool and sample data [Download .zip file](https://github.com/SpatialKey/skdm/blob/v2/skdm.zip)
 2. Unzip contents to an accessible location - we will need to connect to that location later.  For example, I placed my unzipped folder at c:\program files\skdm.
 
 You can optionally connect to the location of the files and view the help command now.
 3. Open command-line prompt and go to directory above (optional)
 4. Run "skdm.exe" to see the help command (optional)
 
+# Exit Codes
+ - 0 Success
+ - 1 Warning
+ - 2 Bad Command Line
+ - 3 No Commands
+ - 4 Error
+
+# Options
+## /help
+> /help, -help, /h, -h, /?, -?
+
+Show help message
+
+## /config
+> /config CONFIG_XML, -config, /c, -c
+
+Data Manager Config XML file. (Default SpatialKeyDataManagerConfig.xml)
+
+# /version
+> /version, -version
+
+Get application version
+
+# /trace
+> /trace LEVEL, -trace
+
+Trace debug verbosity
+ - The default of '0' shows errors and results only
+ - '1' shows general status messages
+ - '2' shows detailed debug version.
+ 
+# Commands
+## help
+> help <command>
+
+Show help for specific command.  Try '/help' for general help.
+
+## oauth
+> oauth [/ttl TTL] [ORG_API_KEY ORG_SECRET_KEY USER_API_KEY]
+
+Get oAuth token for keys in XML configuration or by passing in values.  The organizationAPIKey, organizationSecretKey, or userAPIKey defined in the data manager config XML file can be overwritten by sending all three on the command line.
+- /ttl TTL - sets the time to live for the token.  The default is 60 seconds.
+
+## upload
+> upload [/no-wait] [/keep-uploadid] [[ACTION1] ... [ACTIONN]]
+
+Upload dataset data.  By default this waits until the import, append, or overwrite completes.  All actions are performed unless one or more specific actions are listed. 
+- /no-wait - Doesn't wait for import, append, or overwrite to complete.  If this is defined, the datasetId created on imports will not be updated in the data manager config XML.
+- /keep-uploadid - Don't cancel the upload id so it can be used in other manual operations.
+
+## suggest
+> suggest [[ACTION1] ... [ACTIONN]]
+
+Get suggested config for data.  This will create an xml configuration for each action run.  All actions defined have their xml suggested unless specific actions are listed.   If the xml file defined by `<pathXML>` does not exist, the configuration will be written into that file name.  If the file does exist, the xml configuration will be written into a new file.
+
+## list
+> list
+
+List available datasets
+
+## delete
+> delete ID [[ID] ... [ID]]
+
+Delete datasets by id.  One or more ids can be specified.
 
 ###Command Line Tool files:
 - skdm.exe (executable file to trigger import or update task)
 - SpatialKeyDataManagerConfig.xml (XML descriptor for executable file)
-- ICSharpCode.SharpZipLib.dll (code that .exe file uses)
 
 ###Sample Data files:
 - 110thCongressionalDistrictShapefile.zip (sample Shapefile)
+- 110thCongressionalDistrictShapefile.xml (sample Shapefile configuration)
 - SalesData.csv (Sample CSV file)
-- SalesData.xml (XML descriptor for CSV file import) – for tips on generating an XML descriptor file for your CSV, check out this [article](http://support.spatialkey.com/dmapi-generate-xml)
+- SalesData.xml (XML descriptor for CSV file import)
+
+You can create the suggested xml configuration files by running "skdm.exe suggest".
+
+For tips on generating an XML descriptor file for your CSV, check out this [article](http://support.spatialkey.com/xml-file-generation/)
 
 # Setting up the Data Manager Config XML file
 The Data Manager Config XML file is split into the following sections:
 - Define Organization
-- Authentication
+- Define User
 - Action
 
 See the sample SpatialKeyDataManagerConfig.xml shipped with the application for the proper xml format.
@@ -35,173 +103,118 @@ See the sample SpatialKeyDataManagerConfig.xml shipped with the application for 
 If you know XML, these sections will be easy to identify – if you don’t know XML, be patient and search through the file until you find these sections and then plug in the required information.  If you need an XML refresher, visit [W3Schools XML Tutorial](http://www.w3schools.com/xml/default.asp).
 
 ## Define Organization
-When you define your organization in the XML file, you are telling the Data Import API where to send your data. Enter your the part of your SpatialKey URL before the ".spatialkey.com" as your Organization Name into the placeholder in the Config XML file. For example, if my URL was Demo.spatialkey.com, I would set up my Config XML file with an organization name of "Demo".
+In order to authenticate to the api, you must first setup your organization URL. This should be the same URL you use to access the client up to and including ".spatialkey.com".  Make sure you use "https://".  For the "demo" organization the url would look like this:
 
-> XML File Default: `<organizationName>xxx</organizationName>`  
-> XML with my SpatialKey Organization Name entered: `<organizationName>Demo</organizationName>`
+>     <organizationURL>https://demo.spatialkey.com/</organizationURL>
 
-You can comment out the Cluster Domain URL from the XML and it will do a cluster lookup to find the Cluster Domain URL.  See "conflicts" section below for details on why commenting out is suggested.
+Then you will need to get the organization API and secret key.  Login to SpatialKey, click on the "Admin" tab, and go to the "API Keys" settings.  Copy the "Public Key" into `<organizationApiKey>` and the "Secret Key" into `<organizationSecretKey>`:
 
-Finished section for my organization would look like this:
->     <organizationName>Demo</organizationName>
+>     <organizationAPIKey>1a2a3a-fcb-42-93-828a2a2</organizationAPIKey>
+>     <organizationSecretKey>4b6b6b-fcb-42-93-828a2a2</organizationSecretKey>
 
-Note: if you license SpatialKey as an on-premise solution (i.e. you have SpatialKey hosted in your own internal environment), you will have to define a Cluster Domain URL in addition to the organization name. In order to look up your cluster, enter "http://[yoursite].spatialkey.com/clusterlookup.cfm" into your browser. For my organization, I would enter `http://Demo.spatialkey.com/clusterlookup.cfm`.
+## Define User
+This field defines what user is authenticating into Spatial Key.  Login to SpatialKey, click on "People" tab, and go into the settings for your user.  On this screen, you can view your user id and generate an API key.  Copy the user "API Key" into the `<userAPIKey>`
 
-You will need update the cluster domain URL into the Config XML file as it isn’t include by default. Make sure you use "https" and not "http".  Finished section for an on-premise organization would look like this:
-
->     <organizationName>Demo</organizationName>
->     <clusterDomainUrl>https://cluster2.spatialkey.com/</clusterDomainUrl>
-
-## Authentication
-When you authenticate in the XML file, you are telling the Data Import API who you are and giving it a chance to validate your permissions for the defined organization.  You can authenticate in a couple of ways: Authenticate with Keys or Authenticate with username/password.
-
-### Authenticate with Keys
-To authenticate with keys, you need to generate an API Key and retrieve your user ID from within SpatialKey.  Login to SpatialKey, click on "People" tab, and go into the settings for your user.  On this screen, you can view your user id and generate an API key.  Plug these values into the XML placeholders in the Config XML file.
-
-> Default apiKey in XML file: `<apiKey>xxx</apiKey>`  
-> XML file with my apiKey entered: `<apiKey>8b08e-fcb-42-93-828a2a2</apiKey>`  
-> Default userId in XML file: `<userId>xxx</userId>`  
-> XML file with my userId entered: `<userId>8afd7600ce0a462ad0d8a</userId>`
-
-You can comment out the username/password from the XML if you authenticate using keys.  See "conflicts" section below for details on why commenting out is suggested.
-
-Finished section for my organization would look like this:
-
->     <apiKey>8b08e-fcb-42-93-828a2a2</apiKey>
->     <userId>8afd7600ce0a462ad0d8a</userId>
->     <!–
->       <userName>user@xxx.com</userName>
->       <password>xxx</password>
->     –>
-
-### Authenticate with Username/Password
-To authenticate with username/password, enter your username and password combination into the Config XML file.
-
-> Default userName in XML file: `<userName>user@xxx.com</userName>`  
-> XML file with my userName: `<userName>user.name@spatialkey.com</userName>`
-
-> Default password in XML file: `<password>xxx</password>`  
-> XML file with my password: `<password>MyTempPass99</password>`
-
-You can comment out the keys from the XML if you authenticate using username/password.  See "conflicts" section below for details on why commenting out is suggested.
-
-Finished section for my organization would look like this:
-
->     <!–
->       <apiKey>xxx</apiKey>
->       <userId>xxx</userId>
->     –>
->     <userName>user.name@spatialkey.com</userName>
->     <password>MyTempPass99</password></code>
+>     <userAPIKey>7c8c9c-fcb-42-93-828a2a2</userAPIKey>
 
 ## Action
 The "actions" section of the Config XML file defines all the actions that will be done when the Command Line Tool is executed.
 
-The "type" element defines what action will be done.  The current options are:
-- overwrite – create or overwrite an existing CSV dataset
-- append – create or Append to an existing CSV dataset
-- poly – create or overwite a shapefile
+The `<actionType>` element defines what action will be done.  The current options are:
+- append – Append to an existing dataset.  If the `<datasetId>` is not set before running this action, an import will be done the first time it is run.  A shape dataset cannot be appended to, so this will overwrite.
+- overwrite – Overwrite an existing dataset.  If the `<datasetId>` is not set before running this action, an import will be done the first time it is run.
 
-### Overwrite or Append Action
-The overwrite and append actions will allow you to create, append to or overwrite an existing CSV dataset.  For both of these actions, the action section in the XML file is defined similarly:
-- action name – the name you will specify when running the executable if you want to run only this action
-- type – either overwrite or append
-- dataPath – the path (relative to the config.xml) of the CSV file to upload
-- xmlPath – the path (relative to the config.xml) to the CSV definition XML
-- runAsBackground – true if you want to run the import in the background and return immediately without waiting for completion – defaults to "true"
-- notifyByEmail – true if you want the authenticated user to be notified on completion – defaults to "true"
-- addAllUsers – true if you want all users in your organization to have access to this dataset once imported into SpatialKey – defaults to "false"
+- dataType - What type of data is in the `<pathData>`. Can be "CSV", "Shapefile", or "Insurance"
+- pathData - Path of the data to upload.  CSV can be a raw file or zip, shapes are always zipped up.
+- pathXML - configuration file for the data.  You can use the "suggest" command to get an xml file or retrieve it from an already uploaded sample on the Spatial Key client.
+- datasetId (dataType not "Insurance") - datasetId to use for overwrite or append.  If not set, an import will be done and the generated id will be saved to the xml.
+- insuranceId (dataType "Insurance") - insuranceId to use for overwrite or append.  If not set, an import will be done and the generated id will be saved to the xml.  A new insuranceId is always generated.
 
-Let’s set up an overwrite action for the sample CSV file provided in the SKDM folder.
+Note: you don't get email or client notifications at this time.
+
+*Initial Import a Dataset*
 >     <action name="csv example">
->       <type>overwrite</type>
->       <dataPath>SalesData.csv</dataPath>
->       <xmlPath>SalesData.xml</xmlPath>
->       <runAsBackground>true</runAsBackground>
->       <notifyByEmail>true</notifyByEmail>
->       <addAllUsers>false</addAllUsers>
+>       <actionType>overwrite or append</actionType>
+>       <dataType>CSV</dataType>
+>       <pathData>SalesData.csv</pathData>
+>       <pathXML>SalesData.xml</pathXML>
 >     </action>
 
-### Poly Action
-The poly action will allow you to create or overwrite a shapefile.  The poly action in the XML file is slightly  different depending on whether you are creating a new shapefile or updating an existing.
-
-Note that you don't get any email notifications for shape notifications at this time.
-
-*Create new shapefile:*
-- action name - the name you will specify when running the executable if you want to run only this action
-- type – poly
-- dataPath –  the path (relative to the config.xml) of the shapefile – the shape file must be a zip
-- datasetName – the name of the new shapefile
-- datasetId – this field is ignored when a datasetName is defined, it can be removed or commented out when a datasetName is provided
-
-*Overwrite existing shapefile:*
-- action name - the name you will specify when running the executable if you want to run only this action
-- type – poly
-- dataPath –  the path (relative to the config.xml) of the shapefile – the shape file must be a zip
-- datasetName – comment out or remove this line item completely when doing an overwrite of an existing Shapefile, if you leave it in, a new shapefile will be created
-- datasetId – the id of the existing dataset to be overwritten.  To get the id for an existing shape dataset, login to SpatialKey, click on "Manage Data" tab, and go into the settings for your shape dataset.  On this screen, click on the "Advanced Settings" option, then click on the "Data Import API" tab, and copy the Dataset ID into your configuration file.
-
-Note that in the Config XML file, the poly action is commented out.  Be sure to remove comments `<!--` and `–>` if you plan to use this action.  Let’s set up this action for both creating a new shapefile and overwriting and existing shapefile with the sample shapefile provided in the SKDM folder.
-
-*Create new shapefile example:*
->     <action name="shape example">
->       <type>poly</type>
->       <dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
->       <datasetName>110th Congressional District</datasetName>
->       <!– <datasetId>xxx</datasetId> –>
+*Overwrite Existing Shapefile*
+>     <action name="csv example">
+>       <actionType>overwrite</actionType>
+>       <dataType>Shapefile</dataType>
+>       <pathData>110thCongressionalDistrictShapefile.zip</pathData>
+>       <pathXML>110thCongressionalDistrictShapefile.xml</pathXML>
+>       <datasetId>a8a8a-848-33-33-283838</datasetId>
 >     </action>
 
-*Overwrite an existing shapefile example:*
->     <action name="shape example">
->       <type>poly</type>
->       <dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
->       <!– <datasetName>110th Congressional District</datasetName> –>
->       <datasetId>8ab3d821d013ed04</datasetId>
+*Append To Existing Dataset*
+>     <action name="csv example">
+>       <actionType>overwrite</actionType>
+>       <dataType>CSV</dataType>
+>       <pathData>SalesData.csv</pathData>
+>       <pathXML>SalesData.xml</pathXML>
+>       <datasetId>1111-848-33-33-283838</datasetId>
 >     </action>
 
 ### Another thing to consider when defining actions…
-If you are creating a Config XML file that has many actions and you want to create an exception to the main file’s organizationName, clusterDomainUrl, apiKey, userId, username, or password, you can do so by adding a command for a specific action.
+If you are creating a Config XML file that has many actions and you want to create an exception to the main file’s organizationURL, organizationAPIKey, organizationSecretKey, or userAPIKey, you can do so by adding a command for a specific action.
 
 Simply add a line item (or multiple) in the action
 >     <action name="csv example">
->       <clusterDomainUrl>https://MyOtherURL.spatialkey.com/</clusterDomainUrl>
->       <type>overwrite</type>
->       <dataPath>SalesData.csv</dataPath>
->       <xmlPath>SalesData.xml</xmlPath>
->       <runAsBackground>true</runAsBackground>
->       <notifyByEmail>true</notifyByEmail>
+>       <organizationURL>https://xxx.spatialkey.com/</organizationURL>
+>       <organizationAPIKey>xxx</organizationAPIKey>
+>       <organizationSecretKey>xxx</organizationSecretKey>
+>       <userAPIKey>xxx</userAPIKey>
+>       <actionType>overwrite</actionType>
+>       <dataType>CSV</dataType>
+>       <pathData>SalesData.csv</pathData>
+>       <pathXML>SalesData.xml</pathXML>
+>       <datasetId>1111-848-33-33-283838</datasetId>
 >     </action>
+
 
 See "conflicts" section for some important considerations.
 
 ## Conflicts
-Here are a couple of conflicts to remember when setting up your Config XML file.
-- When both Cluster Domain URL and the Organization Name are defined, Cluster Domain URL will be used and no cluster domain lookup will be performed.  You still need to define the Organization Name in order to sucessfully authenticate.
-- When both Keys and username/password are provided for authentication, they keys will be used.  This is why it was suggested that one of the other should be commented out.
+When creating exceptions to the main file’s organizationName, organizationURL, organizationAPIKey, or userAPIKey within a specific action, remember that any not defined in the action will used the default ones.
 
-When creating exceptions to the main file’s organizationName, clusterDomainUrl, apiKey/userId, or username/password within a specific action, keep the above conflicts in mind.  As an example, if you define the clusterDomainUrl in the main body of the Config XML file and you enter the organizationName in the action as a exception, the clusterDomainUrl will still be used because it wins the conflict.  In order to completely override to originally defined clusterDomainURL in this case, you will have to define the organizationName and enter a blank clusterDomainURL in the action.
-
-> Defined in body for Config XML file: `<clusterDomainURL>demo.spatialkey.com</clusterDomainURL>`  
-> Defined in "action" for Config XML file:
-
->     <organizationName>Demo</organizationName>
->     <clusterDomainURL></clusterDomainURL>
+If you are doing an overwrite or append but haven't defined a datasetId, the application will do an import instead.  If you defined /no-wait, the datasetId will not be updated.
 
 # Running the Data Management API Command Line Tool
-Now for the easy part.  Open command-line prompt and navigate to the SKDM directory where you put the unzipped folder.  Run "skdm.exe SpatialKeyDataManagerConfig.xml" – you can optionally specify a list of actions to perform.  When no actions are specified, all actions from the Config XML file will be run by default.
+Now for the easy part.  Open command-line prompt and navigate to the SKDM directory where you put the unzipped folder.  Run "skdm.exe [options]".  When no commands are specified,the application will show help.
 
 Running Data Management API Command Line Tool from a **Windows** workstation?
 
-Command to run all actions:
-> `skdm.exe SpatialKeyDataManagerConfig.xml`
-
-Command to run only the "shape example" action:
-> `skdm.exe SpatialKeyDataManagerConfig.xml "shape example"` (add quotes if there is a space in the action name)
+Syntax to run any command:
+> `skdm.exe [options] <command> [<args>]`
 
 Running Data Management API Command Line Tool from a **Mac** workstation?  Install on your workstation. ([Installation Instructions](http://www.mono-project.com/Mono:OSX))
 
-Command to run all actions:
-> `mono skdm.exe SpatialKeyDataManagerConfig.xml`
+Syntax to any command:
+> `mono skdm.exe [options] <command> [<args>]`
 
-Command to run only the "shape example" action:
-> `mono skdm.exe SpatialKeyDataManagerConfig.xml "shape example"` (add quotes if there is a space in the action name)
+## Examples
+All of the samples use the **Windows** syntax.  Remember to run using `mono skdm.exe` instead of just `skdm.exe` on a **Mac** workstation.
+
+Run all upload actions in SpatialKeyDataManagerConfig.xml
+> `skdm.exe upload`
+
+Run the specified upload action in SpatialKeyDataManagerConfig.xml
+> `skdm.exe upload "sample csv"`
+
+Run all upload actions in AnotherConfig.xml
+> `skdm.exe /config AnotherConfig.xml upload`
+
+Run suggest the default pathXML config for all actions in SpatialKeyDataManagerConfig.xml
+> `skdm.exe suggest`
+
+List all datasets for the organization and user defined in SpatialKeyDataManagerConfig.xml
+> `skdm.exe list`
+
+Delete the given dataset at the organization and user defined in SpatialKeyDataManagerConfig.xml
+> `skdm.exe delete 55555-66-88-33-abcd`
+
+Get oAuth key for organization and user defined in SpatialKeyDataManagerConfig.xml
+> `skdm.exe oauth`

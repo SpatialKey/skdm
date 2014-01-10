@@ -1,46 +1,82 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <config>
 	<!-- See http://support.spatialkey.com/dmapi for more information -->
 	<!-- 
-		The organization name and cluster url.
+		The organization and user information.  Can override for each action.
 	-->
-	<organizationName>xxx</organizationName>
-	<clusterDomainUrl>https://xxx.spatialkey.com/</clusterDomainUrl>
-	
-	<!--
-		Default authentication information is used for any action that doesn't override the value
-		Given with either userName and password or apiKey and userId
-		* apiKey and userId - The keys to use to authenticate
-		* userName and password - The user name and password to use, not as secure as using IDs
-	-->
-	<apiKey>xxx</apiKey>
-	<userId>xxx</userId>
-	<!--
-	<userName>user@xxx.com</userName>
-	<password>xxx</password>
-	-->
-
-	<!-- A list of actions to perform, each action  -->	
+	<organizationURL>https://xxx.spatialkey.com/</organizationURL>
+	<organizationAPIKey>xxx</organizationAPIKey>
+	<organizationSecretKey>xxx</organizationSecretKey>
+	<userAPIKey>xxx</userAPIKey>
+	<!-- A list of actions to perform, each action  -->
 	<actions>
-		<action name="csv example">
-			<!-- Can override organizationName, clusterDomainUrl, apiKey, userId, username, or password -->
-			<type>overwrite</type>
-			<dataPath>SalesData.csv</dataPath>
-			<xmlPath>SalesData.xml</xmlPath>
-			<runAsBackground>true</runAsBackground>
-			<notifyByEmail>true</notifyByEmail>
-			<addAllUsers>false</addAllUsers>
+		<action name="csv">
+			<!-- Can override organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey  -->
+			<!---actionType can be import, overwrite, or append -->
+			<actionType>overwrite</actionType>
+			<!--- dataType can be CSV or Shapefile -->
+			<dataType>CSV</dataType>
+			<!---path of the data to upload.  CSV can be a raw file or zip, shapes are always zipped up. -->
+			<pathData>SalesData.csv</pathData>
+			<!--- configuration file for the data -->
+			<pathXML>SalesData.xml</pathXML>
+			<!-- datasetId will be filled in on overwrite or append if not set -->
+			<datasetId/>
 		</action>
-		<action name="shape example">
-			<!-- Can override organizationName, clusterDomainUrl, apiKey, userId, username, or password -->
-			<type>poly</type>
-			<dataPath>110thCongressionalDistrictShapefile.zip</dataPath>
-			<!-- send datasetName for new dataset, datasetId if updating existing dataset -->
-			<datasetName>110th Congressional District</datasetName>
-			<!--
-			<datasetId>xxx</datasetId>
-			-->
+		<action name="shape">
+			<!-- Can override organizationURL, userAPIKey, organizationAPIKey, organizationSecretKey  -->
+			<!---action type can be import, overwrite, or append -->
+			<actionType>overwrite</actionType>
+			<!--- dataType can be CSV or Shapefile -->
+			<dataType>Shapefile</dataType>
+			<!---path of the data to upload.  CSV can be a raw file or zip, shapes are always zipped up. -->
+			<pathData>110thCongressionalDistrictShapefile.zip</pathData>
+			<!--- configuration file for the data -->
+			<pathXML>110thCongressionalDistrictShapefile.xml</pathXML>
+			<!-- datasetId will be filled in on overwrite or append if not set -->
+			<datasetId/>
+		</action>
+		<action name="insurance1">
+			<!-- Can override organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey  -->
+			<!---actionType can be import, overwrite, or append -->
+			<actionType>overwrite</actionType>
+			<!--- dataType can be CSV or Shapefile -->
+			<dataType>insurance</dataType>
+			<!---path to to the data to upload -->
+			<pathData>Sample Locations.csv</pathData>
+			<!--- policy data -->
+			<pathData>Sample Policies.csv</pathData>
+			<!--- configuration file for the data -->
+			<pathXML>Sample Locations and Policies Insurance.xml</pathXML>
+			<!-- insuranceId will be filled in on overwrite or append if not set -->
+			<insuranceId/>
+		</action>
+		<action name="insurance2">
+			<!-- Can override organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey  -->
+			<!---actionType can be import, overwrite, or append -->
+			<actionType>overwrite</actionType>
+			<!--- dataType can be CSV or Shapefile -->
+			<dataType>insurance</dataType>
+			<!---path to to the data to upload -->
+			<pathData>Sample Locations.csv</pathData>
+			<!--- policy data -->
+			<pathData>Sample Policies.csv</pathData>
+			<!--- configuration file for the data -->
+			<pathXML>Sample Locations and Policies Insurance with peril specific limits.xml</pathXML>
+			<!-- insuranceId will be filled in on overwrite or append if not set -->
+			<insuranceId/>
+		</action>
+		<action name="insurance3">
+			<!-- Can override organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey  -->
+			<!---actionType can be import, overwrite, or append -->
+			<actionType>overwrite</actionType>
+			<!--- dataType can be CSV or Shapefile -->
+			<dataType>insurance</dataType>
+			<!-- no pathData, using existing ids in pathXML -->
+			<!--- configuration file for the data -->
+			<pathXML>Sample Locations and Policies Insurance.xml</pathXML>
+			<!-- insuranceId will be filled in on overwrite or append if not set -->
+			<insuranceId/>
 		</action>
 	</actions>
 </config>
-

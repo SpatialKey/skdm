@@ -20,7 +20,7 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <Externalconsole>True</Externalconsole>
-    <Commandlineparameters>/Users/rstehwien/Downloads/skdm_test/SpatialKeyDataManagerConfig.xml</Commandlineparameters>
+    <Commandlineparameters>/trace 2 upload csv</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <DebugType>none</DebugType>
@@ -30,7 +30,8 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <Externalconsole>True</Externalconsole>
-    <Commandlineparameters>~/Downloads/skdm_test/SpatialKeyDataManagerConfig.xml</Commandlineparameters>
+    <Commandlineparameters>suggest csv_example
+</Commandlineparameters>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -39,11 +40,20 @@
       <HintPath>lib\ICSharpCode.SharpZipLib.dll</HintPath>
     </Reference>
     <Reference Include="System.Web" />
+    <Reference Include="System.Security" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
     <Compile Include="AssemblyInfo.cs" />
     <Compile Include="SpatialKeyDataManager.cs" />
+    <Compile Include="OAuth.cs" />
+    <Compile Include="CommandLineParser.cs" />
+    <Compile Include="MiniJson.cs" />
+    <Compile Include="MessageLevel.cs" />
+    <Compile Include="ConfigAuth.cs" />
+    <Compile Include="ConfigAction.cs" />
+    <Compile Include="XMLUtils.cs" />
+    <Compile Include="BaseMessageClass.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -52,9 +62,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="lib\ICSharpCode.SharpZipLib.dll" />
-    <None Include="TestData\SalesData.csv" />
-    <None Include="TestData\SalesData.xml" />
     <None Include="TestData\110thCongressionalDistrictShapefile.zip" />
     <None Include="TestData\SpatialKeyDataManagerConfig.xml" />
+    <None Include="TestData\110thCongressionalDistrictShapefile.xml" />
+    <None Include="TestData\SalesData.xml" />
+    <None Include="TestData\SalesData.csv" />
+    <None Include="TestData\Sample Locations and Policies Insurance with peril specific limits.xml" />
+    <None Include="TestData\Sample Locations and Policies Insurance.xml" />
+    <None Include="TestData\Sample Locations.csv" />
+    <None Include="TestData\Sample Policies.csv" />
   </ItemGroup>
 </Project>
