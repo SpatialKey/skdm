@@ -127,6 +127,7 @@ The "actions" section of the Config XML file defines all the actions that will b
 The `<actionType>` element defines what action will be done.  The current options are:
 - append – Append to an existing dataset.  If the `<datasetId>` is not set before running this action, an import will be done the first time it is run.  A shape dataset cannot be appended to, so this will overwrite.
 - overwrite – Overwrite an existing dataset.  If the `<datasetId>` is not set before running this action, an import will be done the first time it is run.
+- import - Always import a new dataset.  The `<datasetId>` is ignored and a new one is written out.  This action is not recommended as it always creates a new dataset and can clutter up your database.
 
 - dataType - What type of data is in the `<pathData>`. Can be "CSV", "Shapefile", or "Insurance"
 - pathData - Path of the data to upload.  CSV can be a raw file or zip, shapes are always zipped up.

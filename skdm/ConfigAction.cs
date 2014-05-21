@@ -16,7 +16,8 @@ namespace skdm
 		public const string ACTION_APPEND = "append";
 		private static readonly List<string> VALID_ACTIONS = new List<string> {
 			ACTION_OVERWRITE,
-			ACTION_APPEND
+			ACTION_APPEND,
+			ACTION_IMPORT
 		};
 		// <dataType>
 		public const string TYPE_CSV = "csv";
