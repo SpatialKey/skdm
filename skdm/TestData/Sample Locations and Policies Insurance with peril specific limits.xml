@@ -21,7 +21,6 @@
       <name>Sample Insurance Locations and Policies</name>
       <preparedWith>Spatialkey API</preparedWith>
       <preparedDate>2013-12-05T16:03:21.476-05:00</preparedDate>
-      <expirationDate>2013-12-15T16:09:08.113-05:00</expirationDate>
 	  <pointThematicLayer>
 		      <thematicDataset>US_Postal</thematicDataset>
 	  </pointThematicLayer>
@@ -177,7 +176,6 @@
    		<filename>Sample Policies.csv</filename>
 		<preparedWith>Spatialkey API</preparedWith>
 		<preparedDate>2013-11-19T16:24:31.203-05:00</preparedDate>
-		<!--<expirationDate>2013-11-29T16:24:31.181-05:00</expirationDate>-->
 	  <policyColumn>
          <name>limit</name>
          <label>limit</label>
