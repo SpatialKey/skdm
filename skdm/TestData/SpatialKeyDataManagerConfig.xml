@@ -8,6 +8,15 @@
 	<organizationAPIKey>xxx</organizationAPIKey>
 	<organizationSecretKey>xxx</organizationSecretKey>
 	<userAPIKey>xxx</userAPIKey>
+	<!--
+	    Proxy configuration.  
+	    Blank proxyURL or proxyPort will try and use default proxy.
+	    Will only use proxyUser and proxyPassword if none of the proxy parameters are blank.
+	-->
+	<proxyURL/>
+	<proxyPort/>
+	<proxyUser/>
+	<proxyPassword/>
 	<!-- A list of actions to perform, each action  -->
 	<actions>
 		<action name="csv">

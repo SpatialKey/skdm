@@ -47,7 +47,7 @@ Trace debug verbosity
  - The default of '0' shows errors and results only
  - '1' shows general status messages
  - '2' shows detailed debug version.
- 
+
 # Commands
 ## help
 > help <command>
@@ -63,7 +63,7 @@ Get oAuth token for keys in XML configuration or by passing in values.  The orga
 ## upload
 > upload [/no-wait] [/keep-uploadid] [[ACTION1] ... [ACTIONN]]
 
-Upload dataset data.  By default this waits until the import, append, or overwrite completes.  All actions are performed unless one or more specific actions are listed. 
+Upload dataset data.  By default this waits until the import, append, or overwrite completes.  All actions are performed unless one or more specific actions are listed.
 - /no-wait - Doesn't wait for import, append, or overwrite to complete.  If this is defined, the datasetId created on imports will not be updated in the data manager config XML.
 - /keep-uploadid - Don't cancel the upload id so it can be used in other manual operations.
 
@@ -120,6 +120,14 @@ Then you will need to get the organization API and secret key.  Login to Spatial
 This field defines what user is authenticating into Spatial Key.  Login to SpatialKey, click on "People" tab, and go into the settings for your user.  On this screen, you can view your user id and generate an API key.  Copy the user "API Key" into the `<userAPIKey>`
 
 >     <userAPIKey>7c8c9c-fcb-42-93-828a2a2</userAPIKey>
+
+## Define Proxy (Optional)
+These fields define what proxy server to use either with or without username/password.  If `<proxyURL>` or `<proxyPortL>` are left blank, the command line tool will attempt to use the default proxy defined by your operating system (IE in Windows and Network Preferences in OS X).  `<proxyUser>` and `<proxyPassword>` are only used if both are defined and not using the default proxy.
+
+>     <proxyURL>127.0.0.1</proxyURL>
+>     <proxyPort>8888</proxyPort>
+>     <proxyUser>proxyusername</proxyUser>
+>     <proxyPassword>proxypassword</proxyPassword>
 
 ## Action
 The "actions" section of the Config XML file defines all the actions that will be done when the Command Line Tool is executed.

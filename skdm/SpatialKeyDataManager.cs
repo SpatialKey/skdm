@@ -797,11 +797,41 @@ namespace skdm
 		private HttpWebRequest CreateWebRequest(string url, string method, int timeout)
 		{
 			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
+
 			CookieContainer cookieJar = new CookieContainer();
 			request.CookieContainer = cookieJar;
+
+			IWebProxy proxy = MyCreateProxy();
+			if (proxy != null) 
+			{
+				request.Proxy = proxy;
+			}
+
 			request.Method = method;  
 			request.Timeout = timeout;
+
 			return request;
+		}
+
+		private IWebProxy MyCreateProxy()
+		{
+			IWebProxy proxy;
+
+			if (MyConfigAuth.proxyURL != "" && MyConfigAuth.proxyPort != "") 
+			{
+				proxy = new WebProxy(MyConfigAuth.proxyURL, Convert.ToInt32(MyConfigAuth.proxyPort));
+				if (MyConfigAuth.proxyUser != "" && MyConfigAuth.proxyPassword != "")
+				{
+					proxy.Credentials = new NetworkCredential(MyConfigAuth.proxyUser, MyConfigAuth.proxyPassword);
+				}
+			} 
+			else
+			{
+				proxy = WebRequest.GetSystemWebProxy();
+				proxy.Credentials = CredentialCache.DefaultCredentials;
+			}	
+
+			return proxy;
 		}
 
 		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
