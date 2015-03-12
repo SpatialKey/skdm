@@ -14,6 +14,7 @@ namespace skdm
 		public String proxyPort = "";
 		public String proxyUser = "";
 		public String proxyPassword = "";
+		public String proxyDomain = "";
 
 		public ConfigAuth(XmlNode xml = null, ConfigAuth defaultConfig = null)
 		{
@@ -34,6 +35,7 @@ namespace skdm
 			proxyPort = XMLUtils.GetInnerText(xml, "/config/proxyPort", defaultConfig != null ? defaultConfig.proxyPort : ""); 
 			proxyUser = XMLUtils.GetInnerText(xml, "/config/proxyUser", defaultConfig != null ? defaultConfig.proxyUser : ""); 
 			proxyPassword = XMLUtils.GetInnerText(xml, "/config/proxyPassword", defaultConfig != null ? defaultConfig.proxyPassword : ""); 
+			proxyDomain = XMLUtils.GetInnerText(xml, "/config/proxyDomain", defaultConfig != null ? defaultConfig.proxyDomain : ""); 
 		}
 
 		public override bool Equals(System.Object obj)
@@ -57,7 +59,8 @@ namespace skdm
 				(proxyURL == p.proxyURL) &&
 				(proxyPort == p.proxyPort) &&
 				(proxyUser == p.proxyUser) &&
-				(proxyPassword == p.proxyPassword)
+				(proxyPassword == p.proxyPassword) &&
+				(proxyDomain == p.proxyDomain)
 			);
 		}
 
@@ -75,6 +78,7 @@ namespace skdm
 				hash = hash * 23 + proxyPort.GetHashCode();
 				hash = hash * 23 + proxyUser.GetHashCode();
 				hash = hash * 23 + proxyPassword.GetHashCode();
+				hash = hash * 23 + proxyDomain.GetHashCode();
 				return hash;
 			}
 		}

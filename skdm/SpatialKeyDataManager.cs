@@ -801,7 +801,7 @@ namespace skdm
 			CookieContainer cookieJar = new CookieContainer();
 			request.CookieContainer = cookieJar;
 
-			IWebProxy proxy = MyCreateProxy();
+			IWebProxy proxy = CreateProxy();
 			if (proxy != null) 
 			{
 				request.Proxy = proxy;
@@ -813,14 +813,18 @@ namespace skdm
 			return request;
 		}
 
-		private IWebProxy MyCreateProxy()
+		private IWebProxy CreateProxy()
 		{
 			IWebProxy proxy;
 
 			if (MyConfigAuth.proxyURL != "" && MyConfigAuth.proxyPort != "") 
 			{
 				proxy = new WebProxy(MyConfigAuth.proxyURL, Convert.ToInt32(MyConfigAuth.proxyPort));
-				if (MyConfigAuth.proxyUser != "" && MyConfigAuth.proxyPassword != "")
+				if (MyConfigAuth.proxyUser != "" && MyConfigAuth.proxyPassword != "" && MyConfigAuth.proxyDomain != "")
+				{
+					proxy.Credentials = new NetworkCredential(MyConfigAuth.proxyUser, MyConfigAuth.proxyPassword, MyConfigAuth.proxyDomain);
+				}
+				else if (MyConfigAuth.proxyUser != "" && MyConfigAuth.proxyPassword != "")
 				{
 					proxy.Credentials = new NetworkCredential(MyConfigAuth.proxyUser, MyConfigAuth.proxyPassword);
 				}
