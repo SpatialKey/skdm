@@ -815,6 +815,11 @@ namespace skdm
 
 		private IWebProxy CreateProxy()
 		{
+			if (MyConfigAuth.proxyEnable != ConfigAuth.PROXY_ENABLED) 
+			{
+				return null;
+			}
+
 			IWebProxy proxy;
 
 			if (MyConfigAuth.proxyURL != "" && MyConfigAuth.proxyPort != "") 

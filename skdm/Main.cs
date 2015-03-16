@@ -16,7 +16,7 @@ namespace skdm
 	{
 
 		#region Command/Option constants
-		private const string VERSION = "skdm version 2.0.13";
+		private const string VERSION = "skdm version 2.1.0";
 
 		// general help description
 		private static string HELP_DESCRIPTION = @"Command line tool to work with the data API or create oAuth tokens.

@@ -122,8 +122,14 @@ This field defines what user is authenticating into Spatial Key.  Login to Spati
 >     <userAPIKey>7c8c9c-fcb-42-93-828a2a2</userAPIKey>
 
 ## Define Proxy (Optional)
-These fields define what proxy server to use either with or without username/password.  If `<proxyURL>` or `<proxyPortL>` are left blank, the command line tool will attempt to use the default proxy defined by your operating system (IE in Windows and Network Preferences in OS X).  `<proxyUser>` and `<proxyPassword>` are only used if both are defined and not using the default proxy.  `<proxyDomain>` is used for NTLM and Kerberos proxies (along with `<proxyUser>` and `<proxyPassword>`)
+These fields define what proxy server to use.
+- `<proxyEnable>` defaults to true.  If not true, no proxy will be used (not event the default).
+- `<proxyURL>` and `<proxyPort>` define a custom proxy to use.  If either are blank, skdm will use the default proxy.
+- `<proxyUser>` and `<proxyPassword>` used for custom proxy that requires authentication if both not blank.
+- `<proxyDomain>` is used for the custom proxy and is needed for NTLM and Kerberos
 
+
+>     <proxyEnabled>true</proxyURL>
 >     <proxyURL>127.0.0.1</proxyURL>
 >     <proxyPort>8888</proxyPort>
 >     <proxyUser>proxyusername</proxyUser>

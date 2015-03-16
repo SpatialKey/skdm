@@ -9,11 +9,13 @@
 	<organizationSecretKey>xxx</organizationSecretKey>
 	<userAPIKey>xxx</userAPIKey>
 	<!--
-	    Proxy configuration.  
-	    Blank proxyURL or proxyPort will try and use default proxy.
-	    Will only use proxyUser and proxyPassword if none of the proxy parameters are blank.
-	    proxyDomain is needed for NTLM and Kerberos in addition to proxyUser and proxyPassword
+	    Proxy configuration. 
+	    proxyEnable defaults to true.  If not true, no proxy will be used not event the default).
+	    proxyURL and proxyPort define a custom proxy to use.  If either are blank, will use the default proxy.
+	    proxyUser and proxyPassword used for custom proxy that requires authentication if both not blank.
+	    proxyDomain is used for the custom proxy and is needed for NTLM and Kerberos.
 	-->
+	<proxyEnable>true</proxyEnable>
 	<proxyURL/>
 	<proxyPort/>
 	<proxyUser/>

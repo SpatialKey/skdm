@@ -5,11 +5,14 @@ namespace skdm
 {
 	public class ConfigAuth
 	{
+		public const String PROXY_ENABLED = "true";
+
 		public String organizationURL = "";
 		public String userAPIKey = "";
 		public String organizationAPIKey = "";
 		public String organizationSecretKey = "";
 
+		public String proxyEnable = PROXY_ENABLED;
 		public String proxyURL = "";
 		public String proxyPort = "";
 		public String proxyUser = "";
@@ -30,6 +33,9 @@ namespace skdm
 			organizationAPIKey = XMLUtils.GetInnerText(xml, "/config/organizationAPIKey", defaultConfig != null ? defaultConfig.organizationAPIKey : "");
 			organizationSecretKey = XMLUtils.GetInnerText(xml, "/config/organizationSecretKey", defaultConfig != null ? defaultConfig.organizationSecretKey : ""); 
 			userAPIKey = XMLUtils.GetInnerText(xml, "/config/userAPIKey", defaultConfig != null ? defaultConfig.userAPIKey : "");
+
+			proxyEnable = XMLUtils.GetInnerText(xml, "/config/proxyEnable", defaultConfig != null ? defaultConfig.proxyEnable : PROXY_ENABLED).ToLower().Trim(); 
+			if (proxyEnable == "") proxyEnable = PROXY_ENABLED;
 
 			proxyURL = XMLUtils.GetInnerText(xml, "/config/proxyURL", defaultConfig != null ? defaultConfig.proxyURL : ""); 
 			proxyPort = XMLUtils.GetInnerText(xml, "/config/proxyPort", defaultConfig != null ? defaultConfig.proxyPort : ""); 
