@@ -128,7 +128,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				XmlDocument doc = new XmlDocument();
 				doc.Load(configFile);
 
-				defaultConfigAuth = new ConfigAuth(doc);
+				defaultConfigAuth = new ConfigAuth(doc.SelectSingleNode("/config"));
 
 				return doc;
 			}

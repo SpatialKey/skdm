@@ -28,20 +28,20 @@ namespace SpatialKey.DataManager.Lib
 		{
 			if (xml == null)
 				return;
-			
-			organizationURL = XMLUtils.GetInnerText(xml, "/config/organizationURL", defaultConfig != null ? defaultConfig.organizationURL : "");
-			organizationAPIKey = XMLUtils.GetInnerText(xml, "/config/organizationAPIKey", defaultConfig != null ? defaultConfig.organizationAPIKey : "");
-			organizationSecretKey = XMLUtils.GetInnerText(xml, "/config/organizationSecretKey", defaultConfig != null ? defaultConfig.organizationSecretKey : ""); 
-			userAPIKey = XMLUtils.GetInnerText(xml, "/config/userAPIKey", defaultConfig != null ? defaultConfig.userAPIKey : "");
 
-			proxyEnable = XMLUtils.GetInnerText(xml, "/config/proxyEnable", defaultConfig != null ? defaultConfig.proxyEnable : PROXY_ENABLED).ToLower().Trim(); 
+			organizationURL = XMLUtils.GetInnerText(xml, "./organizationURL", defaultConfig != null ? defaultConfig.organizationURL : "");
+			organizationAPIKey = XMLUtils.GetInnerText(xml, "./organizationAPIKey", defaultConfig != null ? defaultConfig.organizationAPIKey : "");
+			organizationSecretKey = XMLUtils.GetInnerText(xml, "./organizationSecretKey", defaultConfig != null ? defaultConfig.organizationSecretKey : ""); 
+			userAPIKey = XMLUtils.GetInnerText(xml, "./userAPIKey", defaultConfig != null ? defaultConfig.userAPIKey : "");
+
+			proxyEnable = XMLUtils.GetInnerText(xml, "./proxyEnable", defaultConfig != null ? defaultConfig.proxyEnable : PROXY_ENABLED).ToLower().Trim(); 
 			if (proxyEnable == "") proxyEnable = PROXY_ENABLED;
 
-			proxyURL = XMLUtils.GetInnerText(xml, "/config/proxyURL", defaultConfig != null ? defaultConfig.proxyURL : ""); 
-			proxyPort = XMLUtils.GetInnerText(xml, "/config/proxyPort", defaultConfig != null ? defaultConfig.proxyPort : ""); 
-			proxyUser = XMLUtils.GetInnerText(xml, "/config/proxyUser", defaultConfig != null ? defaultConfig.proxyUser : ""); 
-			proxyPassword = XMLUtils.GetInnerText(xml, "/config/proxyPassword", defaultConfig != null ? defaultConfig.proxyPassword : ""); 
-			proxyDomain = XMLUtils.GetInnerText(xml, "/config/proxyDomain", defaultConfig != null ? defaultConfig.proxyDomain : ""); 
+			proxyURL = XMLUtils.GetInnerText(xml, "./proxyURL", defaultConfig != null ? defaultConfig.proxyURL : ""); 
+			proxyPort = XMLUtils.GetInnerText(xml, "./proxyPort", defaultConfig != null ? defaultConfig.proxyPort : ""); 
+			proxyUser = XMLUtils.GetInnerText(xml, "./proxyUser", defaultConfig != null ? defaultConfig.proxyUser : ""); 
+			proxyPassword = XMLUtils.GetInnerText(xml, "./proxyPassword", defaultConfig != null ? defaultConfig.proxyPassword : ""); 
+			proxyDomain = XMLUtils.GetInnerText(xml, "./proxyDomain", defaultConfig != null ? defaultConfig.proxyDomain : ""); 
 		}
 
 		public override bool Equals(System.Object obj)
