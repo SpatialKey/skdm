@@ -17,7 +17,6 @@ namespace SpatialKey.DataManager.App
 	{
 
 		#region Command/Option constants
-		private const string VERSION = "skdm version 2.1.0";
 
 		// general help description
 		private static string HELP_DESCRIPTION = @"Command line tool to work with the data API or create oAuth tokens.
@@ -101,7 +100,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			}
 			if (clp.FindOptionBoolean(PARAM_VERSION).IsMatched)
 			{
-				ShowMessage(MessageLevel.Result, VERSION);
+				ShowMessage(MessageLevel.Result, "skdm version " + SpatialKeyDataManager.GetVersion());
 				Environment.Exit(EXIT_SUCCESS);
 			}
 

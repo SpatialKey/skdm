@@ -24,6 +24,8 @@ namespace SpatialKey.DataManager.Lib
 
 		#region constants
 
+		public const string VERSION = "2.2.0";
+
 		public const string API_VERSION = "v2";
 		// 1 min * 60 sec * 1000 msec = 60000 msec
 		private const int HTTP_TIMEOUT_SHORT = 60000;
@@ -53,6 +55,11 @@ namespace SpatialKey.DataManager.Lib
 
 		public SpatialKeyDataManager(Messager messenger = null) : base(messenger)
 		{
+		}
+
+		static public String GetVersion()
+		{
+			return VERSION;
 		}
 
 		/// <summary>
