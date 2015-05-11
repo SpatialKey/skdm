@@ -79,7 +79,7 @@ namespace SpatialKey.DataManager.Lib
 		}
 
 		#region Parse XML Configuration
-		public void ParseXML(XmlNode xml, ConfigAuth defaultConfigAuth = null)
+		virtual public void ParseXML(XmlNode xml, ConfigAuth defaultConfigAuth = null)
 		{
 			this.xml = xml;
 			if (xml == null)

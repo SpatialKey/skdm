@@ -24,7 +24,7 @@ namespace SpatialKey.DataManager.Lib
 			ParseXML(xml, defaultConfig);
 		}
 
-		public void ParseXML(XmlNode xml, ConfigAuth defaultConfig = null)
+		virtual public void ParseXML(XmlNode xml, ConfigAuth defaultConfig = null)
 		{
 			if (xml == null)
 				return;
