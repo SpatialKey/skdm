@@ -9,8 +9,9 @@ using System.Net;
 using System.IO;
 using System.Collections.Generic;
 using System.Text;
+using SpatialKey.DataManager.Lib;
 
-namespace skdm
+namespace SpatialKey.DataManager.App
 {
 	class MainClass
 	{

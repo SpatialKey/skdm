@@ -2,7 +2,7 @@ using System;
 using System.Xml;
 using System.Collections.Generic;
 
-namespace skdm
+namespace SpatialKey.DataManager.Lib
 {
 	public class XMLUtils
 	{

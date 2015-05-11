@@ -13,7 +13,7 @@ using System.Collections.Specialized;
 using System.Collections.Generic;
 
 // Using http://www.icsharpcode.net/opensource/sharpziplib/
-namespace skdm
+namespace SpatialKey.DataManager.Lib
 {
 	/// <summary>
 	/// The SpatialKey Data Import API (DIAPI) allows developers to programmatically create or update SpatialKey datasets.

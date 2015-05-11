@@ -2,7 +2,7 @@ using System;
 using System.Text;
 using System.Security.Cryptography;
 
-namespace skdm
+namespace SpatialKey.DataManager.Lib
 {
 	public class OAuth
 	{

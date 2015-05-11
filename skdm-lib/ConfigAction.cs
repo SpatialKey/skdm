@@ -3,7 +3,7 @@ using System.Xml;
 using System.Collections.Generic;
 using System.IO;
 
-namespace skdm
+namespace SpatialKey.DataManager.Lib
 {
 	public class ConfigAction : BaseMessageClass
 	{

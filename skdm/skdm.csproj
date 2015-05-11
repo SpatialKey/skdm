@@ -3,12 +3,13 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProductVersion>10.0.0</ProductVersion>
+    <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{524AD938-D016-4096-86D6-98872B29B010}</ProjectGuid>
     <OutputType>Exe</OutputType>
     <RootNamespace>skdm</RootNamespace>
     <AssemblyName>skdm</AssemblyName>
+    <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
     <DebugSymbols>True</DebugSymbols>
@@ -36,24 +37,13 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Xml" />
-    <Reference Include="ICSharpCode.SharpZipLib">
-      <HintPath>lib\ICSharpCode.SharpZipLib.dll</HintPath>
-    </Reference>
     <Reference Include="System.Web" />
     <Reference Include="System.Security" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Main.cs" />
     <Compile Include="AssemblyInfo.cs" />
-    <Compile Include="SpatialKeyDataManager.cs" />
-    <Compile Include="OAuth.cs" />
     <Compile Include="CommandLineParser.cs" />
-    <Compile Include="MiniJson.cs" />
-    <Compile Include="MessageLevel.cs" />
-    <Compile Include="ConfigAuth.cs" />
-    <Compile Include="ConfigAction.cs" />
-    <Compile Include="XMLUtils.cs" />
-    <Compile Include="BaseMessageClass.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>
@@ -61,7 +51,6 @@
     <Folder Include="TestData\" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="lib\ICSharpCode.SharpZipLib.dll" />
     <None Include="TestData\110thCongressionalDistrictShapefile.zip" />
     <None Include="TestData\SpatialKeyDataManagerConfig.xml" />
     <None Include="TestData\110thCongressionalDistrictShapefile.xml" />
@@ -71,5 +60,11 @@
     <None Include="TestData\Sample Locations and Policies Insurance.xml" />
     <None Include="TestData\Sample Locations.csv" />
     <None Include="TestData\Sample Policies.csv" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\skdm-lib\skdm-lib.csproj">
+      <Project>{6A031D49-2EDD-46D9-BAAB-FBBC083CCF37}</Project>
+      <Name>skdm-lib</Name>
+    </ProjectReference>
   </ItemGroup>
 </Project>

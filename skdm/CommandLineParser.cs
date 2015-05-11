@@ -3,8 +3,9 @@ using System.Text;
 using System.IO;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using SpatialKey.DataManager.Lib;
 
-namespace skdm
+namespace SpatialKey.DataManager.App
 {
 	public class CommandLineParser
 	{

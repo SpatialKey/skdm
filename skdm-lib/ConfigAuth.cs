@@ -1,7 +1,7 @@
 using System;
 using System.Xml;
 
-namespace skdm
+namespace SpatialKey.DataManager.Lib
 {
 	public class ConfigAuth
 	{

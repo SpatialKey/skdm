@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using NUnit.Framework;
-using skdm;
+using SpatialKey.DataManager.App;
 
 namespace tests
 {
