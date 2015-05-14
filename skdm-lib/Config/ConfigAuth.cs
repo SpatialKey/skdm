@@ -1,23 +1,41 @@
 using System;
 using System.Xml;
 
-namespace SpatialKey.DataManager.Lib
+using SpatialKey.DataManager.Lib.Helpers;
+
+namespace SpatialKey.DataManager.Lib.Config
 {
 	public class ConfigAuth
 	{
 		public const String PROXY_ENABLED = "true";
 
-		public String organizationURL = "";
-		public String userAPIKey = "";
-		public String organizationAPIKey = "";
-		public String organizationSecretKey = "";
+		#region Fields
+		protected String _organizationURL = "";
+		protected String _userAPIKey = "";
+		protected String _organizationAPIKey = "";
+		protected String _organizationSecretKey = "";
 
-		public String proxyEnable = PROXY_ENABLED;
-		public String proxyURL = "";
-		public String proxyPort = "";
-		public String proxyUser = "";
-		public String proxyPassword = "";
-		public String proxyDomain = "";
+		protected String _proxyEnable = PROXY_ENABLED;
+		protected String _proxyURL = "";
+		protected String _proxyPort = "";
+		protected String _proxyUser = "";
+		protected String _proxyPassword = "";
+		protected String _proxyDomain = "";
+		#endregion
+
+		#region Properties
+		virtual public String organizationURL { get { return _organizationURL; } set { _organizationURL = value; } }
+		virtual public String userAPIKey { get { return _userAPIKey; } set { _userAPIKey = value; } }
+		virtual public String organizationAPIKey { get { return _organizationAPIKey; } set { _organizationAPIKey = value; } }
+		virtual public String organizationSecretKey { get { return _organizationSecretKey; } set { _organizationSecretKey = value; } }
+
+		virtual public String proxyEnable { get { return _proxyEnable; } set { _proxyEnable = value; } }
+		virtual public String proxyURL { get { return _proxyURL; } set { _proxyURL = value; } }
+		virtual public String proxyPort { get { return _proxyPort; } set { _proxyPort = value; } }
+		virtual public String proxyUser { get { return _proxyUser; } set { _proxyUser = value; } }
+		virtual public String proxyPassword { get { return _proxyPassword; } set { _proxyPassword = value; } }
+		virtual public String proxyDomain { get { return _proxyDomain; } set { _proxyDomain = value; } }
+		#endregion
 
 		public ConfigAuth(XmlNode xml = null, ConfigAuth defaultConfig = null)
 		{

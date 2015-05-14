@@ -1,6 +1,6 @@
 using System;
 
-namespace SpatialKey.DataManager.Lib
+namespace SpatialKey.DataManager.Lib.Message
 {
 	public class BaseMessageClass
 	{
@@ -10,7 +10,7 @@ namespace SpatialKey.DataManager.Lib
 		/// <summary>
 		/// Gets or sets the logger.  Used by  for <see cref="Log(message)"/>
 		/// </summary>
-		public Messager MyMessenger { get; set; }
+		virtual public Messager MyMessenger { get; set; }
 
 		/// <summary>
 		/// Log the specified message if the <see cref="MyMessenger"/> is set

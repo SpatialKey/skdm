@@ -3,7 +3,9 @@ using System.Text;
 using System.IO;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
-using SpatialKey.DataManager.Lib;
+
+using SpatialKey.DataManager.Lib.Config;
+using SpatialKey.DataManager.Lib.Message;
 
 namespace SpatialKey.DataManager.App
 {

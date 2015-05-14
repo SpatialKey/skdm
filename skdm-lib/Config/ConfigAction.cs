@@ -3,7 +3,10 @@ using System.Xml;
 using System.Collections.Generic;
 using System.IO;
 
-namespace SpatialKey.DataManager.Lib
+using SpatialKey.DataManager.Lib.Message;
+using SpatialKey.DataManager.Lib.Helpers;
+
+namespace SpatialKey.DataManager.Lib.Config
 {
 	public class ConfigAction : BaseMessageClass
 	{
@@ -31,20 +34,34 @@ namespace SpatialKey.DataManager.Lib
 
 		#endregion
 
-		#region properties
+		#region Fields
+		protected String _actionType;
+		protected XmlNode _xml;
+		protected ConfigAuth _configAuth;
+		protected String _actionName;
+		protected String[] _pathDataArray;
+		protected String _pathXML;
+		protected String _id;
+		protected String _dataType;
+		protected String _locationId;
+		protected String _policyId;
+		protected String _uploadId;
+		protected Boolean _isUpdateDoc = false;
+		protected Boolean _isWaitUpdate = true;
+		#endregion
 
-		public XmlNode xml;
-		public ConfigAuth configAuth;
+		#region Properties
+
+		virtual public XmlNode xml { get { return _xml; } set { _xml = value; } }
+		virtual public ConfigAuth configAuth { get { return _configAuth; } set { _configAuth = value; } }
 		// from the action xml
-		public String actionName;
-		public String[] pathDataArray;
-		public String pathXML;
+		virtual public String actionName { get { return _actionName; } set { _actionName = value; } }
+		virtual public String[] pathDataArray { get { return _pathDataArray; } set { _pathDataArray = value; } }
+		virtual public String pathXML { get { return _pathXML; } set { _pathXML = value; } }
 
-		private String _actionType;
-		public String actionType { get { return _actionType; } set { _actionType = value.ToLower(); } }
+		virtual public String actionType { get { return _actionType; } set { _actionType = value.ToLower(); } }
 
-		private String _id;
-		public String id { 
+		virtual public String id { 
 			get { return _id; } 
 			set { 
 				_id = value;
@@ -59,23 +76,22 @@ namespace SpatialKey.DataManager.Lib
 			} 
 		}
 
-		private String _dataType;
-		public String dataType { get { return _dataType; } set { _dataType = value.ToLower(); } }
+		virtual public String dataType { get { return _dataType; } set { _dataType = value.ToLower(); } }
 
 		// from pathXML if dataType is TYPE_INSURANCE
-		public String locationId;
-		public String policyId;
+		virtual public String locationId { get { return _locationId; } set { _locationId = value; } }
+		virtual public String policyId { get { return _policyId; } set { _policyId = value; } }
 		// set when uploaded pathDataArray
-		public String uploadId;
-		public Boolean isUpdateDoc = false;
+		virtual public String uploadId { get { return _uploadId; } set { _uploadId = value; } }
+		virtual public Boolean isUpdateDoc { get { return _isUpdateDoc; } set { _isUpdateDoc = value; } }
 
-		public Boolean isWaitUpdate = true;
-
+		virtual public Boolean isWaitUpdate { get { return _isWaitUpdate; } set { _isWaitUpdate = value; } }
 		#endregion
 
-		public ConfigAction(Messager messenger, XmlNode xml = null, ConfigAuth defaultConfigAuth = null) : base(messenger)
+		public ConfigAction(Messager messenger = null, XmlNode xml = null, ConfigAuth defaultConfigAuth = null) : base(messenger)
 		{
-			ParseXML(xml);
+
+			ParseXML(xml, defaultConfigAuth);
 		}
 
 		#region Parse XML Configuration

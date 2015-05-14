@@ -1,6 +1,6 @@
 using System;
 
-namespace SpatialKey.DataManager.Lib
+namespace SpatialKey.DataManager.Lib.Message
 {
 	public enum MessageLevel
 	{

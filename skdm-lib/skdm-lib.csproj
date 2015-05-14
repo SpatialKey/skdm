@@ -37,14 +37,19 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="ConfigAction.cs" />
-    <Compile Include="ConfigAuth.cs" />
-    <Compile Include="MessageLevel.cs" />
-    <Compile Include="MiniJson.cs" />
     <Compile Include="OAuth.cs" />
     <Compile Include="SpatialKeyDataManager.cs" />
-    <Compile Include="XMLUtils.cs" />
-    <Compile Include="BaseMessageClass.cs" />
+    <Compile Include="Helpers\MiniJson.cs" />
+    <Compile Include="Config\ConfigAction.cs" />
+    <Compile Include="Config\ConfigAuth.cs" />
+    <Compile Include="Helpers\XMLUtils.cs" />
+    <Compile Include="Message\BaseMessageClass.cs" />
+    <Compile Include="Message\MessageLevel.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <ItemGroup>
+    <Folder Include="Helpers\" />
+    <Folder Include="Config\" />
+    <Folder Include="Message\" />
+  </ItemGroup>
 </Project>

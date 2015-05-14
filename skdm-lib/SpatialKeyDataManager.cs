@@ -12,6 +12,10 @@ using System.Text;
 using System.Collections.Specialized;
 using System.Collections.Generic;
 
+using SpatialKey.DataManager.Lib.Message;
+using SpatialKey.DataManager.Lib.Config;
+using SpatialKey.DataManager.Lib.Helpers;
+
 // Using http://www.icsharpcode.net/opensource/sharpziplib/
 namespace SpatialKey.DataManager.Lib
 {
