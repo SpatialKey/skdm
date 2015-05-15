@@ -7,7 +7,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>{6A031D49-2EDD-46D9-BAAB-FBBC083CCF37}</ProjectGuid>
     <OutputType>Library</OutputType>
-    <RootNamespace>skdmlib</RootNamespace>
+    <RootNamespace>SpatialKey.DataManager.Lib</RootNamespace>
     <AssemblyName>skdm-lib</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
@@ -40,11 +40,12 @@
     <Compile Include="OAuth.cs" />
     <Compile Include="SpatialKeyDataManager.cs" />
     <Compile Include="Helpers\MiniJson.cs" />
-    <Compile Include="Config\ConfigAction.cs" />
-    <Compile Include="Config\ConfigAuth.cs" />
     <Compile Include="Helpers\XMLUtils.cs" />
     <Compile Include="Message\BaseMessageClass.cs" />
     <Compile Include="Message\MessageLevel.cs" />
+    <Compile Include="Config\IAuthConfig.cs" />
+    <Compile Include="Config\AuthConfig.cs" />
+    <Compile Include="Config\ActionConfig.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <ItemGroup>

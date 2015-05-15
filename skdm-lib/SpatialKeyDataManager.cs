@@ -46,7 +46,7 @@ namespace SpatialKey.DataManager.Lib
 		#region parameters
 
 		/// <summary>Authenticaton Configuration</summary>
-		public ConfigAuth MyConfigAuth { get; private set; }
+		public IAuthConfig MyConfigAuth { get; private set; }
 
 		#endregion
 
@@ -70,7 +70,7 @@ namespace SpatialKey.DataManager.Lib
 		/// Init the manager.  If the organizationURL, organizationAPIKey, organizationSecretKey or userAPIKey
 		/// have changed the application will logout.
 		/// </summary>
-		public void Init(ConfigAuth configAuth)
+		public void Init(IAuthConfig configAuth)
 		{
 			// if the setup is the same, bail
 			if (configAuth == MyConfigAuth)
@@ -826,7 +826,7 @@ namespace SpatialKey.DataManager.Lib
 
 		private IWebProxy CreateProxy()
 		{
-			if (MyConfigAuth.proxyEnable != ConfigAuth.PROXY_ENABLED) 
+			if (!MyConfigAuth.proxyEnable) 
 			{
 				return null;
 			}

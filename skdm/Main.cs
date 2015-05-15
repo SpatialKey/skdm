@@ -57,7 +57,7 @@ See http://support.spatialkey.com/dmapi for more information";
 		private static CommandLineParser clp;
 		private static CommandLineParser.OptionValue<int> optTrace;
 		private static String configFile;
-		private static ConfigAuth defaultConfigAuth;
+		private static AuthConfig defaultConfigAuth;
 
 		public static void Main(string[] args)
 		{
@@ -131,7 +131,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				XmlDocument doc = new XmlDocument();
 				doc.Load(configFile);
 
-				defaultConfigAuth = new ConfigAuth(doc.SelectSingleNode("/config"));
+				defaultConfigAuth = new AuthConfig(doc.SelectSingleNode("/config"));
 
 				return doc;
 			}

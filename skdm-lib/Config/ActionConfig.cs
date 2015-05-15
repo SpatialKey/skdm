@@ -37,7 +37,7 @@ namespace SpatialKey.DataManager.Lib.Config
 		#region Fields
 		protected String _actionType;
 		protected XmlNode _xml;
-		protected ConfigAuth _configAuth;
+		protected AuthConfig _configAuth;
 		protected String _actionName;
 		protected String[] _pathDataArray;
 		protected String _pathXML;
@@ -53,7 +53,7 @@ namespace SpatialKey.DataManager.Lib.Config
 		#region Properties
 
 		virtual public XmlNode xml { get { return _xml; } set { _xml = value; } }
-		virtual public ConfigAuth configAuth { get { return _configAuth; } set { _configAuth = value; } }
+		virtual public AuthConfig configAuth { get { return _configAuth; } set { _configAuth = value; } }
 		// from the action xml
 		virtual public String actionName { get { return _actionName; } set { _actionName = value; } }
 		virtual public String[] pathDataArray { get { return _pathDataArray; } set { _pathDataArray = value; } }
@@ -88,21 +88,21 @@ namespace SpatialKey.DataManager.Lib.Config
 		virtual public Boolean isWaitUpdate { get { return _isWaitUpdate; } set { _isWaitUpdate = value; } }
 		#endregion
 
-		public ConfigAction(Messager messenger = null, XmlNode xml = null, ConfigAuth defaultConfigAuth = null) : base(messenger)
+		public ConfigAction(Messager messenger = null, XmlNode xml = null, IAuthConfig defaultConfigAuth = null) : base(messenger)
 		{
 
 			ParseXML(xml, defaultConfigAuth);
 		}
 
 		#region Parse XML Configuration
-		virtual public void ParseXML(XmlNode xml, ConfigAuth defaultConfigAuth = null)
+		virtual public void ParseXML(XmlNode xml, IAuthConfig defaultConfigAuth = null)
 		{
 			this.xml = xml;
 			if (xml == null)
 				return;
 
 			// Action override authentication info
-			configAuth = new ConfigAuth(xml, defaultConfigAuth);
+			configAuth = new AuthConfig(xml, defaultConfigAuth);
 
 			// action configuration
 			actionName = XMLUtils.GetInnerText(xml, "@name");

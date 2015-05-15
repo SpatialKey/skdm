@@ -5,44 +5,44 @@ using SpatialKey.DataManager.Lib.Helpers;
 
 namespace SpatialKey.DataManager.Lib.Config
 {
-	public class ConfigAuth
+	public class AuthConfig : IAuthConfig
 	{
-		public const String PROXY_ENABLED = "true";
+		private const String PROXY_ENABLED = "true";
 
 		#region Fields
-		protected String _organizationURL = "";
-		protected String _userAPIKey = "";
-		protected String _organizationAPIKey = "";
-		protected String _organizationSecretKey = "";
+		protected string _organizationURL = "";
+		protected string _userAPIKey = "";
+		protected string _organizationAPIKey = "";
+		protected string _organizationSecretKey = "";
 
-		protected String _proxyEnable = PROXY_ENABLED;
-		protected String _proxyURL = "";
-		protected String _proxyPort = "";
-		protected String _proxyUser = "";
-		protected String _proxyPassword = "";
-		protected String _proxyDomain = "";
+		protected bool _proxyEnable;
+		protected string _proxyURL = "";
+		protected string _proxyPort = "";
+		protected string _proxyUser = "";
+		protected string _proxyPassword = "";
+		protected string _proxyDomain = "";
 		#endregion
 
 		#region Properties
-		virtual public String organizationURL { get { return _organizationURL; } set { _organizationURL = value; } }
-		virtual public String userAPIKey { get { return _userAPIKey; } set { _userAPIKey = value; } }
-		virtual public String organizationAPIKey { get { return _organizationAPIKey; } set { _organizationAPIKey = value; } }
-		virtual public String organizationSecretKey { get { return _organizationSecretKey; } set { _organizationSecretKey = value; } }
+		virtual public string organizationURL { get { return _organizationURL; } set { _organizationURL = value; } }
+		virtual public string userAPIKey { get { return _userAPIKey; } set { _userAPIKey = value; } }
+		virtual public string organizationAPIKey { get { return _organizationAPIKey; } set { _organizationAPIKey = value; } }
+		virtual public string organizationSecretKey { get { return _organizationSecretKey; } set { _organizationSecretKey = value; } }
 
-		virtual public String proxyEnable { get { return _proxyEnable; } set { _proxyEnable = value; } }
-		virtual public String proxyURL { get { return _proxyURL; } set { _proxyURL = value; } }
-		virtual public String proxyPort { get { return _proxyPort; } set { _proxyPort = value; } }
-		virtual public String proxyUser { get { return _proxyUser; } set { _proxyUser = value; } }
-		virtual public String proxyPassword { get { return _proxyPassword; } set { _proxyPassword = value; } }
-		virtual public String proxyDomain { get { return _proxyDomain; } set { _proxyDomain = value; } }
+		virtual public bool proxyEnable { get { return _proxyEnable; } set { _proxyEnable = value; } }
+		virtual public string proxyURL { get { return _proxyURL; } set { _proxyURL = value; } }
+		virtual public string proxyPort { get { return _proxyPort; } set { _proxyPort = value; } }
+		virtual public string proxyUser { get { return _proxyUser; } set { _proxyUser = value; } }
+		virtual public string proxyPassword { get { return _proxyPassword; } set { _proxyPassword = value; } }
+		virtual public string proxyDomain { get { return _proxyDomain; } set { _proxyDomain = value; } }
 		#endregion
 
-		public ConfigAuth(XmlNode xml = null, ConfigAuth defaultConfig = null)
+		public AuthConfig(XmlNode xml = null, IAuthConfig defaultConfig = null)
 		{
 			ParseXML(xml, defaultConfig);
 		}
 
-		virtual public void ParseXML(XmlNode xml, ConfigAuth defaultConfig = null)
+		virtual public void ParseXML(XmlNode xml, IAuthConfig defaultConfig = null)
 		{
 			if (xml == null)
 				return;
@@ -52,8 +52,9 @@ namespace SpatialKey.DataManager.Lib.Config
 			organizationSecretKey = XMLUtils.GetInnerText(xml, "./organizationSecretKey", defaultConfig != null ? defaultConfig.organizationSecretKey : ""); 
 			userAPIKey = XMLUtils.GetInnerText(xml, "./userAPIKey", defaultConfig != null ? defaultConfig.userAPIKey : "");
 
-			proxyEnable = XMLUtils.GetInnerText(xml, "./proxyEnable", defaultConfig != null ? defaultConfig.proxyEnable : PROXY_ENABLED).ToLower().Trim(); 
-			if (proxyEnable == "") proxyEnable = PROXY_ENABLED;
+			string tmpEnabled = XMLUtils.GetInnerText(xml, "./proxyEnable", defaultConfig != null ? defaultConfig.proxyEnable.ToString() : PROXY_ENABLED).ToLower().Trim(); 
+			if (tmpEnabled == "") proxyEnable = true;
+			else proxyEnable = Convert.ToBoolean(tmpEnabled);
 
 			proxyURL = XMLUtils.GetInnerText(xml, "./proxyURL", defaultConfig != null ? defaultConfig.proxyURL : ""); 
 			proxyPort = XMLUtils.GetInnerText(xml, "./proxyPort", defaultConfig != null ? defaultConfig.proxyPort : ""); 
@@ -67,10 +68,10 @@ namespace SpatialKey.DataManager.Lib.Config
 			if (obj == null)
 				return false;
 
-			return this.Equals(obj as ConfigAuth);
+			return this.Equals(obj as IAuthConfig);
 		}
 
-		public bool Equals(ConfigAuth p)
+		public bool Equals(IAuthConfig p)
 		{
 			if (p == null)
 				return false;
