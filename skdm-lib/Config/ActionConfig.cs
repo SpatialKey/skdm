@@ -90,7 +90,6 @@ namespace SpatialKey.DataManager.Lib.Config
 
 		public ConfigAction(Messager messenger = null, XmlNode xml = null, IAuthConfig defaultConfigAuth = null) : base(messenger)
 		{
-
 			ParseXML(xml, defaultConfigAuth);
 		}
 
@@ -98,11 +97,14 @@ namespace SpatialKey.DataManager.Lib.Config
 		virtual public void ParseXML(XmlNode xml, IAuthConfig defaultConfigAuth = null)
 		{
 			this.xml = xml;
-			if (xml == null)
-				return;
 
 			// Action override authentication info
 			configAuth = new AuthConfig(xml, defaultConfigAuth);
+
+			if (xml == null)
+			{
+				return;
+			}
 
 			// action configuration
 			actionName = XMLUtils.GetInnerText(xml, "@name");

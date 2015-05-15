@@ -45,7 +45,10 @@ namespace SpatialKey.DataManager.Lib.Config
 		virtual public void ParseXML(XmlNode xml, IAuthConfig defaultConfig = null)
 		{
 			if (xml == null)
+			{
+				Copy(defaultConfig);
 				return;
+			}
 
 			organizationURL = XMLUtils.GetInnerText(xml, "./organizationURL", defaultConfig != null ? defaultConfig.organizationURL : "");
 			organizationAPIKey = XMLUtils.GetInnerText(xml, "./organizationAPIKey", defaultConfig != null ? defaultConfig.organizationAPIKey : "");
@@ -61,6 +64,23 @@ namespace SpatialKey.DataManager.Lib.Config
 			proxyUser = XMLUtils.GetInnerText(xml, "./proxyUser", defaultConfig != null ? defaultConfig.proxyUser : ""); 
 			proxyPassword = XMLUtils.GetInnerText(xml, "./proxyPassword", defaultConfig != null ? defaultConfig.proxyPassword : ""); 
 			proxyDomain = XMLUtils.GetInnerText(xml, "./proxyDomain", defaultConfig != null ? defaultConfig.proxyDomain : ""); 
+		}
+
+		public void Copy(IAuthConfig config)
+		{
+			if (config == null) return;
+
+			organizationURL = config.organizationURL;
+			userAPIKey = config.userAPIKey;
+			organizationAPIKey = config.organizationAPIKey;
+			organizationSecretKey = config.organizationSecretKey;
+
+			proxyEnable = config.proxyEnable;
+			proxyURL = config.proxyURL;
+			proxyPort = config.proxyPort;
+			proxyUser = config.proxyUser;
+			proxyPassword = config.proxyPassword;
+			proxyDomain = config.proxyDomain;
 		}
 
 		public override bool Equals(System.Object obj)
