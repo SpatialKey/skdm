@@ -24,13 +24,13 @@ namespace SpatialKey.DataManager.Lib.Config
 		#endregion
 
 		#region Properties
-		virtual public string OrganizationURL { get { return _organizationURL; } set { _organizationURL = value; } }
-		virtual public string UserAPIKey { get { return _userAPIKey; } set { _userAPIKey = value; } }
-		virtual public string OrganizationAPIKey { get { return _organizationAPIKey; } set { _organizationAPIKey = value; } }
+		virtual public string OrganizationUrl { get { return _organizationURL; } set { _organizationURL = value; } }
+		virtual public string UserApiKey { get { return _userAPIKey; } set { _userAPIKey = value; } }
+		virtual public string OrganizationApiKey { get { return _organizationAPIKey; } set { _organizationAPIKey = value; } }
 		virtual public string OrganizationSecretKey { get { return _organizationSecretKey; } set { _organizationSecretKey = value; } }
 
 		virtual public bool ProxyEnable { get { return _proxyEnable; } set { _proxyEnable = value; } }
-		virtual public string ProxyURL { get { return _proxyURL; } set { _proxyURL = value; } }
+		virtual public string ProxyUrl { get { return _proxyURL; } set { _proxyURL = value; } }
 		virtual public string ProxyPort { get { return _proxyPort; } set { _proxyPort = value; } }
 		virtual public string ProxyUser { get { return _proxyUser; } set { _proxyUser = value; } }
 		virtual public string ProxyPassword { get { return _proxyPassword; } set { _proxyPassword = value; } }
@@ -50,16 +50,16 @@ namespace SpatialKey.DataManager.Lib.Config
 				return;
 			}
 
-			OrganizationURL = XMLUtils.GetInnerText(xml, "./organizationURL", defaultConfig != null ? defaultConfig.OrganizationURL : "");
-			OrganizationAPIKey = XMLUtils.GetInnerText(xml, "./organizationAPIKey", defaultConfig != null ? defaultConfig.OrganizationAPIKey : "");
+			OrganizationUrl = XMLUtils.GetInnerText(xml, "./organizationURL", defaultConfig != null ? defaultConfig.OrganizationUrl : "");
+			OrganizationApiKey = XMLUtils.GetInnerText(xml, "./organizationAPIKey", defaultConfig != null ? defaultConfig.OrganizationApiKey : "");
 			OrganizationSecretKey = XMLUtils.GetInnerText(xml, "./organizationSecretKey", defaultConfig != null ? defaultConfig.OrganizationSecretKey : ""); 
-			UserAPIKey = XMLUtils.GetInnerText(xml, "./userAPIKey", defaultConfig != null ? defaultConfig.UserAPIKey : "");
+			UserApiKey = XMLUtils.GetInnerText(xml, "./userAPIKey", defaultConfig != null ? defaultConfig.UserApiKey : "");
 
 			string tmpEnabled = XMLUtils.GetInnerText(xml, "./proxyEnable", defaultConfig != null ? defaultConfig.ProxyEnable.ToString() : PROXY_ENABLED).ToLower().Trim(); 
 			if (tmpEnabled == "") ProxyEnable = true;
 			else ProxyEnable = Convert.ToBoolean(tmpEnabled);
 
-			ProxyURL = XMLUtils.GetInnerText(xml, "./proxyURL", defaultConfig != null ? defaultConfig.ProxyURL : ""); 
+			ProxyUrl = XMLUtils.GetInnerText(xml, "./proxyURL", defaultConfig != null ? defaultConfig.ProxyUrl : ""); 
 			ProxyPort = XMLUtils.GetInnerText(xml, "./proxyPort", defaultConfig != null ? defaultConfig.ProxyPort : ""); 
 			ProxyUser = XMLUtils.GetInnerText(xml, "./proxyUser", defaultConfig != null ? defaultConfig.ProxyUser : ""); 
 			ProxyPassword = XMLUtils.GetInnerText(xml, "./proxyPassword", defaultConfig != null ? defaultConfig.ProxyPassword : ""); 
@@ -70,13 +70,13 @@ namespace SpatialKey.DataManager.Lib.Config
 		{
 			if (config == null) return;
 
-			OrganizationURL = config.OrganizationURL;
-			UserAPIKey = config.UserAPIKey;
-			OrganizationAPIKey = config.OrganizationAPIKey;
+			OrganizationUrl = config.OrganizationUrl;
+			UserApiKey = config.UserApiKey;
+			OrganizationApiKey = config.OrganizationApiKey;
 			OrganizationSecretKey = config.OrganizationSecretKey;
 
 			ProxyEnable = config.ProxyEnable;
-			ProxyURL = config.ProxyURL;
+			ProxyUrl = config.ProxyUrl;
 			ProxyPort = config.ProxyPort;
 			ProxyUser = config.ProxyUser;
 			ProxyPassword = config.ProxyPassword;
@@ -97,11 +97,11 @@ namespace SpatialKey.DataManager.Lib.Config
 				return false;
 
 			return  (
-			    (OrganizationURL == p.OrganizationURL) &&
-			    (UserAPIKey == p.UserAPIKey) &&
-			    (OrganizationAPIKey == p.OrganizationAPIKey) &&
+			    (OrganizationUrl == p.OrganizationUrl) &&
+			    (UserApiKey == p.UserApiKey) &&
+			    (OrganizationApiKey == p.OrganizationApiKey) &&
 				(OrganizationSecretKey == p.OrganizationSecretKey) &&
-				(ProxyURL == p.ProxyURL) &&
+				(ProxyUrl == p.ProxyUrl) &&
 				(ProxyPort == p.ProxyPort) &&
 				(ProxyUser == p.ProxyUser) &&
 				(ProxyPassword == p.ProxyPassword) &&
@@ -115,11 +115,11 @@ namespace SpatialKey.DataManager.Lib.Config
 			{
 				int hash = 17;
 				// Suitable nullity checks etc, of course :)
-				hash = hash * 23 + OrganizationURL.GetHashCode();
-				hash = hash * 23 + UserAPIKey.GetHashCode();
-				hash = hash * 23 + OrganizationAPIKey.GetHashCode();
+				hash = hash * 23 + OrganizationUrl.GetHashCode();
+				hash = hash * 23 + UserApiKey.GetHashCode();
+				hash = hash * 23 + OrganizationApiKey.GetHashCode();
 				hash = hash * 23 + OrganizationSecretKey.GetHashCode();
-				hash = hash * 23 + ProxyURL.GetHashCode();
+				hash = hash * 23 + ProxyUrl.GetHashCode();
 				hash = hash * 23 + ProxyPort.GetHashCode();
 				hash = hash * 23 + ProxyUser.GetHashCode();
 				hash = hash * 23 + ProxyPassword.GetHashCode();

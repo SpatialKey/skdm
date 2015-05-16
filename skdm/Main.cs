@@ -148,9 +148,9 @@ See http://support.spatialkey.com/dmapi for more information";
 			if (doc == null)
 				return false;
 
-			string orgAPIKey = defaultConfigAuth.OrganizationAPIKey;
+			string orgAPIKey = defaultConfigAuth.OrganizationApiKey;
 			string orgSecretKey = defaultConfigAuth.OrganizationSecretKey;
-			string userAPIKey = defaultConfigAuth.UserAPIKey;
+			string userAPIKey = defaultConfigAuth.UserApiKey;
 			int ttl = clp.FindCommand(COMMAND_OAUTH).Parser.FindOptionValue<int>(PARAM_TTL).Value;
 
 			if (ttl < TTL_MIN)
