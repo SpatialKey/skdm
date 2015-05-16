@@ -148,9 +148,9 @@ See http://support.spatialkey.com/dmapi for more information";
 			if (doc == null)
 				return false;
 
-			string orgAPIKey = defaultConfigAuth.organizationAPIKey;
-			string orgSecretKey = defaultConfigAuth.organizationSecretKey;
-			string userAPIKey = defaultConfigAuth.userAPIKey;
+			string orgAPIKey = defaultConfigAuth.OrganizationAPIKey;
+			string orgSecretKey = defaultConfigAuth.OrganizationSecretKey;
+			string userAPIKey = defaultConfigAuth.UserAPIKey;
 			int ttl = clp.FindCommand(COMMAND_OAUTH).Parser.FindOptionValue<int>(PARAM_TTL).Value;
 
 			if (ttl < TTL_MIN)
@@ -281,8 +281,8 @@ See http://support.spatialkey.com/dmapi for more information";
 			foreach (XmlNode actionNode in actionNodes)
 			{
 				ConfigAction action = new ConfigAction(ShowMessage, actionNode, defaultConfigAuth);
-				action.isWaitUpdate = isWaitUpdate;
-				if (!(actions.Count == 0 || actions.Contains(action.actionName)))
+				action.IsWaitUpdate = isWaitUpdate;
+				if (!(actions.Count == 0 || actions.Contains(action.ActionName)))
 					continue;
 
 				try
@@ -301,13 +301,13 @@ See http://support.spatialkey.com/dmapi for more information";
 				}
 				finally
 				{
-					if (action != null && action.isUpdateDoc)
+					if (action != null && action.IsUpdateDoc)
 						isUpdateDoc = true;
 
 					try
 					{
-						if (isCancelUpload && action != null && action.uploadId != null && action.uploadId.Length > 0)
-							skapi.CancelUpload(action.uploadId);
+						if (isCancelUpload && action != null && action.UploadId != null && action.UploadId.Length > 0)
+							skapi.CancelUpload(action.UploadId);
 					}
 					catch
 					{

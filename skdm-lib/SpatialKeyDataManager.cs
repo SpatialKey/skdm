@@ -94,11 +94,11 @@ namespace SpatialKey.DataManager.Lib
 			if (IsLoginTokenValid())
 				return _accessToken;
 
-			ShowMessage(MessageLevel.Status, "START LOGIN: " + MyConfigAuth.organizationURL);
+			ShowMessage(MessageLevel.Status, "START LOGIN: " + MyConfigAuth.OrganizationURL);
 			_accessToken = null;
 			_routeId = null;
 
-			string oauth = OAuth.GetOAuthToken(MyConfigAuth.userAPIKey, MyConfigAuth.organizationAPIKey, MyConfigAuth.organizationSecretKey, TOKEN_TIMEOUT);
+			string oauth = OAuth.GetOAuthToken(MyConfigAuth.UserAPIKey, MyConfigAuth.OrganizationAPIKey, MyConfigAuth.OrganizationSecretKey, TOKEN_TIMEOUT);
 			// add the query string
 			NameValueCollection bodyParam = new NameValueCollection();
 			bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
@@ -120,7 +120,7 @@ namespace SpatialKey.DataManager.Lib
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token '{1}': {2}", MyConfigAuth.organizationURL, oauth, FormatException(ex)), ex);
+				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token '{1}': {2}", MyConfigAuth.OrganizationURL, oauth, FormatException(ex)), ex);
 			}
 		}
 
@@ -750,7 +750,7 @@ namespace SpatialKey.DataManager.Lib
 
 		private string BuildUrl(string command, NameValueCollection query = null)
 		{
-			UriBuilder uri = new UriBuilder(MyConfigAuth.organizationURL);
+			UriBuilder uri = new UriBuilder(MyConfigAuth.OrganizationURL);
 			uri.Path = String.Format("/SpatialKeyFramework/api/{0}/{1}", API_VERSION, command);
 			return uri.ToString() + ToQueryString(query);
 		}
@@ -826,23 +826,23 @@ namespace SpatialKey.DataManager.Lib
 
 		private IWebProxy CreateProxy()
 		{
-			if (!MyConfigAuth.proxyEnable) 
+			if (!MyConfigAuth.ProxyEnable) 
 			{
 				return null;
 			}
 
 			IWebProxy proxy;
 
-			if (MyConfigAuth.proxyURL != "" && MyConfigAuth.proxyPort != "") 
+			if (MyConfigAuth.ProxyURL != "" && MyConfigAuth.ProxyPort != "") 
 			{
-				proxy = new WebProxy(MyConfigAuth.proxyURL, Convert.ToInt32(MyConfigAuth.proxyPort));
-				if (MyConfigAuth.proxyUser != "" && MyConfigAuth.proxyPassword != "" && MyConfigAuth.proxyDomain != "")
+				proxy = new WebProxy(MyConfigAuth.ProxyURL, Convert.ToInt32(MyConfigAuth.ProxyPort));
+				if (MyConfigAuth.ProxyUser != "" && MyConfigAuth.ProxyPassword != "" && MyConfigAuth.ProxyDomain != "")
 				{
-					proxy.Credentials = new NetworkCredential(MyConfigAuth.proxyUser, MyConfigAuth.proxyPassword, MyConfigAuth.proxyDomain);
+					proxy.Credentials = new NetworkCredential(MyConfigAuth.ProxyUser, MyConfigAuth.ProxyPassword, MyConfigAuth.ProxyDomain);
 				}
-				else if (MyConfigAuth.proxyUser != "" && MyConfigAuth.proxyPassword != "")
+				else if (MyConfigAuth.ProxyUser != "" && MyConfigAuth.ProxyPassword != "")
 				{
-					proxy.Credentials = new NetworkCredential(MyConfigAuth.proxyUser, MyConfigAuth.proxyPassword);
+					proxy.Credentials = new NetworkCredential(MyConfigAuth.ProxyUser, MyConfigAuth.ProxyPassword);
 				}
 			} 
 			else
