@@ -8,7 +8,7 @@ using SpatialKey.DataManager.Lib.Helpers;
 
 namespace SpatialKey.DataManager.Lib.Config
 {
-	public class ConfigAction : BaseMessageClass
+	public class ActionConfig : BaseMessageClass
 	{
 		#region Action XML constants
 
@@ -88,7 +88,7 @@ namespace SpatialKey.DataManager.Lib.Config
 		virtual public Boolean IsWaitUpdate { get { return _isWaitUpdate; } set { _isWaitUpdate = value; } }
 		#endregion
 
-		public ConfigAction(Messager messenger = null, XmlNode xml = null, IAuthConfig defaultConfigAuth = null) : base(messenger)
+		public ActionConfig(Messager messenger = null, XmlNode xml = null, IAuthConfig defaultConfigAuth = null) : base(messenger)
 		{
 			ParseXML(xml, defaultConfigAuth);
 		}
@@ -207,7 +207,7 @@ namespace SpatialKey.DataManager.Lib.Config
 			skapi.Init(ConfigAuth);
 
 			// suggest actions should limit upload lengths
-			if (ActionType == ConfigAction.ACTION_SUGGEST)
+			if (ActionType == ActionConfig.ACTION_SUGGEST)
 				PathDataArray = CreateSuggestShortFiles();
 
 			// Upload the data and wait for upload to finish
@@ -235,11 +235,11 @@ namespace SpatialKey.DataManager.Lib.Config
 		private void RunSuggest(SpatialKeyDataManager skapi)
 		{
 			String method;
-			if (DataType == ConfigAction.TYPE_CSV)
+			if (DataType == ActionConfig.TYPE_CSV)
 				method = "ImportCSV";
-			else if (DataType == ConfigAction.TYPE_SHAPE)
+			else if (DataType == ActionConfig.TYPE_SHAPE)
 				method = "ImportShapefile";
-			else if (DataType == ConfigAction.TYPE_INSURANCE)
+			else if (DataType == ActionConfig.TYPE_INSURANCE)
 				method = "ImportInsurance";
 			else
 			{
@@ -266,19 +266,19 @@ namespace SpatialKey.DataManager.Lib.Config
 		private void RunImport(SpatialKeyDataManager skapi)
 		{
 			string uploadMessage;
-			if (DataType == ConfigAction.TYPE_INSURANCE && PathDataArray.Length == 0)
+			if (DataType == ActionConfig.TYPE_INSURANCE && PathDataArray.Length == 0)
 			{
 				uploadMessage = String.Format("Importing insurance using existing dataset ids in '{0}'", PathXml);
 			}
 			else
 			{
-				uploadMessage = String.Format("Importing '{0}' for {1}", String.Join(", ", PathDataArray), (DataType == ConfigAction.TYPE_INSURANCE ? "insurance" : "dataset"));
+				uploadMessage = String.Format("Importing '{0}' for {1}", String.Join(", ", PathDataArray), (DataType == ActionConfig.TYPE_INSURANCE ? "insurance" : "dataset"));
 			}
 
 			ShowMessage(MessageLevel.Status, uploadMessage);
 
 			bool isSuccess;
-			if (DataType == ConfigAction.TYPE_INSURANCE)
+			if (DataType == ActionConfig.TYPE_INSURANCE)
 			{
 				if (PathDataArray.Length == 0)
 				{
@@ -320,16 +320,16 @@ namespace SpatialKey.DataManager.Lib.Config
 		{
 			bool isSuccess;
 			string uploadMessage;
-			if (DataType == ConfigAction.TYPE_INSURANCE && PathDataArray.Length == 0)
+			if (DataType == ActionConfig.TYPE_INSURANCE && PathDataArray.Length == 0)
 			{
 				ShowMessage(MessageLevel.Error, String.Format("Canot do an insurance overwrite with only ids '{0}'", PathXml));
 				return;
 			}
 			else
 			{
-				uploadMessage = String.Format("Overwriting {0} '{1}' using csv '{2}' and config '{3}'", (DataType == ConfigAction.TYPE_INSURANCE ? "insurance" : "dataset"), id, String.Join(", ", PathDataArray), PathXml);
+				uploadMessage = String.Format("Overwriting {0} '{1}' using csv '{2}' and config '{3}'", (DataType == ActionConfig.TYPE_INSURANCE ? "insurance" : "dataset"), id, String.Join(", ", PathDataArray), PathXml);
 				ShowMessage(MessageLevel.Status, uploadMessage);
-				if (DataType == ConfigAction.TYPE_INSURANCE)
+				if (DataType == ActionConfig.TYPE_INSURANCE)
 					isSuccess = skapi.InsuranceOverwrite(UploadId, id, PathXml);
 				else
 					isSuccess = skapi.DatasetOverwrite(UploadId, id, PathXml);
@@ -347,7 +347,7 @@ namespace SpatialKey.DataManager.Lib.Config
 				}
 				else
 				{
-					if (DataType == ConfigAction.TYPE_INSURANCE)
+					if (DataType == ActionConfig.TYPE_INSURANCE)
 					{
 						if (!ExtractDatasetIds(skapi, uploadMessage, uploadStausJson))
 							return;
@@ -362,7 +362,7 @@ namespace SpatialKey.DataManager.Lib.Config
 
 		private void RunAppend(SpatialKeyDataManager skapi)
 		{
-			if (DataType == ConfigAction.TYPE_INSURANCE || DataType == ConfigAction.TYPE_SHAPE)
+			if (DataType == ActionConfig.TYPE_INSURANCE || DataType == ActionConfig.TYPE_SHAPE)
 			{
 				ShowMessage(MessageLevel.Error, String.Format("Canot append dataType '{0}'", DataType));
 				return;
@@ -423,7 +423,7 @@ namespace SpatialKey.DataManager.Lib.Config
 		private bool ExtractDatasetIds(SpatialKeyDataManager skapi, string uploadMessage, Dictionary<string, object> uploadStausJson)
 		{
 			Dictionary<string, string> ids = skapi.GetDatasetIDs(uploadStausJson);
-			if (DataType == ConfigAction.TYPE_INSURANCE)
+			if (DataType == ActionConfig.TYPE_INSURANCE)
 			{
 				string policyId = null;
 				string locationId = null;

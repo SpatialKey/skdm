@@ -34,7 +34,7 @@ See http://support.spatialkey.com/dmapi for more information";
 		// commands
 		private const string COMMAND_OAUTH = "oauth";
 		private const string COMMAND_UPLOAD = "upload";
-		private const string COMMAND_SUGGEST = ConfigAction.ACTION_SUGGEST;
+		private const string COMMAND_SUGGEST = ActionConfig.ACTION_SUGGEST;
 		private const string COMMAND_LIST = "list";
 		private const string COMMAND_DELETE = "delete";
 		// defaults
@@ -280,7 +280,7 @@ See http://support.spatialkey.com/dmapi for more information";
 
 			foreach (XmlNode actionNode in actionNodes)
 			{
-				ConfigAction action = new ConfigAction(ShowMessage, actionNode, defaultConfigAuth);
+				ActionConfig action = new ActionConfig(ShowMessage, actionNode, defaultConfigAuth);
 				action.IsWaitUpdate = isWaitUpdate;
 				if (!(actions.Count == 0 || actions.Contains(action.ActionName)))
 					continue;
