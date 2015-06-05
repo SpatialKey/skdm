@@ -56,8 +56,7 @@ namespace SpatialKey.DataManager.Lib.Config
 			UserApiKey = XMLUtils.GetInnerText(xml, "./userAPIKey", defaultConfig != null ? defaultConfig.UserApiKey : "");
 
 			string tmpEnabled = XMLUtils.GetInnerText(xml, "./proxyEnable", defaultConfig != null ? defaultConfig.ProxyEnable.ToString() : PROXY_ENABLED).ToLower().Trim(); 
-			if (tmpEnabled == "") ProxyEnable = true;
-			else ProxyEnable = Convert.ToBoolean(tmpEnabled);
+			ProxyEnable = string.IsNullOrWhiteSpace(tmpEnabled) || Convert.ToBoolean(tmpEnabled);
 
 			ProxyUrl = XMLUtils.GetInnerText(xml, "./proxyURL", defaultConfig != null ? defaultConfig.ProxyUrl : ""); 
 			ProxyPort = XMLUtils.GetInnerText(xml, "./proxyPort", defaultConfig != null ? defaultConfig.ProxyPort : ""); 

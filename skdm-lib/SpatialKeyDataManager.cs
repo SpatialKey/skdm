@@ -833,14 +833,14 @@ namespace SpatialKey.DataManager.Lib
 
 			IWebProxy proxy;
 
-			if (MyConfigAuth.ProxyUrl != "" && MyConfigAuth.ProxyPort != "") 
+			if (!string.IsNullOrWhiteSpace(MyConfigAuth.ProxyUrl) && !string.IsNullOrWhiteSpace(MyConfigAuth.ProxyPort)) 
 			{
 				proxy = new WebProxy(MyConfigAuth.ProxyUrl, Convert.ToInt32(MyConfigAuth.ProxyPort));
-				if (MyConfigAuth.ProxyUser != "" && MyConfigAuth.ProxyPassword != "" && MyConfigAuth.ProxyDomain != "")
+				if (!string.IsNullOrWhiteSpace(MyConfigAuth.ProxyUser) && !string.IsNullOrWhiteSpace(MyConfigAuth.ProxyPassword) && !string.IsNullOrWhiteSpace(MyConfigAuth.ProxyDomain))
 				{
 					proxy.Credentials = new NetworkCredential(MyConfigAuth.ProxyUser, MyConfigAuth.ProxyPassword, MyConfigAuth.ProxyDomain);
 				}
-				else if (MyConfigAuth.ProxyUser != "" && MyConfigAuth.ProxyPassword != "")
+				else if (!string.IsNullOrWhiteSpace(MyConfigAuth.ProxyUser) && !string.IsNullOrWhiteSpace(MyConfigAuth.ProxyPassword))
 				{
 					proxy.Credentials = new NetworkCredential(MyConfigAuth.ProxyUser, MyConfigAuth.ProxyPassword);
 				}
