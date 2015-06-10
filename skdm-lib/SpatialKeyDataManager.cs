@@ -38,7 +38,6 @@ namespace SpatialKey.DataManager.Lib
 		// 60 min * 60 sec * 1000 msec = 3600000 msec
 		private const int HTTP_TIMEOUT_LONG = 3600000;
 		private const string LOG_SEPARATOR = "----------------------------------------";
-		private const int TOKEN_TIMEOUT = 1800;
 		private const string ROUTEID = "ROUTEID";
 
 		#endregion
@@ -47,6 +46,12 @@ namespace SpatialKey.DataManager.Lib
 
 		/// <summary>Authenticaton Configuration</summary>
 		public IAuthConfig MyConfigAuth { get; private set; }
+        private int _TokenTimeout = 1800;
+        public int TokenTimeout 
+        { 
+            get { return _TokenTimeout; }
+            set { _TokenTimeout = value; }
+        }
 
 		#endregion
 
@@ -98,7 +103,7 @@ namespace SpatialKey.DataManager.Lib
 			_accessToken = null;
 			_routeId = null;
 
-			string oauth = OAuth.GetOAuthToken(MyConfigAuth.UserApiKey, MyConfigAuth.OrganizationApiKey, MyConfigAuth.OrganizationSecretKey, TOKEN_TIMEOUT);
+			string oauth = OAuth.GetOAuthToken(MyConfigAuth.UserApiKey, MyConfigAuth.OrganizationApiKey, MyConfigAuth.OrganizationSecretKey, TokenTimeout);
 			// add the query string
 			NameValueCollection bodyParam = new NameValueCollection();
 			bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
