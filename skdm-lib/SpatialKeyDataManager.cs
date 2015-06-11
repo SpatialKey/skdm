@@ -188,6 +188,30 @@ namespace SpatialKey.DataManager.Lib
 			}
 		}
 
+        public Dictionary<string, object> GetOrganizationInformation()
+	    {
+            Login();
+
+	        using (new MessageTimeTaken(MyMessenger, "Get Organization Information"))
+	        {
+                NameValueCollection query = new NameValueCollection();
+                query["token"] = _accessToken;
+
+                try
+                {
+                    using (HttpWebResponse response = HttpGet(BuildUrl("organization"), query))
+                    {
+                        return HttpResponseToJSON(response);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(String.Format("Failed to get organization information. {0}", FormatException(ex)), ex);
+                }
+            }
+
+	    }
+
 		/// <summary>
 		/// Upload the given file and return the uploadId
 		/// </summary>
