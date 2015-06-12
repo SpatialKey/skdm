@@ -46,11 +46,18 @@ namespace SpatialKey.DataManager.Lib
 
 		/// <summary>Authenticaton Configuration</summary>
 		public IAuthConfig MyConfigAuth { get; private set; }
-        private int _TokenTimeout = 1800;
+        private int _tokenTimeout = 1800;
         public int TokenTimeout 
         { 
-            get { return _TokenTimeout; }
-            set { _TokenTimeout = value; }
+            get { return _tokenTimeout; }
+            set { _tokenTimeout = value; }
+        }
+
+        private string _userAgent = string.Format("SpatialKeyDataManager/{0}", VERSION);
+        public string UserAgent
+        {
+            get { return _userAgent; }
+            set { _userAgent = value; }
         }
 
 		#endregion
@@ -837,6 +844,7 @@ namespace SpatialKey.DataManager.Lib
 		private HttpWebRequest CreateWebRequest(string url, string method, int timeout)
 		{
 			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
+		    request.UserAgent = UserAgent;
 
 			CookieContainer cookieJar = new CookieContainer();
 			request.CookieContainer = cookieJar;
@@ -906,7 +914,7 @@ namespace SpatialKey.DataManager.Lib
 			{
 				url = url + ToQueryString(queryParam);
 				HttpWebRequest request = CreateWebRequest(url, method, timeout);
-				request.ContentType = "application/x-www-form-urlencoded";
+                request.ContentType = "application/x-www-form-urlencoded";
 
 				// get the query string and trim off the starting "?"
 				string body = ToQueryString(bodyParam);
@@ -942,7 +950,7 @@ namespace SpatialKey.DataManager.Lib
 			{
 				url = url + ToQueryString(queryParam);
 				HttpWebRequest request = CreateWebRequest(url, method, timeout);
-				request.ContentType = "application/xml";
+                request.ContentType = "application/xml";
 
 				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
 				ShowMessage(MessageLevel.Verbose, String.Format("HTTP POST URL: {0} XML: {1}", url, pathXML));
