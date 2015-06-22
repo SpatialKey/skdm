@@ -73,7 +73,7 @@ namespace SpatialKey.DataManager.Lib.Helpers
 	/// JSON uses Arrays and Objects. These correspond here to the datatypes IList and IDictionary.
 	/// All numbers are parsed to doubles.
 	/// </summary>
-	internal static class MiniJson
+	public static class MiniJson
 	{
 		/// <summary>
 		/// Parses the string json into a value
