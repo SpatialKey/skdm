@@ -23,7 +23,7 @@ namespace SpatialKey.DataManager.Lib
 	/// The SpatialKey Data Import API (DIAPI) allows developers to programmatically create or update SpatialKey datasets.
 	/// </summary>
 	/// <see cref="http://support.spatialkey.com/dmapi"/>
-	public class SpatialKeyDataManager : BaseMessageClass
+	public class SpatialKeyDataManager : BaseMessageClass, IDisposable
 	{
 
 		#region constants
@@ -95,6 +95,14 @@ namespace SpatialKey.DataManager.Lib
 
 			MyConfigAuth = configAuth;
 		}
+
+        public void Dispose()
+        {
+            Logout();
+            _accessToken = null;
+            _routeId = null;
+            MyConfigAuth = null;
+        }
 
 		#region API calls - Common
 
