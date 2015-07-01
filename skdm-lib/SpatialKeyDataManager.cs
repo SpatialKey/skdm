@@ -28,7 +28,7 @@ namespace SpatialKey.DataManager.Lib
 
 		#region constants
 
-		public const string VERSION = "2.2.0";
+		public const string VERSION = "3.0.0";
 
 		public const string API_VERSION = "v2";
 		// 1 min * 60 sec * 1000 msec = 60000 msec
