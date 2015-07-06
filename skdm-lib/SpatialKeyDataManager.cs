@@ -93,7 +93,14 @@ namespace SpatialKey.DataManager.Lib
 			_accessToken = null;
 			_routeId = null;
 
-			MyConfigAuth = configAuth;
+            MyConfigAuth = configAuth == null ? null : configAuth.Clone() as IAuthConfig;
+
+            if (MyConfigAuth != null && 
+                MyConfigAuth.OrganizationUrl != null &&
+                !MyConfigAuth.OrganizationUrl.Contains("://"))
+            {
+                MyConfigAuth.OrganizationUrl = "https://"+MyConfigAuth.OrganizationUrl;
+            }
 		}
 
         public void Dispose()

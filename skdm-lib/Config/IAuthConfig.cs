@@ -2,7 +2,7 @@
 
 namespace SpatialKey.DataManager.Lib.Config
 {
-	public interface IAuthConfig
+	public interface IAuthConfig : ICloneable
 	{
 		string OrganizationUrl { get; set; }
 		string UserApiKey { get; set; }

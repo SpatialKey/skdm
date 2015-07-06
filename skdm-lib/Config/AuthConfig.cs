@@ -126,6 +126,24 @@ namespace SpatialKey.DataManager.Lib.Config
 				return hash;
 			}
 		}
+
+        public object Clone()
+        {
+            return new AuthConfig
+            {
+                OrganizationUrl = OrganizationUrl == null ? null : string.Copy(OrganizationUrl),
+                UserApiKey = UserApiKey == null ? null : string.Copy(UserApiKey),
+                OrganizationApiKey = OrganizationApiKey == null ? null : string.Copy(OrganizationApiKey),
+                OrganizationSecretKey = OrganizationSecretKey == null ? null : string.Copy(OrganizationSecretKey),
+
+                ProxyEnable = ProxyEnable,
+                ProxyUrl = ProxyUrl == null ? null : string.Copy(ProxyUrl),
+                ProxyPort = ProxyPort == null ? null : string.Copy(ProxyPort),
+                ProxyUser = ProxyUser == null ? null : string.Copy(ProxyUser),
+                ProxyPassword = ProxyPassword == null ? null : string.Copy(ProxyPassword),
+                ProxyDomain = ProxyDomain == null ? null : string.Copy(ProxyDomain)
+            };
+        }
 	}
 }
 
