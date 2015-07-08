@@ -114,14 +114,16 @@ namespace SpatialKey.DataManager.Lib
 		/// <summary>
 		/// If don't have a valid login token, login to the API and get one.
 		/// </summary>
-		public string Login()
+		public string Login(string routeId = null)
 		{
 			if (IsLoginTokenValid())
 				return _accessToken;
 
 			ShowMessage(MessageLevel.Status, "START LOGIN: " + MyConfigAuth.OrganizationUrl);
 			_accessToken = null;
-			_routeId = null;
+
+            // use passed in routeId or keep the current routeId just in case we are logging in because IsLoginTokenValid() failed
+            _routeId = string.IsNullOrWhiteSpace(routeId) ? _routeId : routeId; 
 
 			string oauth = OAuth.GetOAuthToken(MyConfigAuth.UserApiKey, MyConfigAuth.OrganizationApiKey, MyConfigAuth.OrganizationSecretKey, TokenTimeout);
 			// add the query string
@@ -133,8 +135,10 @@ namespace SpatialKey.DataManager.Lib
 			{
 				using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
 				{
-					if (response.Cookies != null && response.Cookies[ROUTEID] != null)
-						_routeId = response.Cookies[ROUTEID].Value;
+                    if (response.Cookies != null && response.Cookies[ROUTEID] != null)
+                    {
+                        _routeId = response.Cookies[ROUTEID].Value;
+                    }
 
 					Dictionary<string,object> json = HttpResponseToJSON(response);
 					_accessToken = JsonGetPath<string>(json, "access_token");
@@ -207,6 +211,20 @@ namespace SpatialKey.DataManager.Lib
 				_routeId = null;
 			}
 		}
+
+        /// <summary>
+        /// Relogin
+        /// </summary>
+        public void Relog()
+        {
+            string routeId = _routeId;
+            Logout();
+            Login(routeId);
+            if (!string.IsNullOrWhiteSpace(routeId) && routeId != _routeId)
+            {
+                throw new Exception(string.Format("Error: New ROUTEID {0} not the same as old {1}", _routeId, routeId));
+            }
+        }
 
         public Dictionary<string, object> GetOrganizationInformation()
 	    {
@@ -622,14 +640,14 @@ namespace SpatialKey.DataManager.Lib
 		{
 			ShowMessage(MessageLevel.Status, "WAIT UPLOAD COMPLETE: " + uploadId);
 
-			Dictionary<string,object> json = GetUploadStatus(uploadId);
+            Dictionary<string,object> json = null;
+            do
+            {
+                System.Threading.Thread.Sleep(10000);
+                json = GetUploadStatus(uploadId);
+            } while (IsUploadStatusWorking(json));
 
-			while (IsUploadStatusWorking(json))
-			{
-				System.Threading.Thread.Sleep(10000);
-				json = GetUploadStatus(uploadId);
-			}
-			return json;
+            return json;
 		}
 
 		public string UploadAndWait(string[] paths)
@@ -802,19 +820,23 @@ namespace SpatialKey.DataManager.Lib
 
 		private string ToQueryString(NameValueCollection nvc)
 		{
-			if (nvc == null || nvc.Count < 1)
-				return "";
-
 			List<string> list = new List<string>();
-			if (_routeId != null)
-				list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(ROUTEID), HttpUtility.UrlEncode(_routeId)));
-			foreach (string key in nvc)
-			{
-				list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(key), HttpUtility.UrlEncode(nvc[key])));
-			}
 
-			String ret = "?" + string.Join("&", list);
-			return ret;
+            // add _routeId
+            if (!string.IsNullOrWhiteSpace(_routeId))
+            {
+                list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(ROUTEID), HttpUtility.UrlEncode(_routeId)));
+            }
+
+            if (nvc != null && nvc.Count > 0)
+            {
+                foreach (string key in nvc)
+                {
+                    list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(key), HttpUtility.UrlEncode(nvc[key])));
+                }
+            }
+
+            return list.Count > 0 ? "?" + string.Join("&", list) : "";
 		}
 
 		private string GetResponseString(HttpWebResponse response)
