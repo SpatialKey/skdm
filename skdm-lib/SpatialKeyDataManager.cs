@@ -142,7 +142,7 @@ namespace SpatialKey.DataManager.Lib
 
 					Dictionary<string,object> json = HttpResponseToJSON(response);
 					_accessToken = JsonGetPath<string>(json, "access_token");
-					if (_accessToken == null)
+					if (string.IsNullOrWhiteSpace(_accessToken))
 						throw new Exception(String.Format("JSON does not contian 'access_token': {0}", MiniJson.Serialize(json)));
 					return _accessToken;
 				}
@@ -158,7 +158,7 @@ namespace SpatialKey.DataManager.Lib
 		/// </summary>
 		public bool IsLoginTokenValid()
 		{
-			if (_accessToken == null || _accessToken.Length == 0)
+			if (string.IsNullOrWhiteSpace(_accessToken))
 				return false;
 
 			ShowMessage(MessageLevel.Status, "VALIDATE TOKEN: " + _accessToken);
@@ -176,7 +176,7 @@ namespace SpatialKey.DataManager.Lib
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Failed to validate token '{0}'", _accessToken), ex);
+				ShowMessage(MessageLevel.Warning, String.Format("Failed to validate token '{0}': {1}", _accessToken, ex.Message));
 				return false;
 			}
 		}
@@ -186,8 +186,17 @@ namespace SpatialKey.DataManager.Lib
 		/// </summary>
 		public void Logout()
 		{
-			if (_accessToken == null || _accessToken.Length == 0)
-				return;
+            if (string.IsNullOrWhiteSpace(_accessToken))
+            {
+                return;
+            }
+
+            if (!IsLoginTokenValid())
+            {
+                _accessToken = null;
+                _routeId = null;
+                return;
+            }
 
 			ShowMessage(MessageLevel.Status, "LOGOUT TOKEN: " + _accessToken);
 
@@ -269,7 +278,7 @@ namespace SpatialKey.DataManager.Lib
 				{
 					Dictionary<string,object> json = HttpResponseToJSON(response);
 					string uploadId = JsonGetPath<string>(json, "upload/uploadId");
-					if (uploadId == null)
+					if (string.IsNullOrWhiteSpace(uploadId))
 						throw new Exception(String.Format("JSON does not contian '{0}': {1}", "upload/uploadId", MiniJson.Serialize(json)));
 					return uploadId;
 				}
@@ -365,7 +374,7 @@ namespace SpatialKey.DataManager.Lib
 		public Dictionary<string,object> GetDatasetInfo(string datasetId)
 		{
 			Login();
-			if (datasetId == null || datasetId.Length < 1)
+			if (string.IsNullOrWhiteSpace(datasetId))
 				throw new Exception("Need to give datasetId to get info.");
 
 			ShowMessage(MessageLevel.Status, "Dataset Info: " + datasetId);
@@ -534,7 +543,7 @@ namespace SpatialKey.DataManager.Lib
 				{
 					Dictionary<string,object> json = HttpResponseToJSON(response);
 					string uploadId = JsonGetPath<string>(json, "upload/uploadId");
-					if (uploadId == null)
+					if (string.IsNullOrWhiteSpace(uploadId))
 						throw new Exception(String.Format("JSON does not contian '{0}': {1}", "upload/uploadId", MiniJson.Serialize(json)));
 					return uploadId;
 				}
