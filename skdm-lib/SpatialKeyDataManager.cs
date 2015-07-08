@@ -31,12 +31,10 @@ namespace SpatialKey.DataManager.Lib
 		public const string VERSION = "3.0.0";
 
 		public const string API_VERSION = "v2";
-		// 1 min * 60 sec * 1000 msec = 60000 msec
-		private const int HTTP_TIMEOUT_SHORT = 60000;
-		// 15 min * 60 sec * 1000 msec = 900000 msec
-		private const int HTTP_TIMEOUT_MED = 900000;
 		// 60 min * 60 sec * 1000 msec = 3600000 msec
-		private const int HTTP_TIMEOUT_LONG = 3600000;
+		private const int HTTP_TIMEOUT_MED = 3600000;
+		// 4 hrs * 60 min * 60 sec * 1000 msec = 14400000 msec
+        private const int HTTP_TIMEOUT_LONG = 14400000;
 		private const string LOG_SEPARATOR = "----------------------------------------";
 		private const string ROUTEID = "ROUTEID";
 
@@ -624,14 +622,10 @@ namespace SpatialKey.DataManager.Lib
 		{
 			ShowMessage(MessageLevel.Status, "WAIT UPLOAD COMPLETE: " + uploadId);
 
-			DateTime start = DateTime.Now;
 			Dictionary<string,object> json = GetUploadStatus(uploadId);
 
 			while (IsUploadStatusWorking(json))
 			{
-				if (DateTime.Now.Subtract(start).TotalMilliseconds > HTTP_TIMEOUT_MED)
-					throw new Exception(String.Format("Timed out waiting for upload '{0}' to complete", uploadId));
-
 				System.Threading.Thread.Sleep(10000);
 				json = GetUploadStatus(uploadId);
 			}
@@ -906,7 +900,7 @@ namespace SpatialKey.DataManager.Lib
 			return proxy;
 		}
 
-		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
+		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_MED)
 		{
 			try
 			{
@@ -923,7 +917,7 @@ namespace SpatialKey.DataManager.Lib
 			}
 		}
 
-		private HttpWebResponse HttpPost(string url, NameValueCollection queryParam = null, NameValueCollection bodyParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_SHORT)
+		private HttpWebResponse HttpPost(string url, NameValueCollection queryParam = null, NameValueCollection bodyParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_MED)
 		{
 			try
 			{
