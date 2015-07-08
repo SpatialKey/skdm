@@ -335,8 +335,7 @@ namespace SpatialKey.DataManager.Lib
 		/// </summary>
 		public void CancelUpload(string uploadId)
 		{
-			if (Login() == null)
-				return;
+            Login();
 
 			ShowMessage(MessageLevel.Status, "CANCEL UPLOAD: " + uploadId);
 
@@ -392,8 +391,7 @@ namespace SpatialKey.DataManager.Lib
 		/// </summary>
 		public bool DatasetCreate(string uploadId, string pathConfig)
 		{
-			if (Login() == null)
-				return false;
+			Login();
 
 			ShowMessage(MessageLevel.Status, String.Format("IMPORT {0} with config'{1}'", uploadId, pathConfig));
 
@@ -437,8 +435,8 @@ namespace SpatialKey.DataManager.Lib
 		/// </summary>
 		private bool DatasetAppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
 		{
-			if (Login() == null)
-				return false;
+            if (string.IsNullOrWhiteSpace(Login())) return false;
+
 			ShowMessage(MessageLevel.Status, String.Format("{0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig));
 
 			// add the query string
@@ -466,7 +464,7 @@ namespace SpatialKey.DataManager.Lib
 		/// </summary>
 		public List<Dictionary<string, string>> DatasetList()
 		{
-			Login();
+            Login();
 
 			ShowMessage(MessageLevel.Status, "LIST DATASETS");
 
@@ -492,8 +490,7 @@ namespace SpatialKey.DataManager.Lib
 		/// </summary>
 		public void DatasetDelete(string datasetId)
 		{
-			if (Login() == null)
-				return;
+            Login();
 
 			ShowMessage(MessageLevel.Status, "DELETE DATASET: " + datasetId);
 
@@ -523,7 +520,7 @@ namespace SpatialKey.DataManager.Lib
 		/// </summary>
 		public string InsuranceCreateExistingDatasets(string pathConfig)
 		{
-			Login();
+            Login();
 
 			ShowMessage(MessageLevel.Status, "INSURANCE CREATE FROM DATASETS: " + pathConfig);
 
@@ -553,8 +550,7 @@ namespace SpatialKey.DataManager.Lib
 		/// </summary>
 		public bool InsuranceCreate(string uploadId, string[] pathDataArray, string pathConfig)
 		{
-			if (Login() == null)
-				return false;
+            Login();
 
 			ShowMessage(MessageLevel.Status, String.Format("IMPORT {0} with config'{1}'", uploadId, pathConfig));
 
@@ -579,9 +575,9 @@ namespace SpatialKey.DataManager.Lib
 
 		public bool InsuranceOverwrite(string uploadId, string datasetId, string pathConfig)
 		{
-			if (Login() == null)
-				return false;
-			ShowMessage(MessageLevel.Status, String.Format("Overwrite uploadId:{0} datasetId: {1} config: '{2}'", uploadId, datasetId, pathConfig));
+            Login();
+            
+            ShowMessage(MessageLevel.Status, String.Format("Overwrite uploadId:{0} datasetId: {1} config: '{2}'", uploadId, datasetId, pathConfig));
 
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
