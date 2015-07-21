@@ -149,7 +149,7 @@ namespace SpatialKey.DataManager.Lib
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token '{1}': {2}", MyConfigAuth.OrganizationUrl, oauth, FormatException(ex)), ex);
+				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token: {1}", MyConfigAuth.OrganizationUrl, FormatException(ex)), ex);
 			}
 		}
 
@@ -846,15 +846,12 @@ namespace SpatialKey.DataManager.Lib
 
 		private string GetResponseString(HttpWebResponse response)
 		{
-			using (response)
-			{
-				StreamReader reader = new StreamReader(response.GetResponseStream());
-				string result = reader.ReadToEnd().Trim();
-				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
-				ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
-				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
-				return result;
-			}
+		    StreamReader reader = new StreamReader(response.GetResponseStream());
+		    string result = reader.ReadToEnd().Trim();
+		    ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+		    ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
+		    ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+		    return result;
 		}
 
 		private void ShowException(string message, Exception ex)
@@ -867,11 +864,23 @@ namespace SpatialKey.DataManager.Lib
 			if (ex is WebException)
 			{
 				WebException we = ex as WebException;
-				HttpWebResponse response = we != null ? we.Response as HttpWebResponse : null;
-				if (response == null)
-					return ex.Message;
-				else
-					return String.Format("StatusCode:  {0}; {1}",response.StatusCode, GetResponseString(response));
+			    using (HttpWebResponse response = we != null ? we.Response as HttpWebResponse : null)
+			    {
+			        if (response == null)
+			        {
+			            return ex.Message;
+			        }
+			        else
+			        {
+			            string responseString = GetResponseString(response);
+			            Dictionary<string, object> json = MiniJson.Deserialize(responseString) as Dictionary<string, object>;
+			            if (json != null && json.ContainsKey("message") && json["message"] is string)
+			            {
+			                responseString = json["message"] as string;
+			            }
+			            return String.Format("StatusCode:  {0}; {1}", response.StatusCode, responseString);
+			        }
+			    }
 			}
 			else
 				return ex.Message;
