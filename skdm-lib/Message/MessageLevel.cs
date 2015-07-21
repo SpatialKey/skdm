@@ -2,14 +2,16 @@ using System;
 
 namespace SpatialKey.DataManager.Lib.Message
 {
+    // higher value == worse level
 	public enum MessageLevel
 	{
-		Result,
-		Error,
-		Help,
+        Success,
+        Result,
+        Verbose,
+        Help,
 		Status,
-		Warning,
-		Verbose
+        Warning,
+        Error
 	}
 }
 
