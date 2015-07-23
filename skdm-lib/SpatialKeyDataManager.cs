@@ -235,6 +235,9 @@ namespace SpatialKey.DataManager.Lib
             }
         }
 
+        /// <summary>
+        /// Get information about the organization
+        /// </summary>
         public Dictionary<string, object> GetOrganizationInformation()
 	    {
             Login();
@@ -259,7 +262,7 @@ namespace SpatialKey.DataManager.Lib
 
 	    }
 
-		/// <summary>
+        /// <summary>
 		/// Upload the given file and return the uploadId
 		/// </summary>
 		public string Upload(string[] paths)
