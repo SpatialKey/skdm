@@ -741,6 +741,25 @@ namespace SpatialKey.DataManager.Lib
 			return (status == null || status.IndexOf("ERROR_") == 0);
 		}
 
+	    public static string GetApiMessage(string str)
+	    {
+            Dictionary<string, object> json = MiniJson.Deserialize(str) as Dictionary<string, object>;
+	        if (json == null) return str;
+	        return GetApiMessage(json);
+	    }
+
+        public static string GetApiMessage(Dictionary<string, object> json)
+        {
+            if (json != null && json.ContainsKey("message") && json["message"] is string)
+            {
+                return json["message"] as string;
+            }
+            else
+            {
+                return MiniJson.Serialize(json);
+            }
+        }
+
 		/// <summary>
 		/// Finds the datasetId for the first createdResources that has an id in the given JSON
 		/// </summary>
@@ -876,12 +895,7 @@ namespace SpatialKey.DataManager.Lib
 			        else
 			        {
 			            string responseString = GetResponseString(response);
-			            Dictionary<string, object> json = MiniJson.Deserialize(responseString) as Dictionary<string, object>;
-			            if (json != null && json.ContainsKey("message") && json["message"] is string)
-			            {
-			                responseString = json["message"] as string;
-			            }
-			            return String.Format("StatusCode:  {0}; {1}", response.StatusCode, responseString);
+			            return String.Format("StatusCode:  {0}: {1}", response.StatusCode, GetApiMessage(responseString));
 			        }
 			    }
 			}
@@ -889,7 +903,7 @@ namespace SpatialKey.DataManager.Lib
 				return ex.Message;
 		}
 
-		private HttpWebRequest CreateWebRequest(string url, string method, int timeout)
+	    private HttpWebRequest CreateWebRequest(string url, string method, int timeout)
 		{
 			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
 		    request.UserAgent = UserAgent;
