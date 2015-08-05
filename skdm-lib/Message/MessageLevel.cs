@@ -7,6 +7,7 @@ namespace SpatialKey.DataManager.Lib.Message
 	{
         Success,
         Result,
+        Canceled,
         Verbose,
         Help,
 		Status,
