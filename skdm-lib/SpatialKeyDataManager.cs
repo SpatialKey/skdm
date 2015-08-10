@@ -11,7 +11,7 @@ using System.IO;
 using System.Text;
 using System.Collections.Specialized;
 using System.Collections.Generic;
-
+using System.Web.UI.WebControls;
 using SpatialKey.DataManager.Lib.Message;
 using SpatialKey.DataManager.Lib.Config;
 using SpatialKey.DataManager.Lib.Helpers;
@@ -259,8 +259,33 @@ namespace SpatialKey.DataManager.Lib
                     throw new Exception(String.Format("Failed to get organization information. {0}", FormatException(ex)), ex);
                 }
             }
-
 	    }
+
+        /// <summary>
+        /// Get information about the organization
+        /// </summary>
+        public Dictionary<string, object> GetUserInformation()
+        {
+            Login();
+
+            using (new MessageTimeTaken(MyMessenger, "Get User Information"))
+            {
+                NameValueCollection query = new NameValueCollection();
+                query["token"] = _accessToken;
+
+                try
+                {
+                    using (HttpWebResponse response = HttpGet(BuildUrl("user/me.json"), query))
+                    {
+                        return HttpResponseToJSON(response);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(String.Format("Failed to get user information. {0}", FormatException(ex)), ex);
+                }
+            }
+        }
 
         /// <summary>
 		/// Upload the given file and return the uploadId
