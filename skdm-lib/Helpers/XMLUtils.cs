@@ -2,7 +2,7 @@ using System;
 using System.Xml;
 using System.Collections.Generic;
 
-namespace skdm
+namespace SpatialKey.DataManager.Lib.Helpers
 {
 	public class XMLUtils
 	{
@@ -10,6 +10,7 @@ namespace skdm
 		{
 			if (defaultValue == null)
 				defaultValue = "";
+
 
 			XmlNode value = node.SelectSingleNode(path);
 			return value != null ? value.InnerText : defaultValue;

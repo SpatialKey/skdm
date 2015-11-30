@@ -4,7 +4,10 @@ using System.IO;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
-namespace skdm
+using SpatialKey.DataManager.Lib.Config;
+using SpatialKey.DataManager.Lib.Message;
+
+namespace SpatialKey.DataManager.App
 {
 	public class CommandLineParser
 	{

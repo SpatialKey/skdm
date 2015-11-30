@@ -10,13 +10,16 @@ using System.IO;
 using System.Collections.Generic;
 using System.Text;
 
-namespace skdm
+using SpatialKey.DataManager.Lib;
+using SpatialKey.DataManager.Lib.Config;
+using SpatialKey.DataManager.Lib.Message;
+
+namespace SpatialKey.DataManager.App
 {
 	class MainClass
 	{
 
 		#region Command/Option constants
-		private const string VERSION = "skdm version 2.1.0";
 
 		// general help description
 		private static string HELP_DESCRIPTION = @"Command line tool to work with the data API or create oAuth tokens.
@@ -31,7 +34,7 @@ See http://support.spatialkey.com/dmapi for more information";
 		// commands
 		private const string COMMAND_OAUTH = "oauth";
 		private const string COMMAND_UPLOAD = "upload";
-		private const string COMMAND_SUGGEST = ConfigAction.ACTION_SUGGEST;
+		private const string COMMAND_SUGGEST = ActionConfig.ACTION_SUGGEST;
 		private const string COMMAND_LIST = "list";
 		private const string COMMAND_DELETE = "delete";
 		// defaults
@@ -54,7 +57,7 @@ See http://support.spatialkey.com/dmapi for more information";
 		private static CommandLineParser clp;
 		private static CommandLineParser.OptionValue<int> optTrace;
 		private static String configFile;
-		private static ConfigAuth defaultConfigAuth;
+		private static AuthConfig defaultConfigAuth;
 
 		public static void Main(string[] args)
 		{
@@ -100,7 +103,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			}
 			if (clp.FindOptionBoolean(PARAM_VERSION).IsMatched)
 			{
-				ShowMessage(MessageLevel.Result, VERSION);
+				ShowMessage(MessageLevel.Result, "skdm version " + SpatialKeyDataManager.GetVersion());
 				Environment.Exit(EXIT_SUCCESS);
 			}
 
@@ -128,7 +131,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				XmlDocument doc = new XmlDocument();
 				doc.Load(configFile);
 
-				defaultConfigAuth = new ConfigAuth(doc);
+				defaultConfigAuth = new AuthConfig(doc.SelectSingleNode("/config"));
 
 				return doc;
 			}
@@ -145,9 +148,9 @@ See http://support.spatialkey.com/dmapi for more information";
 			if (doc == null)
 				return false;
 
-			string orgAPIKey = defaultConfigAuth.organizationAPIKey;
-			string orgSecretKey = defaultConfigAuth.organizationSecretKey;
-			string userAPIKey = defaultConfigAuth.userAPIKey;
+			string orgAPIKey = defaultConfigAuth.OrganizationApiKey;
+			string orgSecretKey = defaultConfigAuth.OrganizationSecretKey;
+			string userAPIKey = defaultConfigAuth.UserApiKey;
 			int ttl = clp.FindCommand(COMMAND_OAUTH).Parser.FindOptionValue<int>(PARAM_TTL).Value;
 
 			if (ttl < TTL_MIN)
@@ -186,28 +189,30 @@ See http://support.spatialkey.com/dmapi for more information";
 			if (doc == null)
 				return false;
 
-			SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage);
-			skapi.Init(defaultConfigAuth);
-			List<Dictionary<string, string>> list = skapi.DatasetList();
-			list.AddRange(skapi.InsuranceList());
-			if (list == null || list.Count < 1)
-			{
-				ShowMessage(MessageLevel.Result, "Dataset List Empty");
-				return true;
-			}
-			StringBuilder text = new StringBuilder();
-			foreach (Dictionary<string, string> item in list)
-			{
-				text.AppendLine("---");
-				foreach (string key in item.Keys)
-				{
-					text.AppendFormat("{0,16}: {1}", key, item[key]);
-					text.AppendLine();
-				}
-			}
-			ShowMessage(MessageLevel.Result, text.ToString());
+            using (SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage))
+            {
+                skapi.Init(defaultConfigAuth);
+                List<Dictionary<string, string>> list = skapi.DatasetList();
+                list.AddRange(skapi.InsuranceList());
+                if (list == null || list.Count < 1)
+                {
+                    ShowMessage(MessageLevel.Result, "Dataset List Empty");
+                    return true;
+                }
+                StringBuilder text = new StringBuilder();
+                foreach (Dictionary<string, string> item in list)
+                {
+                    text.AppendLine("---");
+                    foreach (string key in item.Keys)
+                    {
+                        text.AppendFormat("{0,16}: {1}", key, item[key]);
+                        text.AppendLine();
+                    }
+                }
+                ShowMessage(MessageLevel.Result, text.ToString());
 
-			skapi.Logout();
+                skapi.Logout();
+            }
 
 			return true;
 		}
@@ -221,22 +226,24 @@ See http://support.spatialkey.com/dmapi for more information";
 			List<string> ids = new List<string>(args);
 			args.Clear();
 
-			SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage);
-			skapi.Init(defaultConfigAuth);
+            using (SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage))
+            {
+                skapi.Init(defaultConfigAuth);
 
-			foreach (string id in ids)
-			{
-				try
-				{
-					skapi.DatasetDelete(id);
-					// TODO need some way to delete insurance
-				}
-				catch (Exception)
-				{
-				}
-			}
+                foreach (string id in ids)
+                {
+                    try
+                    {
+                        skapi.DatasetDelete(id);
+                        // TODO need some way to delete insurance
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
 
-			skapi.Logout();
+                skapi.Logout();
+            }
 
 			return true;
 		}
@@ -273,47 +280,49 @@ See http://support.spatialkey.com/dmapi for more information";
 				return false;
 			}
 
-			SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage);
+            using (SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage))
+            {
 
-			foreach (XmlNode actionNode in actionNodes)
-			{
-				ConfigAction action = new ConfigAction(ShowMessage, actionNode, defaultConfigAuth);
-				action.isWaitUpdate = isWaitUpdate;
-				if (!(actions.Count == 0 || actions.Contains(action.actionName)))
-					continue;
+                foreach (XmlNode actionNode in actionNodes)
+                {
+                    ActionConfig action = new ActionConfig(ShowMessage, actionNode, defaultConfigAuth);
+                    action.IsWaitUpdate = isWaitUpdate;
+                    if (!(actions.Count == 0 || actions.Contains(action.ActionName)))
+                        continue;
 
-				try
-				{
-					isRanAction = true;
+                    try
+                    {
+                        isRanAction = true;
 
-					ShowMessage(MessageLevel.Status, String.Format("START {0}", action.TraceInfo()));
+                        ShowMessage(MessageLevel.Status, String.Format("START {0}", action.TraceInfo()));
 
-					action.Run(skapi);
-				}
-				catch (Exception ex)
-				{
-					ShowMessage(MessageLevel.Error, ex.Message);
-					ShowMessage(MessageLevel.Verbose, ex.Source);
-					ShowMessage(MessageLevel.Verbose, ex.StackTrace);
-				}
-				finally
-				{
-					if (action != null && action.isUpdateDoc)
-						isUpdateDoc = true;
+                        action.Run(skapi);
+                    }
+                    catch (Exception ex)
+                    {
+                        ShowMessage(MessageLevel.Error, ex.Message);
+                        ShowMessage(MessageLevel.Verbose, ex.Source);
+                        ShowMessage(MessageLevel.Verbose, ex.StackTrace);
+                    }
+                    finally
+                    {
+                        if (action != null && action.IsUpdateDoc)
+                            isUpdateDoc = true;
 
-					try
-					{
-						if (isCancelUpload && action != null && action.uploadId != null && action.uploadId.Length > 0)
-							skapi.CancelUpload(action.uploadId);
-					}
-					catch
-					{
-					}
+                        try
+                        {
+                            if (isCancelUpload && action != null && action.UploadId != null && action.UploadId.Length > 0)
+                                skapi.CancelUpload(action.UploadId);
+                        }
+                        catch
+                        {
+                        }
 
-					ShowMessage(MessageLevel.Result, String.Format("FINISH {0}", action.TraceInfo()));
-				}
-			}
-			skapi.Logout();
+                        ShowMessage(MessageLevel.Result, String.Format("FINISH {0}", action.TraceInfo()));
+                    }
+                }
+                skapi.Logout();
+            }
 
 			if (isUpdateDoc)
 			{

@@ -11,28 +11,31 @@ using System.IO;
 using System.Text;
 using System.Collections.Specialized;
 using System.Collections.Generic;
+using System.Web.UI.WebControls;
+using SpatialKey.DataManager.Lib.Message;
+using SpatialKey.DataManager.Lib.Config;
+using SpatialKey.DataManager.Lib.Helpers;
 
 // Using http://www.icsharpcode.net/opensource/sharpziplib/
-namespace skdm
+namespace SpatialKey.DataManager.Lib
 {
 	/// <summary>
 	/// The SpatialKey Data Import API (DIAPI) allows developers to programmatically create or update SpatialKey datasets.
 	/// </summary>
 	/// <see cref="http://support.spatialkey.com/dmapi"/>
-	public class SpatialKeyDataManager : BaseMessageClass
+	public class SpatialKeyDataManager : BaseMessageClass, IDisposable
 	{
 
 		#region constants
 
+		public const string VERSION = "3.0.0";
+
 		public const string API_VERSION = "v2";
-		// 1 min * 60 sec * 1000 msec = 60000 msec
-		private const int HTTP_TIMEOUT_SHORT = 60000;
-		// 15 min * 60 sec * 1000 msec = 900000 msec
-		private const int HTTP_TIMEOUT_MED = 900000;
 		// 60 min * 60 sec * 1000 msec = 3600000 msec
-		private const int HTTP_TIMEOUT_LONG = 3600000;
+		private const int HTTP_TIMEOUT_MED = 3600000;
+		// 4 hrs * 60 min * 60 sec * 1000 msec = 14400000 msec
+        private const int HTTP_TIMEOUT_LONG = 14400000;
 		private const string LOG_SEPARATOR = "----------------------------------------";
-		private const int TOKEN_TIMEOUT = 1800;
 		private const string ROUTEID = "ROUTEID";
 
 		#endregion
@@ -40,7 +43,20 @@ namespace skdm
 		#region parameters
 
 		/// <summary>Authenticaton Configuration</summary>
-		public ConfigAuth MyConfigAuth { get; private set; }
+		public IAuthConfig MyConfigAuth { get; private set; }
+        private int _tokenTimeout = 1800;
+        public int TokenTimeout 
+        { 
+            get { return _tokenTimeout; }
+            set { _tokenTimeout = value; }
+        }
+
+        private string _userAgent = string.Format("SpatialKeyDataManager/{0}", VERSION);
+        public string UserAgent
+        {
+            get { return _userAgent; }
+            set { _userAgent = value; }
+        }
 
 		#endregion
 
@@ -55,11 +71,16 @@ namespace skdm
 		{
 		}
 
+		static public String GetVersion()
+		{
+			return VERSION;
+		}
+
 		/// <summary>
 		/// Init the manager.  If the organizationURL, organizationAPIKey, organizationSecretKey or userAPIKey
 		/// have changed the application will logout.
 		/// </summary>
-		public void Init(ConfigAuth configAuth)
+		public void Init(IAuthConfig configAuth)
 		{
 			// if the setup is the same, bail
 			if (configAuth == MyConfigAuth)
@@ -70,24 +91,41 @@ namespace skdm
 			_accessToken = null;
 			_routeId = null;
 
-			MyConfigAuth = configAuth;
+            MyConfigAuth = configAuth == null ? null : configAuth.Clone() as IAuthConfig;
+
+            if (MyConfigAuth != null && 
+                MyConfigAuth.OrganizationUrl != null &&
+                !MyConfigAuth.OrganizationUrl.Contains("://"))
+            {
+                MyConfigAuth.OrganizationUrl = "https://"+MyConfigAuth.OrganizationUrl;
+            }
 		}
+
+        public void Dispose()
+        {
+            Logout();
+            _accessToken = null;
+            _routeId = null;
+            MyConfigAuth = null;
+        }
 
 		#region API calls - Common
 
 		/// <summary>
 		/// If don't have a valid login token, login to the API and get one.
 		/// </summary>
-		public string Login()
+		public string Login(string routeId = null)
 		{
 			if (IsLoginTokenValid())
 				return _accessToken;
 
-			ShowMessage(MessageLevel.Status, "START LOGIN: " + MyConfigAuth.organizationURL);
+			ShowMessage(MessageLevel.Status, "START LOGIN: " + MyConfigAuth.OrganizationUrl);
 			_accessToken = null;
-			_routeId = null;
 
-			string oauth = OAuth.GetOAuthToken(MyConfigAuth.userAPIKey, MyConfigAuth.organizationAPIKey, MyConfigAuth.organizationSecretKey, TOKEN_TIMEOUT);
+            // use passed in routeId or keep the current routeId just in case we are logging in because IsLoginTokenValid() failed
+            _routeId = string.IsNullOrWhiteSpace(routeId) ? _routeId : routeId; 
+
+			string oauth = OAuth.GetOAuthToken(MyConfigAuth.UserApiKey, MyConfigAuth.OrganizationApiKey, MyConfigAuth.OrganizationSecretKey, TokenTimeout);
 			// add the query string
 			NameValueCollection bodyParam = new NameValueCollection();
 			bodyParam["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer";
@@ -97,19 +135,21 @@ namespace skdm
 			{
 				using (HttpWebResponse response = HttpPost(BuildUrl("oauth.json"), null, bodyParam))
 				{
-					if (response.Cookies != null && response.Cookies[ROUTEID] != null)
-						_routeId = response.Cookies[ROUTEID].Value;
+                    if (response.Cookies != null && response.Cookies[ROUTEID] != null)
+                    {
+                        _routeId = response.Cookies[ROUTEID].Value;
+                    }
 
 					Dictionary<string,object> json = HttpResponseToJSON(response);
 					_accessToken = JsonGetPath<string>(json, "access_token");
-					if (_accessToken == null)
+					if (string.IsNullOrWhiteSpace(_accessToken))
 						throw new Exception(String.Format("JSON does not contian 'access_token': {0}", MiniJson.Serialize(json)));
 					return _accessToken;
 				}
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token '{1}': {2}", MyConfigAuth.organizationURL, oauth, FormatException(ex)), ex);
+				throw new Exception(String.Format("Unable to login to '{0}' using oAuth token: {1}", MyConfigAuth.OrganizationUrl, FormatException(ex)), ex);
 			}
 		}
 
@@ -118,7 +158,7 @@ namespace skdm
 		/// </summary>
 		public bool IsLoginTokenValid()
 		{
-			if (_accessToken == null || _accessToken.Length == 0)
+			if (string.IsNullOrWhiteSpace(_accessToken))
 				return false;
 
 			ShowMessage(MessageLevel.Status, "VALIDATE TOKEN: " + _accessToken);
@@ -136,7 +176,7 @@ namespace skdm
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Failed to validate token '{0}'", _accessToken), ex);
+				ShowMessage(MessageLevel.Warning, String.Format("Failed to validate token '{0}': {1}", _accessToken, ex.Message));
 				return false;
 			}
 		}
@@ -146,8 +186,17 @@ namespace skdm
 		/// </summary>
 		public void Logout()
 		{
-			if (_accessToken == null || _accessToken.Length == 0)
-				return;
+            if (string.IsNullOrWhiteSpace(_accessToken))
+            {
+                return;
+            }
+
+            if (!IsLoginTokenValid())
+            {
+                _accessToken = null;
+                _routeId = null;
+                return;
+            }
 
 			ShowMessage(MessageLevel.Status, "LOGOUT TOKEN: " + _accessToken);
 
@@ -172,7 +221,73 @@ namespace skdm
 			}
 		}
 
-		/// <summary>
+        /// <summary>
+        /// Relogin
+        /// </summary>
+        public void Relog()
+        {
+            string routeId = _routeId;
+            Logout();
+            Login(routeId);
+            if (!string.IsNullOrWhiteSpace(routeId) && routeId != _routeId)
+            {
+                throw new Exception(string.Format("Error: New ROUTEID {0} not the same as old {1}", _routeId, routeId));
+            }
+        }
+
+        /// <summary>
+        /// Get information about the organization
+        /// </summary>
+        public Dictionary<string, object> GetOrganizationInformation()
+	    {
+            Login();
+
+	        using (new MessageTimeTaken(MyMessenger, "Get Organization Information"))
+	        {
+                NameValueCollection query = new NameValueCollection();
+                query["token"] = _accessToken;
+
+                try
+                {
+                    using (HttpWebResponse response = HttpGet(BuildUrl("organization"), query))
+                    {
+                        return HttpResponseToJSON(response);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(String.Format("Failed to get organization information. {0}", FormatException(ex)), ex);
+                }
+            }
+	    }
+
+        /// <summary>
+        /// Get information about the organization
+        /// </summary>
+        public Dictionary<string, object> GetUserInformation()
+        {
+            Login();
+
+            using (new MessageTimeTaken(MyMessenger, "Get User Information"))
+            {
+                NameValueCollection query = new NameValueCollection();
+                query["token"] = _accessToken;
+
+                try
+                {
+                    using (HttpWebResponse response = HttpGet(BuildUrl("user/me.json"), query))
+                    {
+                        return HttpResponseToJSON(response);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    throw new Exception(String.Format("Failed to get user information. {0}", FormatException(ex)), ex);
+                }
+            }
+        }
+
+        /// <summary>
 		/// Upload the given file and return the uploadId
 		/// </summary>
 		public string Upload(string[] paths)
@@ -191,7 +306,7 @@ namespace skdm
 				{
 					Dictionary<string,object> json = HttpResponseToJSON(response);
 					string uploadId = JsonGetPath<string>(json, "upload/uploadId");
-					if (uploadId == null)
+					if (string.IsNullOrWhiteSpace(uploadId))
 						throw new Exception(String.Format("JSON does not contian '{0}': {1}", "upload/uploadId", MiniJson.Serialize(json)));
 					return uploadId;
 				}
@@ -257,8 +372,7 @@ namespace skdm
 		/// </summary>
 		public void CancelUpload(string uploadId)
 		{
-			if (Login() == null)
-				return;
+            Login();
 
 			ShowMessage(MessageLevel.Status, "CANCEL UPLOAD: " + uploadId);
 
@@ -288,7 +402,7 @@ namespace skdm
 		public Dictionary<string,object> GetDatasetInfo(string datasetId)
 		{
 			Login();
-			if (datasetId == null || datasetId.Length < 1)
+			if (string.IsNullOrWhiteSpace(datasetId))
 				throw new Exception("Need to give datasetId to get info.");
 
 			ShowMessage(MessageLevel.Status, "Dataset Info: " + datasetId);
@@ -314,8 +428,7 @@ namespace skdm
 		/// </summary>
 		public bool DatasetCreate(string uploadId, string pathConfig)
 		{
-			if (Login() == null)
-				return false;
+			Login();
 
 			ShowMessage(MessageLevel.Status, String.Format("IMPORT {0} with config'{1}'", uploadId, pathConfig));
 
@@ -359,8 +472,8 @@ namespace skdm
 		/// </summary>
 		private bool DatasetAppendOrOverwrite(string uploadId, string datasetId, string pathConfig, string method)
 		{
-			if (Login() == null)
-				return false;
+            if (string.IsNullOrWhiteSpace(Login())) return false;
+
 			ShowMessage(MessageLevel.Status, String.Format("{0} uploadId:{1} datasetId: {2} config: '{3}'", method.ToUpper(), uploadId, datasetId, pathConfig));
 
 			// add the query string
@@ -388,7 +501,7 @@ namespace skdm
 		/// </summary>
 		public List<Dictionary<string, string>> DatasetList()
 		{
-			Login();
+            Login();
 
 			ShowMessage(MessageLevel.Status, "LIST DATASETS");
 
@@ -414,8 +527,7 @@ namespace skdm
 		/// </summary>
 		public void DatasetDelete(string datasetId)
 		{
-			if (Login() == null)
-				return;
+            Login();
 
 			ShowMessage(MessageLevel.Status, "DELETE DATASET: " + datasetId);
 
@@ -445,7 +557,7 @@ namespace skdm
 		/// </summary>
 		public string InsuranceCreateExistingDatasets(string pathConfig)
 		{
-			Login();
+            Login();
 
 			ShowMessage(MessageLevel.Status, "INSURANCE CREATE FROM DATASETS: " + pathConfig);
 
@@ -459,7 +571,7 @@ namespace skdm
 				{
 					Dictionary<string,object> json = HttpResponseToJSON(response);
 					string uploadId = JsonGetPath<string>(json, "upload/uploadId");
-					if (uploadId == null)
+					if (string.IsNullOrWhiteSpace(uploadId))
 						throw new Exception(String.Format("JSON does not contian '{0}': {1}", "upload/uploadId", MiniJson.Serialize(json)));
 					return uploadId;
 				}
@@ -475,8 +587,7 @@ namespace skdm
 		/// </summary>
 		public bool InsuranceCreate(string uploadId, string[] pathDataArray, string pathConfig)
 		{
-			if (Login() == null)
-				return false;
+            Login();
 
 			ShowMessage(MessageLevel.Status, String.Format("IMPORT {0} with config'{1}'", uploadId, pathConfig));
 
@@ -501,9 +612,9 @@ namespace skdm
 
 		public bool InsuranceOverwrite(string uploadId, string datasetId, string pathConfig)
 		{
-			if (Login() == null)
-				return false;
-			ShowMessage(MessageLevel.Status, String.Format("Overwrite uploadId:{0} datasetId: {1} config: '{2}'", uploadId, datasetId, pathConfig));
+            Login();
+            
+            ShowMessage(MessageLevel.Status, String.Format("Overwrite uploadId:{0} datasetId: {1} config: '{2}'", uploadId, datasetId, pathConfig));
 
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
@@ -562,18 +673,14 @@ namespace skdm
 		{
 			ShowMessage(MessageLevel.Status, "WAIT UPLOAD COMPLETE: " + uploadId);
 
-			DateTime start = DateTime.Now;
-			Dictionary<string,object> json = GetUploadStatus(uploadId);
+            Dictionary<string,object> json = null;
+            do
+            {
+                System.Threading.Thread.Sleep(10000);
+                json = GetUploadStatus(uploadId);
+            } while (IsUploadStatusWorking(json));
 
-			while (IsUploadStatusWorking(json))
-			{
-				if (DateTime.Now.Subtract(start).TotalMilliseconds > HTTP_TIMEOUT_MED)
-					throw new Exception(String.Format("Timed out waiting for upload '{0}' to complete", uploadId));
-
-				System.Threading.Thread.Sleep(10000);
-				json = GetUploadStatus(uploadId);
-			}
-			return json;
+            return json;
 		}
 
 		public string UploadAndWait(string[] paths)
@@ -659,6 +766,25 @@ namespace skdm
 			return (status == null || status.IndexOf("ERROR_") == 0);
 		}
 
+	    public static string GetApiMessage(string str)
+	    {
+            Dictionary<string, object> json = MiniJson.Deserialize(str) as Dictionary<string, object>;
+	        if (json == null) return str;
+	        return GetApiMessage(json);
+	    }
+
+        public static string GetApiMessage(Dictionary<string, object> json)
+        {
+            if (json != null && json.ContainsKey("message") && json["message"] is string)
+            {
+                return json["message"] as string;
+            }
+            else
+            {
+                return MiniJson.Serialize(json);
+            }
+        }
+
 		/// <summary>
 		/// Finds the datasetId for the first createdResources that has an id in the given JSON
 		/// </summary>
@@ -739,39 +865,40 @@ namespace skdm
 
 		private string BuildUrl(string command, NameValueCollection query = null)
 		{
-			UriBuilder uri = new UriBuilder(MyConfigAuth.organizationURL);
+			UriBuilder uri = new UriBuilder(MyConfigAuth.OrganizationUrl);
 			uri.Path = String.Format("/SpatialKeyFramework/api/{0}/{1}", API_VERSION, command);
 			return uri.ToString() + ToQueryString(query);
 		}
 
 		private string ToQueryString(NameValueCollection nvc)
 		{
-			if (nvc == null || nvc.Count < 1)
-				return "";
-
 			List<string> list = new List<string>();
-			if (_routeId != null)
-				list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(ROUTEID), HttpUtility.UrlEncode(_routeId)));
-			foreach (string key in nvc)
-			{
-				list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(key), HttpUtility.UrlEncode(nvc[key])));
-			}
 
-			String ret = "?" + string.Join("&", list);
-			return ret;
+            // add _routeId
+            if (!string.IsNullOrWhiteSpace(_routeId))
+            {
+                list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(ROUTEID), HttpUtility.UrlEncode(_routeId)));
+            }
+
+            if (nvc != null && nvc.Count > 0)
+            {
+                foreach (string key in nvc)
+                {
+                    list.Add(string.Format("{0}={1}", HttpUtility.UrlEncode(key), HttpUtility.UrlEncode(nvc[key])));
+                }
+            }
+
+            return list.Count > 0 ? "?" + string.Join("&", list) : "";
 		}
 
 		private string GetResponseString(HttpWebResponse response)
 		{
-			using (response)
-			{
-				StreamReader reader = new StreamReader(response.GetResponseStream());
-				string result = reader.ReadToEnd().Trim();
-				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
-				ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
-				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
-				return result;
-			}
+		    StreamReader reader = new StreamReader(response.GetResponseStream());
+		    string result = reader.ReadToEnd().Trim();
+		    ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+		    ShowMessage(MessageLevel.Verbose, "RESULT: " + result);
+		    ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
+		    return result;
 		}
 
 		private void ShowException(string message, Exception ex)
@@ -784,19 +911,27 @@ namespace skdm
 			if (ex is WebException)
 			{
 				WebException we = ex as WebException;
-				HttpWebResponse response = we != null ? we.Response as HttpWebResponse : null;
-				if (response == null)
-					return ex.Message;
-				else
-					return String.Format("StatusCode:  {0}; {1}",response.StatusCode, GetResponseString(response));
+			    using (HttpWebResponse response = we != null ? we.Response as HttpWebResponse : null)
+			    {
+			        if (response == null)
+			        {
+			            return ex.Message;
+			        }
+			        else
+			        {
+			            string responseString = GetResponseString(response);
+			            return String.Format("StatusCode:  {0}: {1}", response.StatusCode, GetApiMessage(responseString));
+			        }
+			    }
 			}
 			else
 				return ex.Message;
 		}
 
-		private HttpWebRequest CreateWebRequest(string url, string method, int timeout)
+	    private HttpWebRequest CreateWebRequest(string url, string method, int timeout)
 		{
 			HttpWebRequest request = WebRequest.Create(new Uri(url)) as HttpWebRequest;
+		    request.UserAgent = UserAgent;
 
 			CookieContainer cookieJar = new CookieContainer();
 			request.CookieContainer = cookieJar;
@@ -815,23 +950,23 @@ namespace skdm
 
 		private IWebProxy CreateProxy()
 		{
-			if (MyConfigAuth.proxyEnable != ConfigAuth.PROXY_ENABLED) 
+			if (!MyConfigAuth.ProxyEnable) 
 			{
 				return null;
 			}
 
 			IWebProxy proxy;
 
-			if (MyConfigAuth.proxyURL != "" && MyConfigAuth.proxyPort != "") 
+			if (!string.IsNullOrWhiteSpace(MyConfigAuth.ProxyUrl) && !string.IsNullOrWhiteSpace(MyConfigAuth.ProxyPort)) 
 			{
-				proxy = new WebProxy(MyConfigAuth.proxyURL, Convert.ToInt32(MyConfigAuth.proxyPort));
-				if (MyConfigAuth.proxyUser != "" && MyConfigAuth.proxyPassword != "" && MyConfigAuth.proxyDomain != "")
+				proxy = new WebProxy(MyConfigAuth.ProxyUrl, Convert.ToInt32(MyConfigAuth.ProxyPort));
+				if (!string.IsNullOrWhiteSpace(MyConfigAuth.ProxyUser) && !string.IsNullOrWhiteSpace(MyConfigAuth.ProxyPassword) && !string.IsNullOrWhiteSpace(MyConfigAuth.ProxyDomain))
 				{
-					proxy.Credentials = new NetworkCredential(MyConfigAuth.proxyUser, MyConfigAuth.proxyPassword, MyConfigAuth.proxyDomain);
+					proxy.Credentials = new NetworkCredential(MyConfigAuth.ProxyUser, MyConfigAuth.ProxyPassword, MyConfigAuth.ProxyDomain);
 				}
-				else if (MyConfigAuth.proxyUser != "" && MyConfigAuth.proxyPassword != "")
+				else if (!string.IsNullOrWhiteSpace(MyConfigAuth.ProxyUser) && !string.IsNullOrWhiteSpace(MyConfigAuth.ProxyPassword))
 				{
-					proxy.Credentials = new NetworkCredential(MyConfigAuth.proxyUser, MyConfigAuth.proxyPassword);
+					proxy.Credentials = new NetworkCredential(MyConfigAuth.ProxyUser, MyConfigAuth.ProxyPassword);
 				}
 			} 
 			else
@@ -843,7 +978,7 @@ namespace skdm
 			return proxy;
 		}
 
-		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_SHORT)
+		private HttpWebResponse HttpGet(string url, NameValueCollection queryParam = null, string method = "GET", int timeout = HTTP_TIMEOUT_MED)
 		{
 			try
 			{
@@ -860,13 +995,13 @@ namespace skdm
 			}
 		}
 
-		private HttpWebResponse HttpPost(string url, NameValueCollection queryParam = null, NameValueCollection bodyParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_SHORT)
+		private HttpWebResponse HttpPost(string url, NameValueCollection queryParam = null, NameValueCollection bodyParam = null, string method = "POST", int timeout = HTTP_TIMEOUT_MED)
 		{
 			try
 			{
 				url = url + ToQueryString(queryParam);
 				HttpWebRequest request = CreateWebRequest(url, method, timeout);
-				request.ContentType = "application/x-www-form-urlencoded";
+                request.ContentType = "application/x-www-form-urlencoded";
 
 				// get the query string and trim off the starting "?"
 				string body = ToQueryString(bodyParam);
@@ -902,7 +1037,7 @@ namespace skdm
 			{
 				url = url + ToQueryString(queryParam);
 				HttpWebRequest request = CreateWebRequest(url, method, timeout);
-				request.ContentType = "application/xml";
+                request.ContentType = "application/xml";
 
 				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
 				ShowMessage(MessageLevel.Verbose, String.Format("HTTP POST URL: {0} XML: {1}", url, pathXML));

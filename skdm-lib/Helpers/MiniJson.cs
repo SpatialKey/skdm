@@ -32,7 +32,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace skdm
+namespace SpatialKey.DataManager.Lib.Helpers
 {
 	// Example usage:
 	//
@@ -73,7 +73,7 @@ namespace skdm
 	/// JSON uses Arrays and Objects. These correspond here to the datatypes IList and IDictionary.
 	/// All numbers are parsed to doubles.
 	/// </summary>
-	internal static class MiniJson
+	public static class MiniJson
 	{
 		/// <summary>
 		/// Parses the string json into a value

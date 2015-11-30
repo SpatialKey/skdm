@@ -5,6 +5,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "skdm", "skdm\skdm.csproj", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "tests", "tests\tests.csproj", "{9671FC81-1F0F-4596-896D-B27015CEDF9B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "skdm-lib", "skdm-lib\skdm-lib.csproj", "{6A031D49-2EDD-46D9-BAAB-FBBC083CCF37}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x86 = Debug|x86
@@ -15,12 +17,13 @@ Global
 		{524AD938-D016-4096-86D6-98872B29B010}.Debug|x86.Build.0 = Debug|x86
 		{524AD938-D016-4096-86D6-98872B29B010}.Release|x86.ActiveCfg = Release|x86
 		{524AD938-D016-4096-86D6-98872B29B010}.Release|x86.Build.0 = Release|x86
+		{6A031D49-2EDD-46D9-BAAB-FBBC083CCF37}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6A031D49-2EDD-46D9-BAAB-FBBC083CCF37}.Debug|x86.Build.0 = Debug|Any CPU
+		{6A031D49-2EDD-46D9-BAAB-FBBC083CCF37}.Release|x86.ActiveCfg = Release|Any CPU
+		{6A031D49-2EDD-46D9-BAAB-FBBC083CCF37}.Release|x86.Build.0 = Release|Any CPU
 		{9671FC81-1F0F-4596-896D-B27015CEDF9B}.Debug|x86.ActiveCfg = Debug|Any CPU
 		{9671FC81-1F0F-4596-896D-B27015CEDF9B}.Debug|x86.Build.0 = Debug|Any CPU
 		{9671FC81-1F0F-4596-896D-B27015CEDF9B}.Release|x86.ActiveCfg = Release|Any CPU
 		{9671FC81-1F0F-4596-896D-B27015CEDF9B}.Release|x86.Build.0 = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = skdm\skdm.csproj
 	EndGlobalSection
 EndGlobal
