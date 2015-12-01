@@ -129,7 +129,7 @@ These fields define what proxy server to use.
 - `<proxyDomain>` is used for the custom proxy and is needed for NTLM and Kerberos
 
 
->     <proxyEnabled>true</proxyURL>
+>     <proxyEnabled>true</proxyEnabled>
 >     <proxyURL>127.0.0.1</proxyURL>
 >     <proxyPort>8888</proxyPort>
 >     <proxyUser>proxyusername</proxyUser>
