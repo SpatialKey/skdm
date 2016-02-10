@@ -313,7 +313,7 @@ namespace SpatialKey.DataManager.Lib
 			}
 			catch (Exception ex)
 			{
-				throw new Exception(String.Format("Failed to upload '{0}'. {1}", paths, FormatException(ex)), ex);
+				throw new Exception(String.Format("Failed to upload '{0}'. {1}", String.Join(", ", paths), FormatException(ex)), ex);
 			}
 		}
 
