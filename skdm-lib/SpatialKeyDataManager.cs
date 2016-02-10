@@ -7,6 +7,7 @@ using System;
 using System.Xml;
 using System.Web;
 using System.Net;
+using System.Net.Http;
 using System.IO;
 using System.Text;
 using System.Collections.Specialized;
@@ -17,6 +18,8 @@ using SpatialKey.DataManager.Lib.Config;
 using SpatialKey.DataManager.Lib.Helpers;
 
 // Using http://www.icsharpcode.net/opensource/sharpziplib/
+
+
 namespace SpatialKey.DataManager.Lib
 {
 	/// <summary>
@@ -946,6 +949,26 @@ namespace SpatialKey.DataManager.Lib
 			request.Timeout = timeout;
 
 			return request;
+		}
+
+		private HttpClient CreateHttpClient(string url, string method, int timeout)
+		{
+			HttpClientHandler handler = new HttpClientHandler();
+			handler.CookieContainer = new CookieContainer();
+			IWebProxy proxy = CreateProxy();
+			if (proxy != null) 
+			{
+				handler.Proxy = proxy;
+			}
+
+			HttpClient client = new HttpClient(handler);
+			client.BaseAddress = new Uri(url);
+			client.DefaultRequestHeaders.UserAgent.ParseAdd(UserAgent);
+			client.Timeout = TimeSpan.FromMilliseconds(timeout);
+
+			// TODO method?
+
+			return client;
 		}
 
 		private IWebProxy CreateProxy()
