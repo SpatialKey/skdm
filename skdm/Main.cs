@@ -31,6 +31,7 @@ See http://support.spatialkey.com/dmapi for more information";
 		private const string PARAM_TTL = "ttl";
 		private const string PARAM_NO_WAIT = "no-wait";
 		private const string PARAM_KEEP_UPLOADID = "keep-uploadid";
+		private const string PARAM_NO_ZIP = "no-zip";
 		// commands
 		private const string COMMAND_OAUTH = "oauth";
 		private const string COMMAND_UPLOAD = "upload";
@@ -79,6 +80,7 @@ See http://support.spatialkey.com/dmapi for more information";
 				cmd = clp.AddCommand(new string[] { COMMAND_UPLOAD }, "Upload dataset data", "[[ACTION1] ... [ACTIONN]]", RunActions);
 				cmd.Parser.AddOptionBoolean(new string[] { PARAM_NO_WAIT }, "Don't wait for import, overwrite, and append actions to complete.");
 				cmd.Parser.AddOptionBoolean(new string[] { PARAM_KEEP_UPLOADID }, "Don't cancel the upload id when finished.");
+				cmd.Parser.AddOptionBoolean(new string[] { PARAM_NO_ZIP }, "Don't zip uploaded files.");
 
 				clp.AddCommand(new string[] { COMMAND_SUGGEST }, "Get suggested config for data", "[[ACTION1] ... [ACTIONN]]", RunActions);
 				clp.AddCommand(new string[] { COMMAND_LIST }, "List available datasets", "", RunListCommand);
@@ -272,6 +274,7 @@ See http://support.spatialkey.com/dmapi for more information";
 			bool isRanAction = false;
 			bool isUpdateDoc = false;
 			bool isCancelUpload = !clp.FindCommand(COMMAND_UPLOAD).Parser.FindOptionBoolean(PARAM_KEEP_UPLOADID).Value;
+			bool isZipUploads = !clp.FindCommand(COMMAND_UPLOAD).Parser.FindOptionBoolean(PARAM_NO_ZIP).Value;
 
 			XmlNodeList actionNodes = doc.SelectNodes("/config/actions/action");
 			if (actionNodes == null || actionNodes.Count < 1)
@@ -282,6 +285,7 @@ See http://support.spatialkey.com/dmapi for more information";
 
             using (SpatialKeyDataManager skapi = new SpatialKeyDataManager(ShowMessage))
             {
+				skapi.IsZipUploads = isZipUploads;
 
                 foreach (XmlNode actionNode in actionNodes)
                 {

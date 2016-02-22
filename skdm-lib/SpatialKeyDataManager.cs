@@ -7,7 +7,9 @@ using System;
 using System.Xml;
 using System.Web;
 using System.Net;
+using System.Net.Http;
 using System.IO;
+using System.IO.Compression;
 using System.Text;
 using System.Collections.Specialized;
 using System.Collections.Generic;
@@ -17,6 +19,8 @@ using SpatialKey.DataManager.Lib.Config;
 using SpatialKey.DataManager.Lib.Helpers;
 
 // Using http://www.icsharpcode.net/opensource/sharpziplib/
+
+
 namespace SpatialKey.DataManager.Lib
 {
 	/// <summary>
@@ -44,7 +48,7 @@ namespace SpatialKey.DataManager.Lib
 
 		/// <summary>Authenticaton Configuration</summary>
 		public IAuthConfig MyConfigAuth { get; private set; }
-        private int _tokenTimeout = 1800;
+        private int _tokenTimeout = 3599;
         public int TokenTimeout 
         { 
             get { return _tokenTimeout; }
@@ -57,6 +61,12 @@ namespace SpatialKey.DataManager.Lib
             get { return _userAgent; }
             set { _userAgent = value; }
         }
+
+		private bool _isZipUploads = false;
+		public bool IsZipUploads {
+			get { return _isZipUploads; }
+			set { _isZipUploads = value; }
+		}
 
 		#endregion
 
@@ -863,11 +873,11 @@ namespace SpatialKey.DataManager.Lib
 			return epoch.AddMilliseconds(unixTime).ToLocalTime();
 		}
 
-		private string BuildUrl(string command, NameValueCollection query = null)
+		private string BuildUrl(string command)
 		{
 			UriBuilder uri = new UriBuilder(MyConfigAuth.OrganizationUrl);
 			uri.Path = String.Format("/SpatialKeyFramework/api/{0}/{1}", API_VERSION, command);
-			return uri.ToString() + ToQueryString(query);
+			return uri.ToString();
 		}
 
 		private string ToQueryString(NameValueCollection nvc)
@@ -1057,6 +1067,7 @@ namespace SpatialKey.DataManager.Lib
 
 				return request.GetResponse() as HttpWebResponse;
 			}
+
 			finally
 			{
 				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
@@ -1074,8 +1085,19 @@ namespace SpatialKey.DataManager.Lib
 					throw new Exception(String.Format("File '{0}' does not exist.", file));
 			}
 
+			string zipfile = null;
+
 			try
 			{
+				var filesToUpload = new List<string>();
+				if (IsZipUploads) {
+					zipfile = ZipFiles(files);
+					filesToUpload.Add(zipfile);
+				}
+				else {
+					filesToUpload.AddRange(files);
+				}
+
 				url = url + ToQueryString(queryParam);
 				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
 				ShowMessage(MessageLevel.Verbose, string.Format("HTTP UPLOAD {0} to {1}", String.Join(", ", files), url));
@@ -1104,7 +1126,7 @@ namespace SpatialKey.DataManager.Lib
 						}
 					}
 
-					foreach (string file in files)
+					foreach (string file in filesToUpload)
 					{
 						// Write File Header
 						bytes += WriteUploadBytes(rs, boundarybytes);
@@ -1134,6 +1156,9 @@ namespace SpatialKey.DataManager.Lib
 			}
 			finally
 			{
+				if (zipfile != null) {
+					File.Delete(zipfile);
+				}
 				ShowMessage(MessageLevel.Verbose, LOG_SEPARATOR);
 			}
 		}
@@ -1184,7 +1209,7 @@ namespace SpatialKey.DataManager.Lib
 		/// <param name='fileExtension'>
 		/// File extension.
 		/// </param>
-		public static string GetTempFile(string fileExtension, string prefix = "", string path = null)
+		public static string GetTempFile(string fileExtension, string prefix = "tmp", string path = null)
 		{
 			if (path == null)
 				path = System.IO.Path.GetTempPath();
@@ -1210,6 +1235,43 @@ namespace SpatialKey.DataManager.Lib
 				}
 			}
 			return filename;
+		}
+
+		/// <summary>
+		/// Zips up all the files
+		/// </summary>
+		/// <returns>
+		/// The temp path to the zip
+		/// </returns>
+		/// <param name='files'>
+		/// Array of files
+		/// </param>
+		public string ZipFiles(string[] files)
+		{
+			var zippath = GetTempFile("zip");
+
+			using (new MessageTimeTaken(MyMessenger, string.Format("Compressing File(s) '{0}' to '{1}' ", string.Join(", ", files), zippath)))
+			{
+				using (var zipFileStream = new FileStream(zippath, FileMode.Create))
+				{
+					using (var zipArchive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
+					{
+						foreach (var file in files)
+						{
+							var zipEntry = zipArchive.CreateEntry(Path.GetFileName(file));
+							using (var zipEntryStream = zipEntry.Open())
+							{
+								using (var fileStream = File.OpenRead(file))
+								{
+									fileStream.CopyTo(zipEntryStream);
+								}
+							}
+						}
+					}
+				}
+			}
+
+			return zippath;
 		}
 
 		#endregion //  General Helpers
