@@ -56,13 +56,12 @@ namespace tests
 		}
 
 		[Test()]
-		[ExpectedException(typeof(CommandLineParser.ExceptionOption))]
 		public void TestOptionValueKeyWithBlank()
 		{
 			//Assert.Throws<CommandLineParser.OptionException>(
 			//	() => new CommandLineParser.OptionValue<String>(new String[]{"bad key"}, "some description", "PROMPT", false, null));
-			new CommandLineParser.OptionValue<String>(
-				new String[] { "good", "bad key" }, "some description", "PROMPT", "some default");
+			Assert.Throws<CommandLineParser.ExceptionOption>(() => new CommandLineParser.OptionValue<String>(
+				new String[] { "good", "bad key" }, "some description", "PROMPT", "some default"));
 			Assert.IsTrue(false, "never get here");
 		}
 
@@ -127,7 +126,6 @@ namespace tests
 		}
 
 		[Test()]
-		[ExpectedException(typeof(CommandLineParser.ExceptionParse))]
 		public void TestOptionValueParseStringTwiceException()
 		{
 			CommandLineParser.OptionValue<String> option = new CommandLineParser.OptionValue<String>(new String[] { "test" }, "desc", "VAL", "original value");
@@ -135,7 +133,7 @@ namespace tests
 			Assert.AreEqual("some value", option.Value);
 			//Assert.Throws<CommandLineParser.ParseException>(
 			//	() => option.Parse(new Queue<String> (new string[]{ "/test", "some value" });
-			Assert.IsTrue(option.Parse("/test", new Queue<String>(new string[] { "some value" })));
+			Assert.Throws<CommandLineParser.ExceptionParse>(() => Assert.IsTrue(option.Parse("/test", new Queue<String>(new string[] { "some value" }))));
 			Assert.IsTrue(false, "never get here");
 		}
 
@@ -179,12 +177,11 @@ namespace tests
 		}
 
 		[Test()]
-		[ExpectedException(typeof(CommandLineParser.ExceptionParse))]
 		public void TestOptionBooleanTwice()
 		{
 			CommandLineParser.OptionBoolean option = new CommandLineParser.OptionBoolean(new String[] { "bool" });
 			Assert.IsTrue(option.Parse("-bool", new Queue<String>(new string[] { })));
-			option.Parse("/bool", new Queue<String>(new string[] { }));
+			Assert.Throws<CommandLineParser.ExceptionParse>(() => option.Parse("/bool", new Queue<String>(new string[] { })));
 			Assert.IsTrue(false, "never get here");
 		}
 

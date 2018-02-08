@@ -32,7 +32,7 @@ namespace SpatialKey.DataManager.Lib
 
 		#region constants
 
-		public const string VERSION = "3.0.0";
+		public const string VERSION = "3.0.1";
 
 		public const string API_VERSION = "v2";
 		// 60 min * 60 sec * 1000 msec = 3600000 msec
@@ -79,6 +79,7 @@ namespace SpatialKey.DataManager.Lib
 
 		public SpatialKeyDataManager(Messager messenger = null) : base(messenger)
 		{
+			ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 		}
 
 		static public String GetVersion()

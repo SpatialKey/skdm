@@ -30,12 +30,11 @@ namespace test
 		}
 
 		[Test()]
-		[ExpectedException(typeof(CommandLineParser.ExceptionOption))]
 		public void AddOptionValueSameException()
 		{
 			CommandLineParser cmd = new CommandLineParser("test");
 			cmd.AddOptionValue<String>(new String[] { "foo", "test" });
-			cmd.AddOptionValue<int>("test");
+            Assert.Throws<CommandLineParser.ExceptionOption>(() => cmd.AddOptionValue<int>("test"));
 			Assert.IsTrue(false, "never get here");
 		}
 
@@ -113,7 +112,6 @@ namespace test
 		}
 
 		[Test()]
-		[ExpectedException(typeof(CommandLineParser.ExceptionParse))]
 		public void ParseOptionValueMissingRequired()
 		{
 			CommandLineParser cmd = new CommandLineParser("test");
@@ -123,7 +121,7 @@ namespace test
 			Assert.AreEqual("test value", cmd.FindOption("test").GetValue<string>());
 			Assert.AreEqual(0, cmd.FindOption("foo").GetValue<int>());
 
-			cmd.Parse(new String[] { "-foo", "13" });
+			Assert.Throws<CommandLineParser.ExceptionParse>(() => cmd.Parse(new String[] { "-foo", "13" }));
 			Assert.IsTrue(false, "never get here");
 		}
 
@@ -144,12 +142,11 @@ namespace test
 		}
 
 		[Test()]
-		[ExpectedException(typeof(CommandLineParser.ExceptionOption))]
 		public void ExceptionOverwritingHelp()
 		{
 			CommandLineParser cmd = new CommandLineParser("test");
 			cmd.AddOptionHelp();
-			cmd.AddOptionValue<String>(new String[] { "?", "test" });
+			Assert.Throws<CommandLineParser.ExceptionOption>(() => cmd.AddOptionValue<String>(new String[] { "?", "test" }));
 			Assert.IsTrue(false, "never get here");
 		}
 
