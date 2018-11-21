@@ -45,7 +45,8 @@ namespace SpatialKey.DataManager.Lib.Config
 		protected String _dataType;
 		protected String _locationId;
 		protected String _policyId;
-		protected String _uploadId;
+        protected String _reinsuranceId;
+        protected String _uploadId;
 		protected Boolean _isUpdateDoc = false;
 		protected Boolean _isWaitUpdate = true;
 		#endregion
@@ -81,8 +82,9 @@ namespace SpatialKey.DataManager.Lib.Config
 		// from pathXML if dataType is TYPE_INSURANCE
 		virtual public String LocationId { get { return _locationId; } set { _locationId = value; } }
 		virtual public String PolicyId { get { return _policyId; } set { _policyId = value; } }
-		// set when uploaded pathDataArray
-		virtual public String UploadId { get { return _uploadId; } set { _uploadId = value; } }
+        virtual public String ReinsuranceId { get { return _reinsuranceId; } set { _reinsuranceId = value; } }
+        // set when uploaded pathDataArray
+        virtual public String UploadId { get { return _uploadId; } set { _uploadId = value; } }
 		virtual public Boolean IsUpdateDoc { get { return _isUpdateDoc; } set { _isUpdateDoc = value; } }
 
 		virtual public Boolean IsWaitUpdate { get { return _isWaitUpdate; } set { _isWaitUpdate = value; } }
@@ -122,7 +124,8 @@ namespace SpatialKey.DataManager.Lib.Config
 				doc.Load(PathXml);
 				PolicyId = XMLUtils.GetInnerText(doc, "/insuranceImport/policyDataset/@id");
 				LocationId = XMLUtils.GetInnerText(doc, "/insuranceImport/locationDataset/@id");
-			}
+                ReinsuranceId = XMLUtils.GetInnerText(doc, "/insuranceImport/reinsuranceDataset/@id");
+            }
 
 			Validate();
 		}
@@ -140,8 +143,8 @@ namespace SpatialKey.DataManager.Lib.Config
 				throw new Exception(String.Format("Invalid actionType '{0}' must be one of '{1}'", ActionType, String.Join(", ", VALID_ACTIONS)));
 
 			// make sure have the right number of data files
-			if (DataType == TYPE_INSURANCE && !(PathDataArray.Length == 2 || PathDataArray.Length == 0))
-				throw new Exception(String.Format("Invalid configuration dataType '{0}' requires 0 or 2 pathData entries.", DataType));
+			if (DataType == TYPE_INSURANCE && !(PathDataArray.Length == 2 || PathDataArray.Length == 3 || PathDataArray.Length == 0))
+				throw new Exception(String.Format("Invalid configuration dataType '{0}' requires 0 or 3 pathData entries.", DataType));
 			else if (DataType != TYPE_INSURANCE && PathDataArray.Length != 1)
 				throw new Exception(String.Format("Invalid configuration dataType '{0}' requires 1 pathData entries.", DataType));
 
@@ -178,12 +181,13 @@ namespace SpatialKey.DataManager.Lib.Config
 		public string TraceInfo()
 		{
 			if (DataType == TYPE_INSURANCE)
-				return String.Format("actionName: '{0}' actionType: '{1}' dataType: '{2}' insuranceId: '{3}' policyId: '{4}' locationId: '{5}', pathXML: '{6}' pathData: '{7}'", 
+				return String.Format("actionName: '{0}' actionType: '{1}' dataType: '{2}' insuranceId: '{3}' policyId: '{4}' reinsuranceId: '{5}' locationId: '{6}', pathXML: '{7}' pathData: '{8}'", 
 					FormatTraceValue(ActionName),
 					FormatTraceValue(ActionType), 
 					FormatTraceValue(DataType), 
 					FormatTraceValue(id), 
-					FormatTraceValue(PolicyId), 
+					FormatTraceValue(PolicyId),
+                    FormatTraceValue(ReinsuranceId), 
 					FormatTraceValue(LocationId), 
 					FormatTraceValue(PathXml), 
 					FormatTraceValue(PathDataArray));
@@ -322,7 +326,7 @@ namespace SpatialKey.DataManager.Lib.Config
 			string uploadMessage;
 			if (DataType == ActionConfig.TYPE_INSURANCE && PathDataArray.Length == 0)
 			{
-				ShowMessage(MessageLevel.Error, String.Format("Canot do an insurance overwrite with only ids '{0}'", PathXml));
+				ShowMessage(MessageLevel.Error, String.Format("Cannot do an insurance overwrite with only ids '{0}'", PathXml));
 				return;
 			}
 			else
@@ -427,22 +431,25 @@ namespace SpatialKey.DataManager.Lib.Config
 			{
 				string policyId = null;
 				string locationId = null;
-				string insuranceId = null;
+                string reinsuranceId = null;
+                string insuranceId = null;
 				if (ids != null)
 				{
 					foreach (KeyValuePair<string, string> cur in ids)
 					{
 						if (cur.Value.ToLower() == "policy_dataset")
 							policyId = cur.Key;
-						else if (cur.Value.ToLower() == "location_dataset")
+                        else if (cur.Value.ToLower() == "reinsurance_dataset")
+                            reinsuranceId = cur.Key;
+                        else if (cur.Value.ToLower() == "location_dataset")
 							locationId = cur.Key;
 						else if (cur.Value.ToLower() == "insurance")
 							insuranceId = cur.Key;
 					}
 				}
-				if (PathDataArray.Length == 2)
+				if (PathDataArray.Length == 2 || PathDataArray.Length == 3)
 				{
-					if (policyId == null || locationId == null || insuranceId == null)
+                    if (policyId == null || locationId == null || insuranceId == null || (PathDataArray.Length == 3 && reinsuranceId == null))
 					{
 						ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find policy, location, and insurance ids: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
 						return false;
@@ -451,7 +458,10 @@ namespace SpatialKey.DataManager.Lib.Config
 					doc.Load(PathXml);
 					(doc.SelectSingleNode("/insuranceImport/policyDataset") as XmlElement).SetAttribute("id", policyId);
 					(doc.SelectSingleNode("/insuranceImport/locationDataset") as XmlElement).SetAttribute("id", locationId);
-					doc.Save(PathXml);
+                    if(PathDataArray.Length == 3){
+                        (doc.SelectSingleNode("/insuranceImport/reinsuranceDataset") as XmlElement).SetAttribute("id", reinsuranceId);
+                    }
+                    doc.Save(PathXml);
 					ShowMessage(MessageLevel.Result, String.Format("UPDATE wrote policy and location ids to {0}", PathXml));
 				}
 				else if (PathDataArray.Length == 0)

@@ -3,6 +3,7 @@
   <linkColumn>
     <policyColumn>account id</policyColumn>
     <locationColumn>account id</locationColumn>
+    <reinsuranceColumn>exposure id</reinsuranceColumn>
   </linkColumn>
   <feature>PolicyExposedLimit</feature>
   <permissions>
@@ -33,7 +34,6 @@
     <locationColumn>
       <name>hurricane site limit</name>
       <label>hurricane site limit</label>
-      <perilMapping peril="Hurricane">limit</perilMapping>
       <type>Currency</type>
       <format>USD</format>
     </locationColumn>
@@ -65,7 +65,6 @@
     <locationColumn>
       <name>earthquake site deductible</name>
       <label>earthquake site deductible</label>
-      <perilMapping peril="Earthquake">deductible</perilMapping>
       <type>Currency</type>
       <format>USD</format>
     </locationColumn>
@@ -89,7 +88,6 @@
     <locationColumn>
       <name>hurricane site deductible</name>
       <label>hurricane site deductible</label>
-      <perilMapping peril="Hurricane">deductible</perilMapping>
       <type>Currency</type>
       <format>USD</format>
     </locationColumn>
@@ -156,7 +154,6 @@
     <locationColumn>
       <name>earthquake site limit</name>
       <label>earthquake site limit</label>
-      <perilMapping peril="Earthquake">limit</perilMapping>
       <type>Currency</type>
       <format>USD</format>
     </locationColumn>
@@ -263,4 +260,80 @@
     </policyColumn>
     <type>CSV</type>
   </policyDataset>
+  <reinsuranceDataset>
+    <name>Reinsurance</name>
+    <filename>Sample Reinsurance.csv</filename>
+    <preparedWith>Spatialkey API</preparedWith>
+    <preparedDate>2018-11-09T12:00:0.000-05:00</preparedDate>
+    <reinsuranceColumn>
+      <name>reinsurance id</name>
+      <label>reinsurance id</label>
+      <insuranceMapping>reinsurance_id</insuranceMapping>
+      <type>Integer</type>
+      <format>ID</format>
+    </reinsuranceColumn>
+    <reinsuranceColumn>
+      <!-- Linkage is determined by the EXPOSRTYPE field. If EXPOSRTYPE = LOC, then EXPOSUREID = PROPERTY.LOCNUM. If EXPOSRTYPE = POL, then EXPOSUREID = POLICY.POLICYNUM. -->
+      <name>exposure id</name>
+      <label>exposure id</label>
+      <insuranceMapping>exposure_id</insuranceMapping>
+      <type>Integer</type>
+      <format>ID</format>
+    </reinsuranceColumn>
+    <reinsuranceColumn>
+      <name>exposure type</name>
+      <label>exposure type</label>
+      <insuranceMapping>exposure_type</insuranceMapping>
+      <type>String</type>
+    </reinsuranceColumn>
+    <reinsuranceColumn>
+      <!-- 1 through X order of applying -->
+      <name>priority</name>
+      <label>priority</label>
+      <insuranceMapping>priority</insuranceMapping>
+      <type>Integer</type>
+      <format>ID</format>
+    </reinsuranceColumn>
+    <reinsuranceColumn>
+      <!-- 1 through X order of applying -->
+      <name>layer number</name>
+      <label>layer number</label>
+      <type>Integer</type>
+      <format>ID</format>
+    </reinsuranceColumn>
+    <reinsuranceColumn>
+      <name>percent reinsurance</name>
+      <label>percent reinsurance</label>
+      <insuranceMapping>percent_reinsurance</insuranceMapping>
+      <type>Integer</type>
+      <format>ID</format>
+    </reinsuranceColumn>
+    <reinsuranceColumn>
+      <name>layer amount</name>
+      <label>layer amount</label>
+      <insuranceMapping>layer_amount</insuranceMapping>
+      <type>Currency</type>
+      <format>USD</format>
+    </reinsuranceColumn>
+    <reinsuranceColumn>
+      <name>excess amount</name>
+      <label>excess amount</label>
+      <insuranceMapping>excess_amount</insuranceMapping>
+      <type>Currency</type>
+      <format>USD</format>
+    </reinsuranceColumn>
+    <reinsuranceColumn>
+      <name>reinsurance name</name>
+      <label>reinsurance name</label>
+      <type>String</type>
+    </reinsuranceColumn>
+    <reinsuranceColumn>
+      <!-- F - facultative  T - treaty (we currently only support facultative but we should add this for future support)-->
+      <name>reinsurance type</name>
+      <label>reinsurance type</label>
+      <insuranceMapping>reinsurance_type</insuranceMapping>
+      <type>String</type>
+    </reinsuranceColumn>
+    <type>CSV</type>
+  </reinsuranceDataset>
 </insuranceImport>

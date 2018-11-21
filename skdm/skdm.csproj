@@ -83,6 +83,8 @@
     <None Include="TestData\Sample Locations and Policies Insurance.xml" />
     <None Include="TestData\Sample Locations.csv" />
     <None Include="TestData\Sample Policies.csv" />
+    <None Include="TestData\Sample Locations, Policies and reinsurance Insurance.xml" />
+    <None Include="TestData\Sample Reinsurance.csv" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\skdm-lib\skdm-lib.csproj">
