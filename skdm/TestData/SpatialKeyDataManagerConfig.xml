@@ -102,7 +102,7 @@
       <!--- policy data -->
       <pathData>SamplePolicyFile.csv</pathData>
       <!--- reinsurance data -->
-      <pathData>SampleReinsurancFile.csv</pathData>
+      <pathData>SampleReinsuranceFile.csv</pathData>
       <!-- no pathData, using existing ids in pathXML -->
       <!--- configuration file for the data -->
       <pathXML>Sample Locations, Policies and reinsurance Insurance.xml</pathXML>
