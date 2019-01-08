@@ -1,0 +1,4 @@
+﻿Reinsurance_ID,Exposure_ID,Exposure_Type,Priority,Layer_Number,Percent_Reinsurance,Layer_Amount,Excess_Amount,Reinsurance_Name,Reinsurance_Type
+1,1,POL ,1,1,75,750000,750000,Reins1,F
+2,4,LOC,1,1,25,750000,0,Reins2,F
+3,4,LOC,2,1,50,250000,0,Reins3,F
