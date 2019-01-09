@@ -1,8 +1,8 @@
 ﻿<?xml version="1.0" encoding="UTF-8"?>
 <insuranceImport>
   <linkColumn>
-    <policyColumn>account id</policyColumn>
-    <locationColumn>account id</locationColumn>
+    <policyColumn>Account Number</policyColumn>
+    <locationColumn>account number</locationColumn>
     <reinsuranceColumn>exposure id</reinsuranceColumn>
   </linkColumn>
   <feature>PolicyExposedLimit</feature>
@@ -18,7 +18,7 @@
   <locationDataset>
     <latlon />
     <type>CSV</type>
-    <filename>Sample Locations.csv</filename>
+    <filename>SampleLocationFile.csv</filename>
     <name>Sample Insurance Locations and Policies</name>
     <preparedWith>Spatialkey API</preparedWith>
     <preparedDate>2013-12-05T16:03:21.476-05:00</preparedDate>
@@ -32,64 +32,28 @@
       <thematicDataset>US_States</thematicDataset>
     </pointThematicLayer>
     <locationColumn>
-      <name>hurricane site limit</name>
-      <label>hurricane site limit</label>
-      <type>Currency</type>
-      <format>USD</format>
-    </locationColumn>
-    <locationColumn>
       <name>year built</name>
       <label>year built</label>
       <type>Date</type>
       <format>Year</format>
     </locationColumn>
     <locationColumn>
-      <name>earthquake gross aal</name>
-      <label>earthquake gross aal</label>
-      <type>Currency</type>
-      <format>USD</format>
-    </locationColumn>
-    <locationColumn>
-      <name>account id</name>
-      <label>account id</label>
+      <name>account number</name>
+      <label>account number</label>
       <type>Integer</type>
       <format>ID</format>
     </locationColumn>
     <locationColumn>
-      <name>total insured value</name>
-      <label>total insured value</label>
+      <name>tiv</name>
+      <label>tiv</label>
       <insuranceMapping>tiv</insuranceMapping>
       <type>Currency</type>
       <format>USD</format>
     </locationColumn>
     <locationColumn>
-      <name>earthquake site deductible</name>
-      <label>earthquake site deductible</label>
-      <type>Currency</type>
-      <format>USD</format>
-    </locationColumn>
-    <locationColumn>
-      <name>state</name>
-      <label>state</label>
+      <name>State/Province</name>
+      <label>State/Province</label>
       <type>String</type>
-    </locationColumn>
-    <locationColumn>
-      <name>site id</name>
-      <label>site id</label>
-      <insuranceMapping>site_id</insuranceMapping>
-      <type>Integer</type>
-      <format>ID</format>
-    </locationColumn>
-    <locationColumn>
-      <name>earthquake risk</name>
-      <label>earthquake risk</label>
-      <type>String</type>
-    </locationColumn>
-    <locationColumn>
-      <name>hurricane site deductible</name>
-      <label>hurricane site deductible</label>
-      <type>Currency</type>
-      <format>USD</format>
     </locationColumn>
     <locationColumn>
       <name>location id</name>
@@ -104,37 +68,14 @@
       <type>String</type>
     </locationColumn>
     <locationColumn>
-      <name>hurricane risk</name>
-      <label>hurricane risk</label>
-      <type>String</type>
-    </locationColumn>
-    <locationColumn>
       <name>square footage</name>
       <label>square footage</label>
       <type>Integer</type>
     </locationColumn>
     <locationColumn>
-      <name>hurricane gross aal</name>
-      <label>hurricane gross aal</label>
-      <type>Currency</type>
-      <format>USD</format>
-    </locationColumn>
-    <locationColumn>
-      <name>earthquake ground up aal</name>
-      <label>earthquake ground up aal</label>
-      <type>Currency</type>
-      <format>USD</format>
-    </locationColumn>
-    <locationColumn>
-      <name>postal code</name>
-      <label>postal code</label>
+      <name>ZIP/Postal Code</name>
+      <label>ZIP/Postal Code</label>
       <type>String</type>
-    </locationColumn>
-    <locationColumn>
-      <name>hurricane ground up aal</name>
-      <label>hurricane ground up aal</label>
-      <type>Currency</type>
-      <format>USD</format>
     </locationColumn>
     <locationColumn>
       <name>longitude</name>
@@ -152,12 +93,6 @@
       <type>String</type>
     </locationColumn>
     <locationColumn>
-      <name>earthquake site limit</name>
-      <label>earthquake site limit</label>
-      <type>Currency</type>
-      <format>USD</format>
-    </locationColumn>
-    <locationColumn>
       <name>construction</name>
       <label>construction</label>
       <type>String</type>
@@ -170,12 +105,12 @@
   </locationDataset>
   <policyDataset>
     <name>Policies</name>
-    <filename>Sample Policies.csv</filename>
+    <filename>SamplePolicyFile.csv</filename>
     <preparedWith>Spatialkey API</preparedWith>
     <preparedDate>2013-11-19T16:24:31.203-05:00</preparedDate>
     <policyColumn>
-      <name>limit</name>
-      <label>limit</label>
+      <name>Blanket Limit</name>
+      <label>Blanket Limit</label>
       <insuranceMapping>limit</insuranceMapping>
       <type>Currency</type>
       <format>USD</format>
@@ -186,20 +121,14 @@
       <type>String</type>
     </policyColumn>
     <policyColumn>
-      <name>account id</name>
-      <label>account id</label>
+      <name>Account Number</name>
+      <label>Account Number</label>
       <type>Integer</type>
       <format>ID</format>
     </policyColumn>
     <policyColumn>
-      <name>blanket/minimum deductible</name>
-      <label>blanketminimum deductible</label>
-      <type>Currency</type>
-      <format>USD</format>
-    </policyColumn>
-    <policyColumn>
-      <name>premium</name>
-      <label>premium</label>
+      <name>Blanket Deductible</name>
+      <label>Blanket Deductible</label>
       <type>Currency</type>
       <format>USD</format>
     </policyColumn>
@@ -234,12 +163,6 @@
       <type>String</type>
     </policyColumn>
     <policyColumn>
-      <name>expiration date</name>
-      <label>expiration date</label>
-      <type>Date</type>
-      <format>Day</format>
-    </policyColumn>
-    <policyColumn>
       <name>branch</name>
       <label>branch</label>
       <type>String</type>
@@ -262,7 +185,7 @@
   </policyDataset>
   <reinsuranceDataset>
     <name>Reinsurance</name>
-    <filename>Sample Reinsurance.csv</filename>
+    <filename>SampleReinsuranceFile.csv</filename>
     <preparedWith>Spatialkey API</preparedWith>
     <preparedDate>2018-11-09T12:00:0.000-05:00</preparedDate>
     <reinsuranceColumn>

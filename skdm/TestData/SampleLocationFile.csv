@@ -1,0 +1,9 @@
+Account Number,Location ID,Country,City,ZIP/Postal Code,State/Province,Latitude,Longitude,Occupancy,Year Built,Square Footage,Construction,Number of Stories,TIV,Site Limit,Site Deductible,COND1NAME|STRING,COND1POLICYNUM|STRING,COND2NAME|STRING,COND2POLICYNUM|STRING,COND3NAME|STRING,COND3POLICYNUM|STRING,COND4NAME|STRING,COND4POLICYNUM|STRING,COND5NAME|STRING,COND5POLICYNUM|STRING
+1,1,CA,Toronto,M5S 3A9,ON,43.66166,-79.387,General Commercial,1988,13000,reinforced masonry,1,"1,000,000","900,000","100,000",Non US,2,,,,,,,,
+1,2,CA,Toronto,M7A,ON,43.663053,-79.387991,General Commercial,2004,10000,reinforced masonry,1,"800,000","650,000","80,000",Non US,2,,,,,,,,
+1,3,CA,Toronto,M5R 2S9,ON,43.667561,-79.403882,General Commercial,2009,50000,reinforced masonry,3,"750,000","550,000","75,000",Non US,2,,,,,,,,
+1,4,US,Carmel,93923,CA,36.525348,-121.83447,General Commercial,1990,15000,reinforced masonry,1,"1,500,000",,,California,1,,,,,,,,
+1,5,US,Salinas,93906,CA,36.734041,-121.65535,General Commercial,1968,20000,steel frame,2,"1,250,000","1,000,000","200,000",California,1,,,,,,,,
+1,6,US,Richmond,94806,CA,37.979808,-122.35424,Permanent Dwelling (single family housing),1987,10000,steel frame,1,"980,000","900,000","98,000",California,1,,,,,,,,
+1,7,US,Fort Collins,80521,CO,40.578237,-105.0827,Religion and Nonprofit,1967,13000,reinforced masonry,2,"1,100,000","1,100,000","110,000",,,,,,,,,,
+1,8,US,Boulder,80302,CO,40.010637,-105.2785,Education,1969,18000,steel frame,1,"1,000,000","750,000","100,000",,,,,,,,,,
