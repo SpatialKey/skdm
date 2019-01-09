@@ -98,11 +98,11 @@
       <!--- dataType can be CSV or Shapefile -->
       <dataType>insurance</dataType>
       <!---path to to the data to upload -->
-      <pathData>Sample Locations.csv</pathData>
+      <pathData>SampleLocationFile.csv</pathData>
       <!--- policy data -->
-      <pathData>Sample Policies.csv</pathData>
+      <pathData>SamplePolicyFile.csv</pathData>
       <!--- reinsurance data -->
-      <pathData>Sample Reinsurance.csv</pathData>
+      <pathData>SampleReinsuranceFile.csv</pathData>
       <!-- no pathData, using existing ids in pathXML -->
       <!--- configuration file for the data -->
       <pathXML>Sample Locations, Policies and reinsurance Insurance.xml</pathXML>
