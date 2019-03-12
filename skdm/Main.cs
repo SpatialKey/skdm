@@ -22,8 +22,7 @@ namespace SpatialKey.DataManager.App
 		#region Command/Option constants
 
 		// general help description
-		private static string HELP_DESCRIPTION = @"Command line tool to work with the data API or create oAuth tokens.
-See http://support.spatialkey.com/dmapi for more information";
+		private static string HELP_DESCRIPTION = @"Command line tool to work with the data API or create oAuth tokens.";
 		// options
 		private const string PARAM_CONFIG = "config";
 		private const string PARAM_VERSION = "version";
