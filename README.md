@@ -3,9 +3,9 @@
 This is the second release of the SpatialKey DM API command line tool. The initial release can be found at [here]https://github.com/SpatialKey/skdm/tree/v1
 
 # Introduction
-The [SpatialKey Data Management REST API](http://support.spatialkey.com/dmapi) allows developers to programmatically create and update CSV data or Shapefiles in SpatialKey without having to login.  With the Command Line Tool, typical users of SpatialKey can leverage this functionality without any programming knowledge.  You just need to learn a few of the basics and you will be all set to kicking off import and update jobs outside of SpatialKey.
+The SpatialKey Data Management REST API allows developers to programmatically create and update CSV data or Shapefiles in SpatialKey without having to login.  With the Command Line Tool, typical users of SpatialKey can leverage this functionality without any programming knowledge.  You just need to learn a few of the basics and you will be all set to kicking off import and update jobs outside of SpatialKey.
 
-This documentation can also be found [here](http://support.spatialkey.com/data-management-api-command-line-tool/)
+Kindly send an email to support@spatialkey.com for the documentation.
 
 Note that the Data Management API Command Line Tool isn’t currently supported when called through a proxy server.
 
@@ -94,7 +94,7 @@ Delete datasets by id.  One or more ids can be specified.
 
 You can create the suggested xml configuration files by running "skdm.exe suggest".
 
-For tips on generating an XML descriptor file for your CSV, check out this [article](http://support.spatialkey.com/xml-file-generation/)
+For tips on generating an XML descriptor file for your CSV, kindly send an email to support@spatialkey.com
 
 # Setting up the Data Manager Config XML file
 The Data Manager Config XML file is split into the following sections:
