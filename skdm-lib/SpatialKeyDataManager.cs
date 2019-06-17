@@ -1111,6 +1111,8 @@ namespace SpatialKey.DataManager.Lib
 
 				ShowMessage(MessageLevel.Verbose, "Content-Type: " + request.ContentType);
 				long bytes = 0;
+                request.AllowWriteStreamBuffering = false;
+                request.SendChunked = true;
 				using (Stream rs = request.GetRequestStream())
 				{
 					// Write NVP
