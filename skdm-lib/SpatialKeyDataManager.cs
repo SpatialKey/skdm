@@ -624,7 +624,7 @@ namespace SpatialKey.DataManager.Lib
 		{
             Login();
             
-            ShowMessage(MessageLevel.Status, String.Format("Overwrite uploadId:{0} datasetId: {1} config: '{2}'", uploadId, datasetId, pathConfig));
+            ShowMessage(MessageLevel.Status, String.Format("Overwrite uploadId:{0} locationId: {1} config: '{2}'", uploadId, datasetId, pathConfig));
 
 			// add the query string
 			NameValueCollection query = new NameValueCollection();
@@ -640,7 +640,7 @@ namespace SpatialKey.DataManager.Lib
 			}
 			catch (Exception ex)
 			{
-				ShowException(String.Format("Failed overwrite uploadId:{0} datasetId: {1} config: '{2}'", uploadId, datasetId, pathConfig), ex);
+				ShowException(String.Format("Failed overwrite uploadId:{0} locationId: {1} config: '{2}'", uploadId, datasetId, pathConfig), ex);
 				return false;
 			}
 		}

@@ -41,11 +41,9 @@ namespace SpatialKey.DataManager.Lib.Config
 		protected String _actionName;
 		protected String[] _pathDataArray;
 		protected String _pathXML;
-		protected String _id;
+		protected String _datasetId;
 		protected String _dataType;
 		protected String _locationId;
-		protected String _policyId;
-        protected String _reinsuranceId;
         protected String _uploadId;
 		protected Boolean _isUpdateDoc = false;
 		protected Boolean _isWaitUpdate = true;
@@ -62,16 +60,16 @@ namespace SpatialKey.DataManager.Lib.Config
 
 		virtual public String ActionType { get { return _actionType; } set { _actionType = value.ToLower(); } }
 
-		virtual public String id { 
-			get { return _id; } 
+		virtual public String DatasetId { 
+			get { return _datasetId; } 
 			set { 
-				_id = value;
-				if (_id != null && xml != null)
+				_datasetId = value;
+				if (_datasetId != null && xml != null)
 				{
-					string elementName = DataType == TYPE_INSURANCE ? "insuranceId" : "datasetId";
+					string elementName = "datasetId";
 					if (xml.SelectSingleNode(elementName) == null)
 						xml.AppendChild(xml.OwnerDocument.CreateElement(elementName));
-					xml.SelectSingleNode(elementName).InnerText = _id;
+					xml.SelectSingleNode(elementName).InnerText = _datasetId;
 					IsUpdateDoc = true;
 				}
 			} 
@@ -81,8 +79,6 @@ namespace SpatialKey.DataManager.Lib.Config
 
 		// from pathXML if dataType is TYPE_INSURANCE
 		virtual public String LocationId { get { return _locationId; } set { _locationId = value; } }
-		virtual public String PolicyId { get { return _policyId; } set { _policyId = value; } }
-        virtual public String ReinsuranceId { get { return _reinsuranceId; } set { _reinsuranceId = value; } }
         // set when uploaded pathDataArray
         virtual public String UploadId { get { return _uploadId; } set { _uploadId = value; } }
 		virtual public Boolean IsUpdateDoc { get { return _isUpdateDoc; } set { _isUpdateDoc = value; } }
@@ -115,16 +111,17 @@ namespace SpatialKey.DataManager.Lib.Config
 			PathXml = XMLUtils.GetInnerText(xml, "pathXML");
 			DataType = XMLUtils.GetInnerText(xml, "dataType");
 
-			_id = (DataType == TYPE_INSURANCE ? XMLUtils.GetInnerText(xml, "insuranceId") : XMLUtils.GetInnerText(xml, "datasetId"));
+			if (DataType != TYPE_INSURANCE)
+			{
+				_datasetId = XMLUtils.GetInnerText(xml, "datasetId");
+			}
 
 			// load insurance configuration ids if needed
 			if (DataType == TYPE_INSURANCE && File.Exists(PathXml))
 			{
 				XmlDocument doc = new XmlDocument();
 				doc.Load(PathXml);
-				PolicyId = XMLUtils.GetInnerText(doc, "/insuranceImport/policyDataset/@id");
 				LocationId = XMLUtils.GetInnerText(doc, "/insuranceImport/locationDataset/@id");
-                ReinsuranceId = XMLUtils.GetInnerText(doc, "/insuranceImport/reinsuranceDataset/@id");
             }
 
 			Validate();
@@ -154,8 +151,13 @@ namespace SpatialKey.DataManager.Lib.Config
 
 			if (ActionType == ACTION_APPEND || ActionType == ACTION_OVERWRITE)
 			{
-				if (id == null || id.Length == 0)
+				// find a way to simplify the below two if logic
+				if (DataType != TYPE_INSURANCE && (DatasetId == null || DatasetId.Length == 0))
 					ActionType = ACTION_IMPORT;
+				if (DataType == TYPE_INSURANCE && (LocationId == null || LocationId.Length == 0))
+				{
+					ActionType = ACTION_IMPORT;
+				}
 			}
 		}
 		#endregion
@@ -181,13 +183,10 @@ namespace SpatialKey.DataManager.Lib.Config
 		public string TraceInfo()
 		{
 			if (DataType == TYPE_INSURANCE)
-				return String.Format("actionName: '{0}' actionType: '{1}' dataType: '{2}' insuranceId: '{3}' policyId: '{4}' reinsuranceId: '{5}' locationId: '{6}', pathXML: '{7}' pathData: '{8}'", 
+				return String.Format("actionName: '{0}' actionType: '{1}' dataType: '{2}' locationId: '{3}', pathXML: '{4}' pathData: '{5}'", 
 					FormatTraceValue(ActionName),
 					FormatTraceValue(ActionType), 
-					FormatTraceValue(DataType), 
-					FormatTraceValue(id), 
-					FormatTraceValue(PolicyId),
-                    FormatTraceValue(ReinsuranceId), 
+					FormatTraceValue(DataType),  
 					FormatTraceValue(LocationId), 
 					FormatTraceValue(PathXml), 
 					FormatTraceValue(PathDataArray));
@@ -196,7 +195,7 @@ namespace SpatialKey.DataManager.Lib.Config
 					FormatTraceValue(ActionName), 
 					FormatTraceValue(ActionType), 
 					FormatTraceValue(DataType), 
-					FormatTraceValue(id), 
+					FormatTraceValue(DatasetId), 
 					FormatTraceValue(PathXml), 
 					FormatTraceValue(PathDataArray));
 		}
@@ -247,7 +246,7 @@ namespace SpatialKey.DataManager.Lib.Config
 				method = "ImportInsurance";
 			else
 			{
-				ShowMessage(MessageLevel.Error, String.Format("Unknown dataType '{1}", DataType));
+				ShowMessage(MessageLevel.Error, String.Format("Unknown dataType '{0}'", DataType));
 				return;
 			}
 
@@ -331,12 +330,12 @@ namespace SpatialKey.DataManager.Lib.Config
 			}
 			else
 			{
-				uploadMessage = String.Format("Overwriting {0} '{1}' using csv '{2}' and config '{3}'", (DataType == ActionConfig.TYPE_INSURANCE ? "insurance" : "dataset"), id, String.Join(", ", PathDataArray), PathXml);
+				uploadMessage = String.Format("Overwriting {0} '{1}' using csv '{2}' and config '{3}'", (DataType == ActionConfig.TYPE_INSURANCE ? "insurance location" : "dataset"), (DataType == ActionConfig.TYPE_INSURANCE ? LocationId : DatasetId), String.Join(", ", PathDataArray), PathXml);
 				ShowMessage(MessageLevel.Status, uploadMessage);
 				if (DataType == ActionConfig.TYPE_INSURANCE)
-					isSuccess = skapi.InsuranceOverwrite(UploadId, id, PathXml);
+					isSuccess = skapi.InsuranceOverwrite(UploadId, LocationId, PathXml);
 				else
-					isSuccess = skapi.DatasetOverwrite(UploadId, id, PathXml);
+					isSuccess = skapi.DatasetOverwrite(UploadId, DatasetId, PathXml);
 			}
 
 			if (!isSuccess)
@@ -372,7 +371,7 @@ namespace SpatialKey.DataManager.Lib.Config
 				return;
 			}
 
-			skapi.DatasetAppend(UploadId, id, PathXml);
+			skapi.DatasetAppend(UploadId, DatasetId, PathXml);
 			ShowMessage(MessageLevel.Status, String.Format("Appending '{0}'", String.Join(", ", PathDataArray)));
 			if (IsWaitUpdate)
 			{
@@ -429,47 +428,30 @@ namespace SpatialKey.DataManager.Lib.Config
 			Dictionary<string, string> ids = skapi.GetDatasetIDs(uploadStausJson);
 			if (DataType == ActionConfig.TYPE_INSURANCE)
 			{
-				string policyId = null;
 				string locationId = null;
-                string reinsuranceId = null;
-                string insuranceId = null;
 				if (ids != null)
 				{
 					foreach (KeyValuePair<string, string> cur in ids)
 					{
-						if (cur.Value.ToLower() == "policy_dataset")
-							policyId = cur.Key;
-                        else if (cur.Value.ToLower() == "reinsurance_dataset")
-                            reinsuranceId = cur.Key;
-                        else if (cur.Value.ToLower() == "location_dataset")
+                        if (cur.Value.ToLower() == "location_dataset")
 							locationId = cur.Key;
-						else if (cur.Value.ToLower() == "insurance")
-							insuranceId = cur.Key;
 					}
 				}
 				if (PathDataArray.Length == 2 || PathDataArray.Length == 3)
 				{
-                    if (policyId == null || locationId == null || insuranceId == null || (PathDataArray.Length == 3 && reinsuranceId == null))
+                    if (locationId == null)
 					{
-						ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find policy, location, and insurance ids: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
+						ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find location id: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
 						return false;
 					}
-					XmlDocument doc = new XmlDocument();
-					doc.Load(PathXml);
-					(doc.SelectSingleNode("/insuranceImport/policyDataset") as XmlElement).SetAttribute("id", policyId);
-					(doc.SelectSingleNode("/insuranceImport/locationDataset") as XmlElement).SetAttribute("id", locationId);
-                    if(PathDataArray.Length == 3){
-                        (doc.SelectSingleNode("/insuranceImport/reinsuranceDataset") as XmlElement).SetAttribute("id", reinsuranceId);
-                    }
-                    doc.Save(PathXml);
-					ShowMessage(MessageLevel.Result, String.Format("UPDATE wrote policy and location ids to {0}", PathXml));
-				}
-				else if (PathDataArray.Length == 0)
-				{
-					if (insuranceId == null)
+					if (LocationId == null || LocationId != locationId)
 					{
-						ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find insurance id: {1}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
-						return false;
+						LocationId = locationId;
+						XmlDocument doc = new XmlDocument();
+						doc.Load(PathXml);
+						(doc.SelectSingleNode("/insuranceImport/locationDataset") as XmlElement).SetAttribute("id", locationId);
+						doc.Save(PathXml);
+						ShowMessage(MessageLevel.Result, String.Format("UPDATE wrote location id to {0}", PathXml));
 					}
 				}
 				else
@@ -477,12 +459,11 @@ namespace SpatialKey.DataManager.Lib.Config
 					ShowMessage(MessageLevel.Error, String.Format("{0} Failed. Incorrect number of ids: {0}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
 					return false;
 				}
-				id = insuranceId;
 			}
 			else
 			{
-				id = ((ids != null && ids.Count == 1) ? (new List<string>(ids.Keys))[0] : null);
-				if (id == null)
+				DatasetId = ((ids != null && ids.Count == 1) ? (new List<string>(ids.Keys))[0] : null);
+				if (DatasetId == null)
 				{
 					ShowMessage(MessageLevel.Error, String.Format("{0} Failed.  Could not find dataset Id: {0}", uploadMessage, MiniJson.Serialize(uploadStausJson)));
 					return false;
