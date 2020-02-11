@@ -61,8 +61,6 @@
       <pathData>Sample Policies.csv</pathData>
       <!--- configuration file for the data -->
       <pathXML>Sample Locations and Policies Insurance.xml</pathXML>
-      <!-- insuranceId will be filled in on overwrite or append if not set -->
-      <insuranceId/>>
     </action>
     <action name="insurance2">
       <!-- Can override organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey  -->
@@ -76,8 +74,6 @@
       <pathData>Sample Policies.csv</pathData>
       <!--- configuration file for the data -->
       <pathXML>Sample Locations and Policies Insurance with peril specific limits.xml</pathXML>
-      <!-- insuranceId will be filled in on overwrite or append if not set -->
-      <insuranceId/>>
     </action>
     <action name="insurance3">
       <!-- Can override organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey  -->
@@ -88,8 +84,6 @@
       <!-- no pathData, using existing ids in pathXML -->
       <!--- configuration file for the data -->
       <pathXML>Sample Locations and Policies Insurance.xml</pathXML>
-      <!-- insuranceId will be filled in on overwrite or append if not set -->
-      <insuranceId />
     </action>
     <action name="reinsurance">
       <!-- Can override organizationURL, organizationAPIKey, organizationSecretKey, userAPIKey  -->
@@ -106,8 +100,6 @@
       <!-- no pathData, using existing ids in pathXML -->
       <!--- configuration file for the data -->
       <pathXML>Sample Locations, Policies and reinsurance Insurance.xml</pathXML>
-      <!-- insuranceId will be filled in on overwrite or append if not set -->
-      <insuranceId/>
     </action>
   </actions>
 </config>
