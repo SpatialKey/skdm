@@ -701,7 +701,7 @@ namespace SpatialKey.DataManager.Lib
 			string uploadId = Upload(paths);
 			Dictionary<string, object> uploadStausJson = WaitUploadComplete(uploadId);
 			if (IsUploadStatusError(uploadStausJson))
-				throw new Exception(String.Format("Upload failed: {1}", MiniJson.Serialize(uploadStausJson)));
+				throw new Exception(String.Format("Upload failed: {0}", MiniJson.Serialize(uploadStausJson)));
 			return uploadId;
 		}
 
