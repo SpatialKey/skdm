@@ -186,7 +186,7 @@ namespace SpatialKey.DataManager.Lib
 			}
 			catch (Exception ex)
 			{
-				ShowMessage(MessageLevel.Status, String.Format("Unable to validate token '{0}': {1}", _accessToken, ex.Message));
+				ShowMessage(MessageLevel.Status, String.Format("Failed to validate token '{0}': {1}", _accessToken, ex.Message));
 				return false;
 			}
 		}
