@@ -1262,8 +1262,6 @@ namespace SpatialKey.DataManager.Lib
 						 * if file is already zipped, do not zip it again, copy it to temp zippath instead
 						 * this condition is needed because our import API no longer support recursive zip files
 						*/
-
-						ShowMessage(MessageLevel.Status, String.Format("'{0}' is already a zip file, copy it to temporary directory instead", Path.GetFullPath(files[0])));
 						string zipFile = files[0];
 						using (var fileStream = File.OpenRead(zipFile))
 						{
