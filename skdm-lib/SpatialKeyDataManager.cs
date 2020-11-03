@@ -1256,7 +1256,7 @@ namespace SpatialKey.DataManager.Lib
 			{
 				using (var zipFileStream = new FileStream(zippath, FileMode.Create))
 				{
-					if (files.Length == 1 && Path.GetExtension(files[0]).Equals(".zip"))
+					if (files.Length == 1 && Path.GetExtension(files[0]).ToLowerInvariant().Equals(".zip"))
 					{
 						/*
 						 * if file is already zipped, do not zip it again, copy it to temp zippath instead
