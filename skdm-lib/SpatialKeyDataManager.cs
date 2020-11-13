@@ -1256,6 +1256,19 @@ namespace SpatialKey.DataManager.Lib
 			{
 				using (var zipFileStream = new FileStream(zippath, FileMode.Create))
 				{
+					if (files.Length == 1 && Path.GetExtension(files[0]).ToLowerInvariant().Equals(".zip"))
+					{
+						/*
+						 * if file is already zipped, do not zip it again, copy it to temp zippath instead
+						 * this condition is needed because our import API no longer support recursive zip files
+						*/
+						string zipFile = files[0];
+						using (var fileStream = File.OpenRead(zipFile))
+						{
+							fileStream.CopyTo(zipFileStream);
+						}
+						return zippath;
+					}
 					using (var zipArchive = new ZipArchive(zipFileStream, ZipArchiveMode.Create))
 					{
 						foreach (var file in files)
